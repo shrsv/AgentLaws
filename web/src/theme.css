@@ -1,0 +1,145 @@
+/*
+ * VS Code theme tokens.
+ *
+ * The AgentLaws UI runs standalone in a browser, not inside an actual VS
+ * Code webview, so unlike a real extension it does not get these custom
+ * properties injected for free. This file defines our own default values -
+ * one set matching VS Code's Dark+ theme, one matching Light+ - using VS
+ * Code's own custom-property names, so the rest of the app's CSS never
+ * hardcodes a color and would behave identically inside a real webview
+ * (docs/PLAN1.md §28).
+ */
+
+:root {
+  color-scheme: dark;
+
+  --vscode-font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, sans-serif;
+  --vscode-editor-font-family: Menlo, Monaco, 'Courier New', monospace;
+  --vscode-font-size: 13px;
+
+  /* Dark+ */
+  --vscode-editor-background: #1e1e1e;
+  --vscode-foreground: #cccccc;
+  --vscode-descriptionForeground: #9d9d9d;
+  --vscode-disabledForeground: #656565;
+
+  --vscode-sideBar-background: #252526;
+  --vscode-sideBar-foreground: #cccccc;
+  --vscode-sideBar-border: #1e1e1e;
+  --vscode-sideBarTitle-foreground: #bbbbbb;
+  --vscode-sideBarSectionHeader-background: #00000000;
+
+  --vscode-panel-border: #2b2b2b;
+  --vscode-widget-border: #303031;
+
+  --vscode-titleBar-activeBackground: #3c3c3c;
+  --vscode-titleBar-activeForeground: #cccccc;
+
+  --vscode-activityBar-background: #333333;
+  --vscode-activityBar-foreground: #ffffff;
+  --vscode-activityBar-border: #2b2b2b;
+
+  --vscode-list-hoverBackground: #2a2d2e;
+  --vscode-list-activeSelectionBackground: #094771;
+  --vscode-list-activeSelectionForeground: #ffffff;
+  --vscode-list-inactiveSelectionBackground: #37373d;
+  --vscode-list-focusOutline: #007fd4;
+
+  --vscode-focusBorder: #007fd4;
+  --vscode-textLink-foreground: #3794ff;
+  --vscode-textLink-activeForeground: #3794ff;
+
+  --vscode-button-background: #0e639c;
+  --vscode-button-foreground: #ffffff;
+  --vscode-button-hoverBackground: #1177bb;
+
+  --vscode-input-background: #3c3c3c;
+  --vscode-input-foreground: #cccccc;
+  --vscode-input-border: #3c3c3c;
+  --vscode-input-placeholderForeground: #a6a6a6;
+
+  --vscode-badge-background: #4d4d4d;
+  --vscode-badge-foreground: #ffffff;
+
+  --vscode-errorForeground: #f48771;
+  --vscode-editorWarning-foreground: #cca700;
+  --vscode-editorInfo-foreground: #3794ff;
+
+  --vscode-scrollbarSlider-background: rgba(121, 121, 121, 0.4);
+  --vscode-scrollbarSlider-hoverBackground: rgba(100, 100, 100, 0.7);
+
+  --vscode-editorGutter-background: #1e1e1e;
+  --vscode-textCodeBlock-background: #0a0a0a;
+  --vscode-textPreformat-foreground: #d7ba7d;
+
+  --vscode-editorLineNumber-foreground: #858585;
+  --vscode-symbolIcon-numberForeground: #b5cea8;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    color-scheme: light;
+
+    --vscode-editor-background: #ffffff;
+    --vscode-foreground: #3b3b3b;
+    --vscode-descriptionForeground: #717171;
+    --vscode-disabledForeground: #a1a1a1;
+
+    --vscode-sideBar-background: #f3f3f3;
+    --vscode-sideBar-foreground: #3b3b3b;
+    --vscode-sideBar-border: #e7e7e7;
+    --vscode-sideBarTitle-foreground: #6f6f6f;
+    --vscode-sideBarSectionHeader-background: #00000000;
+
+    --vscode-panel-border: #e0e0e0;
+    --vscode-widget-border: #e5e5e5;
+
+    --vscode-titleBar-activeBackground: #dddddd;
+    --vscode-titleBar-activeForeground: #3b3b3b;
+
+    --vscode-activityBar-background: #2c2c2c;
+    --vscode-activityBar-foreground: #ffffff;
+    --vscode-activityBar-border: #e7e7e7;
+
+    --vscode-list-hoverBackground: #e8e8e8;
+    --vscode-list-activeSelectionBackground: #0060c0;
+    --vscode-list-activeSelectionForeground: #ffffff;
+    --vscode-list-inactiveSelectionBackground: #e4e6f1;
+    --vscode-list-focusOutline: #0090f1;
+
+    --vscode-focusBorder: #0090f1;
+    --vscode-textLink-foreground: #006ab1;
+    --vscode-textLink-activeForeground: #006ab1;
+
+    --vscode-button-background: #007acc;
+    --vscode-button-foreground: #ffffff;
+    --vscode-button-hoverBackground: #0062a3;
+
+    --vscode-input-background: #ffffff;
+    --vscode-input-foreground: #3b3b3b;
+    --vscode-input-border: #cecece;
+    --vscode-input-placeholderForeground: #767676;
+
+    --vscode-badge-background: #c4c4c4;
+    --vscode-badge-foreground: #333333;
+
+    --vscode-errorForeground: #a1260d;
+    --vscode-editorWarning-foreground: #bf8803;
+    --vscode-editorInfo-foreground: #006ab1;
+
+    --vscode-scrollbarSlider-background: rgba(100, 100, 100, 0.4);
+    --vscode-scrollbarSlider-hoverBackground: rgba(100, 100, 100, 0.7);
+
+    --vscode-editorGutter-background: #ffffff;
+    --vscode-textCodeBlock-background: #f2f2f2;
+    --vscode-textPreformat-foreground: #a31515;
+
+    --vscode-editorLineNumber-foreground: #237893;
+    --vscode-symbolIcon-numberForeground: #098658;
+  }
+}
+
+/* Explicit toggle, if the app ever adds a manual light/dark switch. */
+:root[data-theme='light'] {
+  color-scheme: light;
+}

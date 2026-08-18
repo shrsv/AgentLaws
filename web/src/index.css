@@ -1,0 +1,64 @@
+@import './theme.css';
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--vscode-editor-background);
+  color: var(--vscode-foreground);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  line-height: 1.5;
+}
+
+code,
+pre {
+  font-family: var(--vscode-editor-font-family);
+}
+
+a {
+  color: var(--vscode-textLink-foreground);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+  color: var(--vscode-textLink-activeForeground);
+}
+
+::selection {
+  background: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--vscode-scrollbarSlider-background);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--vscode-scrollbarSlider-hoverBackground);
+}
+
+button,
+input {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}

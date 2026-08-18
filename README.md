@@ -552,6 +552,43 @@ AgentLaws is responsible for managing and resolving the governance content; the 
 
 ---
 
+# Variables in Prompt Composition
+
+Laws often need to reference something that is only known at the moment a prompt is built: an agent name, a repository, a ticket ID, an environment.
+
+AgentLaws supports this with simple `{{variable}}` placeholders inside law and commentary text:
+
+```md
+<!-- alaws:laws -->
+
+1. Agent {{agent_name}} must not modify production configuration in {{repo}} without review.
+```
+
+Placeholders are deliberately just substitution — no conditionals, loops, or function calls. A law is data, not a program.
+
+The compiled, signed lawbook stores the placeholder text exactly as written, so compilation stays deterministic regardless of what any application later fills in. Substitution happens only when an application renders laws for a prompt:
+
+```go
+laws, err := book.Laws(...)
+rendered, err := laws.Render(alaws.RenderOptions{
+    Vars: map[string]string{
+        "agent_name": "ci-bot",
+        "repo":       "org/app",
+    },
+})
+```
+
+By default, rendering fails if a variable used in the selected laws has no value — an agent-facing prompt should never silently go out with an unresolved `{{...}}` in it.
+
+The same thing is available from the command line:
+
+```bash
+alaws render --book ./governance --section engineering.security \
+  --var agent_name=ci-bot --var repo=org/app
+```
+
+---
+
 # Agent Citations
 
 A central design goal is that agents should be able to cite the law they relied upon.
@@ -836,7 +873,7 @@ This is particularly useful for Prompt Governors working collaboratively on word
 
 # Local Web UI
 
-AgentLaws includes a local Preact-based UI.
+AgentLaws includes a local Preact-based UI, styled strictly like VS Code — it uses VS Code's own color and font tokens and its flat, tree-navigation visual language rather than a generic web-app look.
 
 The UI presents the lawbook as an ordered tree and provides an easier way to work with it than editing configuration manually.
 
@@ -871,12 +908,25 @@ AgentLaws is intended to be usable at several levels.
 
 ### CLI
 
+The `alaws` binary is the primary command-line interface. It is organized around the same objects as the lawbook itself — books, chapters, sections, and laws — so both people and agents can build up a lawbook from the command line:
+
 ```bash
-alaws compile
-alaws watch
+alaws books create ./governance --title "Engineering Governance"
+
+alaws chapter create ./governance security.md --title Security --id engineering.security
+
+alaws section create ./governance security/secrets.md \
+  --parent engineering.security --title Secrets --id engineering.security.secrets
+
+alaws law add ./governance engineering.security.secrets \
+  "Credentials must never be committed to source control."
+
+alaws compile ./governance
+alaws resolve 2.5.1
+alaws render --book ./governance --section engineering.security --var agent_name=ci-bot
 ```
 
-The `alaws` binary is the primary command-line interface.
+Every read command supports `--json` for machine-readable output, and every command that changes a file supports `--dry-run` to preview the change first — both intended to make the CLI something an agent can drive directly, not just a human convenience wrapper. See `docs/PLAN1.md` for the full command reference.
 
 ### Go library
 
