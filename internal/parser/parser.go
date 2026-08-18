@@ -158,27 +158,122 @@ func ParseSection(path string) (ParsedSection, error) {
 // starts with "<N>. " at the beginning of a line; subsequent non-blank
 // lines before the next numbered line are folded into the same clause,
 // which lets an author wrap a long clause across multiple source lines.
+//
+// Fenced code blocks (``` or ~~~) inside a clause are an exception: their
+// lines are kept verbatim, joined with newlines, so a JSON/example block
+// survives intact for the renderer instead of collapsing onto one line.
+// While a fence is open, no line is treated as the start of a new clause,
+// and blank lines are preserved. Fence state is tracked by lawFencer.
 func parseLawLines(lines []string, startLineNo int) []RawLaw {
 	var laws []RawLaw
 	var current *RawLaw
+	var fence lawFencer
 	for i, line := range lines {
 		lineNo := startLineNo + i + 1 // 1-based
+		if fence.inFence() {
+			// A fence can only be open inside an existing clause (fold and
+			// open both require current), but guard anyway so this branch
+			// can never nil-deref.
+			if current == nil {
+				continue
+			}
+			fence.fold(&current.Text, line)
+			continue
+		}
 		if m := lawLineRe.FindStringSubmatch(line); m != nil {
 			if current != nil {
 				current.Text = strings.TrimSpace(current.Text)
 				current.LineEnd = lineNo - 1
 			}
-			laws = append(laws, RawLaw{Text: m[2], LineStart: lineNo})
+			text := m[2]
+			laws = append(laws, RawLaw{Text: text, LineStart: lineNo})
 			current = &laws[len(laws)-1]
+			fence.open(text)
 			continue
 		}
-		if current != nil && strings.TrimSpace(line) != "" {
-			current.Text += " " + strings.TrimSpace(line)
+		if current == nil || strings.TrimSpace(line) == "" {
+			continue
 		}
+		fence.fold(&current.Text, line)
 	}
 	if current != nil {
 		current.Text = strings.TrimSpace(current.Text)
 		current.LineEnd = startLineNo + len(lines)
 	}
 	return laws
+}
+
+// lawFencer is the folding state machine behind parseLawLines: it tracks
+// whether a fenced code block is open inside the current clause and folds
+// each continuation line accordingly. Keeping it out of the loop makes the
+// two states (in-fence and prose) explicit.
+type lawFencer struct {
+	fence string // opening marker (e.g. "```") while inside a fenced block
+}
+
+// inFence reports whether a fenced code block is currently open.
+func (f *lawFencer) inFence() bool {
+	return f.fence != ""
+}
+
+// open starts a fenced block from a numbered line's own text (e.g. "```json"),
+// or no-ops when the text is not a fence opener.
+func (f *lawFencer) open(s string) {
+	f.fence = fenceMarker(s)
+}
+
+// fold appends one continuation line to buf. While a fence is open, the
+// line is kept verbatim (newline-joined) and a matching close line ends
+// the block; otherwise a non-blank line is folded in with a space, and a
+// fence opener starts a block.
+func (f *lawFencer) fold(buf *string, line string) {
+	if f.fence != "" {
+		if isFenceClose(line, f.fence) {
+			f.fence = ""
+		}
+		*buf += "\n" + line
+		return
+	}
+	trimmed := strings.TrimSpace(line)
+	if trimmed == "" {
+		return
+	}
+	if marker := fenceMarker(trimmed); marker != "" {
+		f.fence = marker
+		*buf += "\n" + line
+		return
+	}
+	*buf += " " + trimmed
+}
+
+// fenceMarker returns the opening fence marker for fenced code blocks
+// ("```", "~~~", or a longer run) if s starts a fence - optionally
+// followed by a language - and "" otherwise.
+func fenceMarker(s string) string {
+	s = strings.TrimLeft(s, " \t")
+	if s == "" {
+		return ""
+	}
+	ch := s[0]
+	if ch != '`' && ch != '~' {
+		return ""
+	}
+	n := 0
+	for n < len(s) && s[n] == ch {
+		n++
+	}
+	if n < 3 {
+		return ""
+	}
+	return strings.Repeat(string(ch), n)
+}
+
+// isFenceClose reports whether line closes a fence opened by marker: a
+// line of only the same fence character, with a run at least as long.
+func isFenceClose(line, marker string) bool {
+	trimmed := strings.TrimSpace(line)
+	if len(trimmed) < len(marker) {
+		return false
+	}
+	return strings.Trim(trimmed, string(marker[0])) == ""
 }
