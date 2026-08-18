@@ -1,4 +1,4 @@
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useMemo, useState } from "preact/hooks";
 import type { VNode } from "preact";
 import { History, Plus, X, Clock } from "lucide-preact";
 import { api, type Section, type Diagnostic, type RenderedSection } from "../api";
@@ -117,7 +117,7 @@ export function BookDetail({ path, section, navigate }: Props) {
               >
                 <Clock size={11} />
               </button>
-              {s.Level === 1 && (
+              {s.Level > 0 && (
                 <button
                   class="icon-button"
                   title="New section here"
@@ -147,6 +147,8 @@ export function BookDetail({ path, section, navigate }: Props) {
         </li>
       );
     });
+
+  const tree = useMemo(() => buildTree(sections), [sections]);
 
   const selected = sections.find((s) => s.ID === selectedID) ?? null;
   const errorCount = diagnostics.filter((d) => d.Severity === "error").length;
@@ -253,7 +255,7 @@ export function BookDetail({ path, section, navigate }: Props) {
 
           {newChapter && <NewNodeForm onSubmit={async (file, t, id) => { await api.createChapter(path, file, t, id); setNewChapter(false); reload(); }} onCancel={() => setNewChapter(false)} />}
 
-          <ul class="tree">{renderTree(buildTree(sections))}</ul>
+          <ul class="tree">{renderTree(tree)}</ul>
           {newSectionUnder && (
             <NewNodeForm
               parent={newSectionUnder}
