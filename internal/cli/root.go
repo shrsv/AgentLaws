@@ -64,8 +64,11 @@ Run 'alaws <command> --help' for details on any command.`,
 		newWatchCmd(),
 		newServeCmd(),
 		newUICmd(),
+		newKeygenCmd(),
 		newSignCmd(),
 		newVerifyCmd(),
+		newLogCmd(),
+		newDiffCmd(),
 	)
 
 	return root

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"html"
 	"io"
+	"strings"
 
 	"github.com/yuin/goldmark"
 	highlighting "github.com/yuin/goldmark-highlighting/v2"
@@ -55,6 +56,7 @@ ol.laws>li p{display:inline;margin:0}
 code{font-family:ui-monospace,Menlo,monospace;background:#f0f0f0;padding:.1em .3em;border-radius:3px;font-size:.92em}
 pre{overflow-x:auto;border:1px solid #ddd;border-radius:6px;padding:.85rem 1rem;font-size:.85rem;line-height:1.5;background:#272822}
 pre code{background:none;padding:0;border-radius:0;font-size:1em;color:#f8f8f2}
+footer.provenance{margin-top:1.5rem;padding-top:.6rem;border-top:1px solid #ddd;color:#767676;font-size:.8rem}
 </style>`
 
 // Render writes the HTML representation of book to w.
@@ -65,6 +67,7 @@ func Render(w io.Writer, book model.Lawbook) error {
 	if err := renderSections(w, book.Sections, "", 0); err != nil {
 		return err
 	}
+	renderProvenanceFooter(w, book.Provenance)
 	fmt.Fprint(w, "</body></html>\n")
 	return nil
 }
@@ -82,6 +85,7 @@ func RenderAll(w io.Writer, title string, books []model.Lawbook) error {
 		if err := renderSections(w, book.Sections, idPrefix, 1); err != nil {
 			return err
 		}
+		renderProvenanceFooter(w, book.Provenance)
 	}
 	fmt.Fprint(w, "</body></html>\n")
 	return nil
@@ -123,4 +127,42 @@ func renderSections(w io.Writer, sections []model.Section, idPrefix string, leve
 		}
 	}
 	return nil
+}
+
+// renderProvenanceFooter writes a <footer> with provenance metadata from the
+// compiled lawbook (docs/PLAN1.md §24-§25, §50). Silently omitted when
+// Provenance is empty (e.g. the book was never compiled through pkg/alaws).
+func renderProvenanceFooter(w io.Writer, prov model.Provenance) {
+	if prov.Revision == "" && prov.CompiledAt == "" && prov.AgentLawsVersion == "" {
+		return
+	}
+	fmt.Fprint(w, "<footer class=\"provenance\">\n")
+
+	var parts []string
+	if prov.Revision != "" {
+		short := prov.Revision
+		if len(short) > 12 {
+			short = short[:12]
+		}
+		dirty := ""
+		if prov.Dirty {
+			dirty = " (dirty)"
+		}
+		parts = append(parts, fmt.Sprintf("revision %s%s", short, dirty))
+	}
+	if prov.CompiledAt != "" {
+		parts = append(parts, fmt.Sprintf("compiled %s", prov.CompiledAt))
+	}
+	if prov.CompilerName != "" {
+		parts = append(parts, fmt.Sprintf("by %s", prov.CompilerName))
+	}
+	if prov.AgentLawsVersion != "" {
+		v := prov.AgentLawsVersion
+		if prov.AgentLawsBuildTime != "" {
+			v += " (built " + prov.AgentLawsBuildTime + ")"
+		}
+		parts = append(parts, fmt.Sprintf("alaws %s", v))
+	}
+	fmt.Fprintf(w, "<p>%s</p>\n", html.EscapeString(strings.Join(parts, " · ")))
+	fmt.Fprint(w, "</footer>\n")
 }

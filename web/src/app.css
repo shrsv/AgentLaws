@@ -537,3 +537,96 @@ input::placeholder {
 .watch-diagnostic.warning {
   color: var(--vscode-editorWarning-foreground);
 }
+
+/* --- Provenance panel --- */
+
+.provenance-panel {
+  background: var(--vscode-sideBar-background);
+  border-bottom: 1px solid var(--vscode-panel-border);
+  padding: 0.6rem 1rem;
+  font-size: 12px;
+}
+
+.provenance-header {
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.provenance-table {
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 600px;
+}
+
+.provenance-table td {
+  padding: 0.15rem 0.5rem 0.15rem 0;
+  vertical-align: top;
+}
+
+.provenance-table td:first-child {
+  color: var(--vscode-descriptionForeground);
+  white-space: nowrap;
+}
+
+.provenance-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.4rem;
+}
+
+.verify-result {
+  font-size: 12px;
+}
+
+/* --- History section --- */
+
+.history-section {
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--vscode-panel-border);
+  padding-top: 1rem;
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.history-select {
+  font-size: 12px;
+  font-family: inherit;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 2px;
+  padding: 0.2rem 0.4rem;
+  max-width: 320px;
+}
+
+.history-intro {
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+  margin: 0.3rem 0;
+}
+
+.history-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+}
+
+.history-table th {
+  text-align: left;
+  padding: 0.2rem 0.5rem 0.2rem 0;
+  color: var(--vscode-descriptionForeground);
+  font-weight: 600;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.history-table td {
+  padding: 0.25rem 0.5rem 0.25rem 0;
+  border-bottom: 1px solid var(--vscode-widget-border);
+}

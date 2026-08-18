@@ -16,6 +16,7 @@ import (
 func Render(w io.Writer, book model.Lawbook) error {
 	fmt.Fprintf(w, "# %s\n\n", book.Metadata.Title)
 	renderSections(w, book.Sections, 0)
+	renderProvenanceFooter(w, book.Provenance)
 	return nil
 }
 
@@ -27,6 +28,7 @@ func RenderAll(w io.Writer, title string, books []model.Lawbook) error {
 	for _, book := range books {
 		fmt.Fprintf(w, "## %s\n\n", book.Metadata.Title)
 		renderSections(w, book.Sections, 1)
+		renderProvenanceFooter(w, book.Provenance)
 	}
 	return nil
 }
@@ -49,4 +51,41 @@ func renderSections(w io.Writer, sections []model.Section, levelOffset int) {
 			fmt.Fprintf(w, "**%s** %s\n\n", law.Number, law.Text)
 		}
 	}
+}
+
+// renderProvenanceFooter writes a horizontal rule and provenance metadata
+// at the bottom of a compiled Markdown document (docs/PLAN1.md §24-§25,
+// §50). Silently omitted when Provenance is empty.
+func renderProvenanceFooter(w io.Writer, prov model.Provenance) {
+	if prov.Revision == "" && prov.CompiledAt == "" && prov.AgentLawsVersion == "" {
+		return
+	}
+	fmt.Fprint(w, "---\n\n")
+
+	var parts []string
+	if prov.Revision != "" {
+		short := prov.Revision
+		if len(short) > 12 {
+			short = short[:12]
+		}
+		dirty := ""
+		if prov.Dirty {
+			dirty = " (dirty)"
+		}
+		parts = append(parts, fmt.Sprintf("revision `%s%s`", short, dirty))
+	}
+	if prov.CompiledAt != "" {
+		parts = append(parts, fmt.Sprintf("compiled %s", prov.CompiledAt))
+	}
+	if prov.CompilerName != "" {
+		parts = append(parts, fmt.Sprintf("by %s", prov.CompilerName))
+	}
+	if prov.AgentLawsVersion != "" {
+		v := prov.AgentLawsVersion
+		if prov.AgentLawsBuildTime != "" {
+			v += " (built " + prov.AgentLawsBuildTime + ")"
+		}
+		parts = append(parts, fmt.Sprintf("alaws %s", v))
+	}
+	fmt.Fprintf(w, "*%s*\n\n", strings.Join(parts, " · "))
 }

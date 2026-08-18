@@ -180,6 +180,43 @@ var Operations = []Operation{
 		CLITemplate: "alaws watch {path}",
 		GoTemplate:  `events, stop, err := alaws.Watch({path})`,
 	},
+	{
+		ID: "book.manifest", Group: "Provenance", Summary: "Get the provenance manifest for a compiled book",
+		Method: http.MethodGet, Path: "/api/book/manifest",
+		Params:      []Param{{Name: "path", Kind: "book", Required: true, Description: "the book"}},
+		CLITemplate: "alaws sign {path} (then inspect .alaws/build/manifest.json)",
+		GoTemplate:  `b, _ := alaws.Compile({path}); m, _ := b.Manifest()`,
+	},
+	{
+		ID: "book.history", Group: "Provenance", Summary: "Get the Git history of a specific law",
+		Method: http.MethodGet, Path: "/api/book/history",
+		Params: []Param{
+			{Name: "path", Kind: "book", Required: true, Description: "the book"},
+			{Name: "citation", Kind: "citation", Required: true, Description: "e.g. 2.5.3"},
+		},
+		CLITemplate: "alaws history {citation} --book {path}",
+		GoTemplate:  `b, _ := alaws.Compile({path}); h, _ := b.History({citation})`,
+	},
+	{
+		ID: "book.log", Group: "Provenance", Summary: "Get the chronological change log of a book",
+		Method: http.MethodGet, Path: "/api/book/log",
+		Params: []Param{
+			{Name: "path", Kind: "book", Required: true, Description: "the book"},
+			{Name: "limit", Kind: "int", Description: "max commits (0 = all)"},
+		},
+		CLITemplate: "alaws log {path} --limit {limit}",
+		GoTemplate:  `changes, _ := alaws.BookLog({path}, {limit})`,
+	},
+	{
+		ID: "book.verify", Group: "Provenance", Summary: "Verify a book's compiled state against a signed manifest",
+		Method: http.MethodPost, Path: "/api/book/verify",
+		Params: []Param{
+			{Name: "path", Kind: "book", Required: true, Description: "the book"},
+			{Name: "manifest", Kind: "json", Required: true, Description: "the manifest to verify against"},
+		},
+		CLITemplate: "alaws verify {path} --manifest manifest.json",
+		GoTemplate:  `b, _ := alaws.Compile({path}); alaws.Verify(manifest, b)`,
+	},
 }
 
 // GET /api/meta/operations
