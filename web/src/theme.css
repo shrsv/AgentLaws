@@ -69,7 +69,7 @@
   --vscode-scrollbarSlider-hoverBackground: rgba(100, 100, 100, 0.7);
 
   --vscode-editorGutter-background: #1e1e1e;
-  --vscode-textCodeBlock-background: #0a0a0a;
+  --vscode-textCodeBlock-background: #272822;
   --vscode-textPreformat-foreground: #d7ba7d;
 
   --vscode-editorLineNumber-foreground: #858585;

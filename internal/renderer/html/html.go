@@ -24,7 +24,7 @@ import (
 var markdown = goldmark.New(
 	goldmark.WithExtensions(
 		highlighting.NewHighlighting(
-			highlighting.WithStyle("github"),
+			highlighting.WithStyle("monokai"),
 		),
 	),
 )
@@ -53,8 +53,8 @@ ol.laws>li{margin:.4rem 0}
 ol.laws>li p{display:inline;margin:0}
 .law-number{color:#098658;font-family:ui-monospace,Menlo,monospace;margin-right:.4rem}
 code{font-family:ui-monospace,Menlo,monospace;background:#f0f0f0;padding:.1em .3em;border-radius:3px;font-size:.92em}
-pre{overflow-x:auto;border:1px solid #ddd;border-radius:6px;padding:.85rem 1rem;font-size:.85rem;line-height:1.5}
-pre code{background:none;padding:0;border-radius:0;font-size:1em}
+pre{overflow-x:auto;border:1px solid #ddd;border-radius:6px;padding:.85rem 1rem;font-size:.85rem;line-height:1.5;background:#272822}
+pre code{background:none;padding:0;border-radius:0;font-size:1em;color:#f8f8f2}
 </style>`
 
 // Render writes the HTML representation of book to w.
