@@ -36,7 +36,7 @@ AgentLaws is deliberately simple today. It does not attempt to build a formal le
 | See the lawbook analogy | [The Lawbook Analogy](#the-lawbook-analogy) |
 | Understand the source format (Markdown sections) | [The Source Format](#the-source-format) |
 | See the export formats (HTML, PDF, Markdown, JSON) | [Export Formats](#export-formats) |
-| Use it from the command line | [CLI and Library](#cli-and-library) |
+| Browse the full CLI command reference | [CLI and Library](#cli-and-library) |
 | Use it as a Go library in my app | [Using Laws from Go](#using-laws-from-go) |
 | Insert dynamic values into laws | [Variables in Prompt Composition](#variables-in-prompt-composition) |
 | Understand canonical citation numbers | [Canonical Law Numbers](#canonical-law-numbers) |
@@ -107,60 +107,7 @@ alaws law add ./my-governance my.security.secrets \
 alaws compile ./my-governance
 ```
 
-## Explore the full CLI
-
-Every read command supports `--json`. Every mutating command supports `--dry-run`.
-
-```bash
-# List all books under a root
-alaws books list --root .
-
-# Show a book's structure
-alaws books show ./my-governance
-
-# List chapters and sections
-alaws chapter list ./my-governance
-alaws section list ./my-governance
-
-# Resolve a citation
-alaws resolve 1.1.1 --root ./my-governance
-
-# Render laws with variable substitution for an agent prompt
-alaws render --book ./my-governance --section my.security.secrets \
-  --var agent_name=ci-bot --var repo=org/app
-
-# Validate without compiling
-alaws validate ./my-governance
-
-# Export to HTML, PDF, or Markdown
-alaws compile ./my-governance --format html,pdf,md
-
-# Live-reload with the web UI
-alaws watch ./my-governance
-# then open http://localhost:8420
-```
-
-## Command reference
-
-| Command | Description |
-|---|---|
-| `alaws init [path] --title "..."` | Create a new lawbook (alias for `books create`) |
-| `alaws books list [--root .] [--json]` | Discover lawbook clusters |
-| `alaws books create <path> --title "..."` | Create a new lawbook |
-| `alaws books show <path> [--json]` | Show a book's structure |
-| `alaws chapter create/list/move/remove` | Manage top-level sections |
-| `alaws section create/list/show/move/remove` | Manage nested sections |
-| `alaws law add/list/remove` | Manage numbered clauses |
-| `alaws compile [book...] [--format html,json,pdf,md]` | Compile lawbook(s) |
-| `alaws validate [book...]` | Check for problems |
-| `alaws list [book] [--json]` | List compiled sections and laws |
-| `alaws show <citation-or-id> [--json]` | Show a section or law |
-| `alaws resolve <citation> [--json]` | Resolve a citation to its source |
-| `alaws render --book <path> --section/--law/--all [--var k=v]` | Render laws with variables |
-| `alaws watch [book] [--port 8420]` | Live-reload with web UI |
-| `alaws serve [book] [--port 8420]` | Serve web UI (read-only) |
-
-See `docs/PLAN1.md` §32 for the full specification of every command and flag.
+From here you can render laws for an agent prompt, resolve citations, open the web UI, or export to HTML/PDF — see [CLI and Library](#cli-and-library) for the full command reference, or [Using Laws from Go](#using-laws-from-go) for the library API.
 
 ---
 
@@ -1228,37 +1175,72 @@ This keeps the source of truth in the repository and makes changes visible in Gi
 
 # CLI and Library
 
-AgentLaws is intended to be usable at several levels.
+AgentLaws is usable at three levels: a CLI for humans and agents, a Go library for embedding, and a local web UI for visual navigation.
 
-### CLI
+## CLI
 
-The `alaws` binary is the primary command-line interface. It is organized around the same objects as the lawbook itself — books, chapters, sections, and laws — so both people and agents can build up a lawbook from the command line:
+The `alaws` binary is organized around the same objects as the lawbook itself — books, chapters, sections, and laws. Every read command supports `--json` for machine-readable output, and every mutating command supports `--dry-run` to preview the change first.
+
+### Quick examples
 
 ```bash
-alaws books create ./governance --title "Engineering Governance"
+# List all books under a root
+alaws books list --root .
 
-alaws chapter create ./governance security.md --title Security --id engineering.security
+# Show a book's structure
+alaws books show ./my-governance
 
-alaws section create ./governance security/secrets.md \
-  --parent engineering.security --title Secrets --id engineering.security.secrets
+# List chapters and sections
+alaws chapter list ./my-governance
+alaws section list ./my-governance
 
-alaws law add ./governance engineering.security.secrets \
-  "Credentials must never be committed to source control."
+# Resolve a citation
+alaws resolve 1.1.1 --root ./my-governance
 
-alaws compile ./governance
-alaws resolve 2.5.1
-alaws render --book ./governance --section engineering.security --var agent_name=ci-bot
+# Render laws with variable substitution for an agent prompt
+alaws render --book ./my-governance --section my.security.secrets \
+  --var agent_name=ci-bot --var repo=org/app
+
+# Validate without compiling
+alaws validate ./my-governance
+
+# Export to HTML, PDF, or Markdown
+alaws compile ./my-governance --format html,pdf,md
+
+# Live-reload with the web UI
+alaws watch ./my-governance
+# then open http://localhost:8420
 ```
 
-Every read command supports `--json` for machine-readable output, and every command that changes a file supports `--dry-run` to preview the change first — both intended to make the CLI something an agent can drive directly, not just a human convenience wrapper. See `docs/PLAN1.md` for the full command reference.
+### Command reference
 
-### Go library
+| Command | Description |
+|---|---|
+| `alaws init [path] --title "..."` | Create a new lawbook (alias for `books create`) |
+| `alaws books list [--root .] [--json]` | Discover lawbook clusters |
+| `alaws books create <path> --title "..."` | Create a new lawbook |
+| `alaws books show <path> [--json]` | Show a book's structure |
+| `alaws chapter create/list/move/remove` | Manage top-level sections |
+| `alaws section create/list/show/move/remove` | Manage nested sections |
+| `alaws law add/list/remove` | Manage numbered clauses |
+| `alaws compile [book...] [--format html,json,pdf,md]` | Compile lawbook(s) |
+| `alaws validate [book...]` | Check for problems |
+| `alaws list [book] [--json]` | List compiled sections and laws |
+| `alaws show <citation-or-id> [--json]` | Show a section or law |
+| `alaws resolve <citation> [--json]` | Resolve a citation to its source |
+| `alaws render --book <path> --section/--law/--all [--var k=v]` | Render laws with variables |
+| `alaws watch [book] [--port 8420]` | Live-reload with web UI |
+| `alaws serve [book] [--port 8420]` | Serve web UI (read-only) |
 
-Applications can load lawbooks, resolve sections and citations, and extract laws for agent prompts without shelling out to the CLI.
+See `docs/PLAN1.md` §32 for the full specification of every command and flag.
 
-### Local UI
+## Go library
 
-The local web interface provides visual navigation, live compilation, and structural editing.
+Applications can load lawbooks, resolve sections and citations, and extract laws for agent prompts without shelling out to the CLI. See [Using Laws from Go](#using-laws-from-go) for detailed examples and the [pkg.go.dev documentation](https://pkg.go.dev/github.com/shrsv/AgentLaws/pkg/alaws).
+
+## Local UI
+
+The local web interface provides visual navigation, live compilation, and structural editing. See [Local Web UI](#local-web-ui).
 
 All three interfaces operate on the same underlying AgentLaws model.
 
@@ -1391,3 +1373,25 @@ That is the core idea behind AgentLaws:
 > **Treat the instructions governing AI agents as a maintained body of law rather than an ever-growing prompt.**
 
 `alaws` provides the filesystem format, compiler, citations, provenance, CLI, local UI, and Go APIs needed to make that practical.
+
+---
+
+## Contributing
+
+Contributions around the compiler, parser, web UI, and documentation are welcome. See [docs/PLAN1.md](docs/PLAN1.md) for the implementation roadmap.
+
+---
+
+## License
+
+MIT License. See [LICENSE](LICENSE) for details.
+
+---
+
+# See More
+
+Your team's attention is limited. Spend review effort where **business risk is highest** — not spread evenly across every diff.
+
+If AgentLaws is about governing *what agents are allowed to do*, [**LiveReview**](https://hexmos.com/livereview) does the analogous thing for your *code changes*: instead of reviewing every diff with equal effort, it scores each change by blast radius — how far its impact reaches through your call graph — so review attention goes where it actually matters.
+
+[![LiveReview — Blast-Radius Aware AI Code Review for Business-Critical Systems](media/livereview-banner.png)](https://hexmos.com/livereview)
