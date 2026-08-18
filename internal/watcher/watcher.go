@@ -132,7 +132,10 @@ func relevant(name string) bool {
 func addDirsRecursive(w *fsnotify.Watcher, root string) error {
 	return filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return err
+			if p == root {
+				return err
+			}
+			return filepath.SkipDir
 		}
 		if !d.IsDir() {
 			return nil

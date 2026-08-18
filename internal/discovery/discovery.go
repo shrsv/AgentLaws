@@ -36,7 +36,10 @@ func FindClusters(root string) ([]Cluster, error) {
 	var clusters []Cluster
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return err
+			if path == root {
+				return err
+			}
+			return filepath.SkipDir
 		}
 		if d.IsDir() {
 			if path != root && skipDirs[d.Name()] {
@@ -67,7 +70,10 @@ func UnorderedFiles(cluster Cluster, ordering []string) ([]string, error) {
 	var unordered []string
 	err := filepath.WalkDir(cluster.Path, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return err
+			if path == cluster.Path {
+				return err
+			}
+			return filepath.SkipDir
 		}
 		if d.IsDir() {
 			if path != cluster.Path && skipDirs[d.Name()] {
