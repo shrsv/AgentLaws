@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/athreyac4/agentlaws/internal/parser"
+	"github.com/shrsv/AgentLaws/internal/parser"
 )
 
 var skipDirs = map[string]bool{

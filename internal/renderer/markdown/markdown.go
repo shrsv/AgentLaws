@@ -9,7 +9,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/athreyac4/agentlaws/internal/model"
+	"github.com/shrsv/AgentLaws/internal/model"
 )
 
 // Render writes the Markdown representation of book to w.

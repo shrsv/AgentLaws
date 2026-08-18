@@ -1,6 +1,6 @@
 package alaws
 
-import "github.com/athreyac4/agentlaws/internal/watcher"
+import "github.com/shrsv/AgentLaws/internal/watcher"
 
 // WatchEvent describes a single recompilation triggered by a source
 // change (or the initial compile when watching starts).

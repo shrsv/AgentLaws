@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/athreyac4/agentlaws/internal/lawedit"
-	"github.com/athreyac4/agentlaws/internal/ordering"
-	"github.com/athreyac4/agentlaws/internal/parser"
-	"github.com/athreyac4/agentlaws/internal/resolver"
+	"github.com/shrsv/AgentLaws/internal/lawedit"
+	"github.com/shrsv/AgentLaws/internal/ordering"
+	"github.com/shrsv/AgentLaws/internal/parser"
+	"github.com/shrsv/AgentLaws/internal/resolver"
 )
 
 // SectionFilePath resolves a section ID to its source file path by walking

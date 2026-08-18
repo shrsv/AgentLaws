@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"path/filepath"
 
-	"github.com/athreyac4/agentlaws/web"
+	"github.com/shrsv/AgentLaws/web"
 )
 
 // root is the discovery root the UI should default to and display, set by

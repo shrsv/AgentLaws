@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/athreyac4/agentlaws/internal/cli"
+	"github.com/shrsv/AgentLaws/internal/cli"
 )
 
 func main() {

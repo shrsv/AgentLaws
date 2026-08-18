@@ -5,8 +5,8 @@ package validator
 import (
 	"fmt"
 
-	"github.com/athreyac4/agentlaws/internal/model"
-	"github.com/athreyac4/agentlaws/internal/template"
+	"github.com/shrsv/AgentLaws/internal/model"
+	"github.com/shrsv/AgentLaws/internal/template"
 )
 
 // Severity distinguishes problems that invalidate a lawbook from problems

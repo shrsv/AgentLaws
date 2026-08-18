@@ -14,7 +14,7 @@ import (
 	"github.com/yuin/goldmark"
 	highlighting "github.com/yuin/goldmark-highlighting/v2"
 
-	"github.com/athreyac4/agentlaws/internal/model"
+	"github.com/shrsv/AgentLaws/internal/model"
 )
 
 // markdown is the single goldmark instance every renderer in this package

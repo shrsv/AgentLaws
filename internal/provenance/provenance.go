@@ -5,7 +5,7 @@ package provenance
 import (
 	"errors"
 
-	"github.com/athreyac4/agentlaws/internal/model"
+	"github.com/shrsv/AgentLaws/internal/model"
 )
 
 // ErrNotImplemented is returned by every stub in this package until

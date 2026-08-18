@@ -13,8 +13,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/athreyac4/agentlaws/internal/resolver"
-	"github.com/athreyac4/agentlaws/pkg/alaws"
+	"github.com/shrsv/AgentLaws/internal/resolver"
+	"github.com/shrsv/AgentLaws/pkg/alaws"
 )
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

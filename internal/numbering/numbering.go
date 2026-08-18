@@ -5,7 +5,7 @@ package numbering
 import (
 	"fmt"
 
-	"github.com/athreyac4/agentlaws/internal/model"
+	"github.com/shrsv/AgentLaws/internal/model"
 )
 
 // Assign computes Section.Number and Law.Number for every section, based on

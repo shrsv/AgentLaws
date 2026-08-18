@@ -12,7 +12,7 @@ import (
 	"github.com/pelletier/go-toml/v2"
 	"gopkg.in/yaml.v3"
 
-	"github.com/athreyac4/agentlaws/internal/model"
+	"github.com/shrsv/AgentLaws/internal/model"
 )
 
 const (

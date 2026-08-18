@@ -6,8 +6,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/athreyac4/agentlaws/internal/provenance"
-	"github.com/athreyac4/agentlaws/pkg/alaws"
+	"github.com/shrsv/AgentLaws/internal/provenance"
+	"github.com/shrsv/AgentLaws/pkg/alaws"
 )
 
 func newCompileCmd() *cobra.Command {

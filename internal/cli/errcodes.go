@@ -3,7 +3,7 @@ package cli
 import (
 	"errors"
 
-	"github.com/athreyac4/agentlaws/internal/resolver"
+	"github.com/shrsv/AgentLaws/internal/resolver"
 )
 
 // errNotFound is returned by CLI-local lookups (e.g. section show) that

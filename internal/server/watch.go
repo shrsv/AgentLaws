@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/athreyac4/agentlaws/pkg/alaws"
+	"github.com/shrsv/AgentLaws/pkg/alaws"
 )
 
 // GET /api/book/watch?path= (Server-Sent Events)

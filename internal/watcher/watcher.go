@@ -11,7 +11,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 
-	"github.com/athreyac4/agentlaws/internal/compiler"
+	"github.com/shrsv/AgentLaws/internal/compiler"
 )
 
 // debounceWindow avoids recompiling once per fsnotify event when an editor

@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-pdf/fpdf"
 
-	"github.com/athreyac4/agentlaws/internal/model"
+	"github.com/shrsv/AgentLaws/internal/model"
 )
 
 // newDoc creates and configures the shared fpdf.Fpdf setup, plus the

@@ -15,7 +15,7 @@ import (
 	"github.com/pelletier/go-toml/v2"
 	"gopkg.in/yaml.v3"
 
-	"github.com/athreyac4/agentlaws/internal/parser"
+	"github.com/shrsv/AgentLaws/internal/parser"
 )
 
 // Placement describes where a new or moved entry should be inserted

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/athreyac4/agentlaws/internal/compiler"
-	"github.com/athreyac4/agentlaws/internal/ordering"
-	"github.com/athreyac4/agentlaws/internal/parser"
+	"github.com/shrsv/AgentLaws/internal/compiler"
+	"github.com/shrsv/AgentLaws/internal/ordering"
+	"github.com/shrsv/AgentLaws/internal/parser"
 )
 
 // ConfigPath resolves a book argument (a directory, or an explicit

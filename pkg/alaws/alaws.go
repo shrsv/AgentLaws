@@ -12,11 +12,11 @@ package alaws
 import (
 	"strings"
 
-	"github.com/athreyac4/agentlaws/internal/compiler"
-	"github.com/athreyac4/agentlaws/internal/model"
-	"github.com/athreyac4/agentlaws/internal/resolver"
-	"github.com/athreyac4/agentlaws/internal/template"
-	"github.com/athreyac4/agentlaws/internal/validator"
+	"github.com/shrsv/AgentLaws/internal/compiler"
+	"github.com/shrsv/AgentLaws/internal/model"
+	"github.com/shrsv/AgentLaws/internal/resolver"
+	"github.com/shrsv/AgentLaws/internal/template"
+	"github.com/shrsv/AgentLaws/internal/validator"
 )
 
 // Diagnostic is a single compiler finding (docs/PLAN1.md §19): a problem

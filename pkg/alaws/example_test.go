@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/athreyac4/agentlaws/pkg/alaws"
+	"github.com/shrsv/AgentLaws/pkg/alaws"
 )
 
 // This example demonstrates loading a lawbook, selecting laws by section,

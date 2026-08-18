@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/athreyac4/agentlaws/internal/model"
+	"github.com/shrsv/AgentLaws/internal/model"
 )
 
 // ErrNotFound is returned when a citation or ID does not exist in the

@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/athreyac4/agentlaws/internal/model"
-	renderhtml "github.com/athreyac4/agentlaws/internal/renderer/html"
-	rendermarkdown "github.com/athreyac4/agentlaws/internal/renderer/markdown"
-	renderpdf "github.com/athreyac4/agentlaws/internal/renderer/pdf"
+	"github.com/shrsv/AgentLaws/internal/model"
+	renderhtml "github.com/shrsv/AgentLaws/internal/renderer/html"
+	rendermarkdown "github.com/shrsv/AgentLaws/internal/renderer/markdown"
+	renderpdf "github.com/shrsv/AgentLaws/internal/renderer/pdf"
 )
 
 // RenderHTML writes the human-readable HTML representation of the compiled

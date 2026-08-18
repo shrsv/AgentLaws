@@ -1,4 +1,4 @@
-module github.com/athreyac4/agentlaws
+module github.com/shrsv/AgentLaws
 
 go 1.25.0
 

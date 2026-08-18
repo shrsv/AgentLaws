@@ -1,6 +1,6 @@
 package alaws
 
-import "github.com/athreyac4/agentlaws/internal/discovery"
+import "github.com/shrsv/AgentLaws/internal/discovery"
 
 // BookInfo identifies one discovered lawbook cluster.
 type BookInfo struct {

@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/athreyac4/agentlaws/internal/server"
+	"github.com/shrsv/AgentLaws/internal/server"
 )
 
 func newUICmd() *cobra.Command {

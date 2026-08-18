@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/athreyac4/agentlaws/pkg/alaws"
+	"github.com/shrsv/AgentLaws/pkg/alaws"
 )
 
 // resolveBook determines which book a command should operate on:

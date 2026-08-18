@@ -8,11 +8,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/athreyac4/agentlaws/internal/discovery"
-	"github.com/athreyac4/agentlaws/internal/model"
-	"github.com/athreyac4/agentlaws/internal/numbering"
-	"github.com/athreyac4/agentlaws/internal/parser"
-	"github.com/athreyac4/agentlaws/internal/validator"
+	"github.com/shrsv/AgentLaws/internal/discovery"
+	"github.com/shrsv/AgentLaws/internal/model"
+	"github.com/shrsv/AgentLaws/internal/numbering"
+	"github.com/shrsv/AgentLaws/internal/parser"
+	"github.com/shrsv/AgentLaws/internal/validator"
 )
 
 // Options configures a single Compile call.

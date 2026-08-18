@@ -1,6 +1,6 @@
 # AgentLaws
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/athreyac4/agentlaws.svg)](https://pkg.go.dev/github.com/athreyac4/agentlaws)
+[![Go Reference](https://pkg.go.dev/badge/github.com/shrsv/AgentLaws.svg)](https://pkg.go.dev/github.com/shrsv/AgentLaws)
 
 **Govern Agents Through Prompts Organized Like Law.**
 
@@ -19,13 +19,13 @@ AgentLaws is deliberately simple today. It does not attempt to build a formal le
 ## Install
 
 ```bash
-go install github.com/athreyac4/agentlaws/cmd/alaws@latest
+go install github.com/shrsv/AgentLaws/cmd/alaws@latest
 ```
 
 Or build from source:
 
 ```bash
-git clone https://github.com/athreyac4/agentlaws.git
+git clone https://github.com/shrsv/AgentLaws.git
 cd agentlaws
 go build -o alaws ./cmd/alaws
 ```
@@ -635,7 +635,7 @@ AgentLaws is also a Go library. Applications can load, compile, resolve, and ren
 ## Install
 
 ```bash
-go get github.com/athreyac4/agentlaws/pkg/alaws
+go get github.com/shrsv/AgentLaws/pkg/alaws
 ```
 
 ## Load a lawbook and select laws
@@ -647,7 +647,7 @@ import (
     "fmt"
     "log"
 
-    "github.com/athreyac4/agentlaws/pkg/alaws"
+    "github.com/shrsv/AgentLaws/pkg/alaws"
 )
 
 func main() {
@@ -795,7 +795,7 @@ for ev := range events {
 
 ## Full API reference
 
-See [pkg.go.dev](https://pkg.go.dev/github.com/athreyac4/agentlaws/pkg/alaws) or run `go doc github.com/athreyac4/agentlaws/pkg/alaws` locally.
+See [pkg.go.dev](https://pkg.go.dev/github.com/shrsv/AgentLaws/pkg/alaws) or run `go doc github.com/shrsv/AgentLaws/pkg/alaws` locally.
 
 ---
 
