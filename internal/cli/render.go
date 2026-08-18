@@ -29,7 +29,11 @@ placeholders, producing text ready to embed in an application's prompt
 				return &UsageError{Msg: "one of --section, --law, or --all is required"}
 			}
 
-			b, err := alaws.Load(book)
+			resolved, err := resolveBook(book)
+			if err != nil {
+				return err
+			}
+			b, err := alaws.Load(resolved)
 			if err != nil {
 				return err
 			}
@@ -66,14 +70,13 @@ placeholders, producing text ready to embed in an application's prompt
 		},
 	}
 
-	cmd.Flags().StringVar(&book, "book", "", "path to the book to render from (required)")
+	cmd.Flags().StringVar(&book, "book", "", "book path (optional if it can be inferred)")
 	cmd.Flags().StringVar(&section, "section", "", "render all laws in this section ID")
 	cmd.Flags().StringVar(&law, "law", "", "render a single law by citation")
 	cmd.Flags().BoolVar(&all, "all", false, "render every law in the book")
 	cmd.Flags().StringArrayVar(&vars, "var", nil, "variable in key=value form (repeatable)")
 	cmd.Flags().StringVar(&varsFile, "vars-file", "", "path to a JSON or YAML file of variables")
 	cmd.Flags().StringVar(&onMissing, "on-missing", "error", "error|keep|empty")
-	cmd.MarkFlagRequired("book")
 
 	return cmd
 }

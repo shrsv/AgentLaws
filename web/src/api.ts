@@ -1,0 +1,198 @@
+// Typed client for the /api/ routes in internal/server/api.go. Every
+// function here maps 1:1 to one HTTP endpoint - the same parity principle
+// the whole project follows (docs/PLAN1.md §52): this file adds no logic
+// beyond request/response shaping.
+
+export type ExportFormat = "html" | "pdf" | "md";
+
+export interface BookInfo {
+  Path: string;
+  ConfigPath: string;
+  Title: string;
+}
+
+export interface Node {
+  Path: string;
+  ID: string;
+  Level: number;
+  ParentID: string;
+}
+
+export interface SourceRef {
+  Path: string;
+  LineStart: number;
+  LineEnd: number;
+}
+
+export interface Law {
+  Number: string;
+  Index: number;
+  Text: string;
+  SectionID: string;
+  Source: SourceRef;
+}
+
+export interface Section {
+  ID: string;
+  Number: string;
+  Title: string;
+  Level: number;
+  ParentID: string;
+  Source: SourceRef;
+  Commentary: string;
+  Laws: Law[] | null;
+}
+
+export interface Lawbook {
+  Metadata: { Title: string; Ordering: string[] };
+  Sections: Section[];
+}
+
+export interface Diagnostic {
+  Severity: string;
+  Code: string;
+  Message: string;
+  Source: SourceRef | null;
+}
+
+export interface RenderedSection {
+  CommentaryHTML: string;
+  LawHTML: Record<string, string>; // law citation number -> HTML
+}
+
+export interface CompileResult {
+  ok: boolean;
+  error: string;
+  lawbook: Lawbook;
+  diagnostics: Diagnostic[];
+  rendered: Record<string, RenderedSection>; // section ID -> rendered HTML
+}
+
+export interface Param {
+  name: string;
+  kind: string;
+  required: boolean;
+  description: string;
+}
+
+export interface Operation {
+  id: string;
+  group: string;
+  summary: string;
+  method: string;
+  path: string;
+  params: Param[];
+  cliTemplate: string;
+  goTemplate: string;
+}
+
+export class ApiError extends Error {
+  code: string;
+  status: number;
+  constructor(message: string, code: string, status: number) {
+    super(message);
+    this.code = code;
+    this.status = status;
+  }
+}
+
+async function req<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(path, init);
+  const body = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new ApiError(body?.error ?? res.statusText, body?.code ?? "unknown", res.status);
+  }
+  return body as T;
+}
+
+function qs(params: Record<string, string | number | boolean | string[] | undefined>): string {
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v === undefined || v === "") continue;
+    if (Array.isArray(v)) {
+      for (const item of v) q.append(k, item);
+    } else {
+      q.set(k, String(v));
+    }
+  }
+  const s = q.toString();
+  return s ? `?${s}` : "";
+}
+
+export const api = {
+  root: () => req<{ root: string }>("/api/meta/root"),
+
+  discover: (root?: string) => req<BookInfo[]>(`/api/books${qs({ root })}`),
+
+  exportAllURL: (root: string | undefined, format: ExportFormat, title?: string) =>
+    `/api/export${qs({ root, format, title })}`,
+
+  createBook: (path: string, title: string) =>
+    req<{ path: string }>("/api/books", { method: "POST", body: JSON.stringify({ path, title }) }),
+
+  book: (path: string) => req<{ title: string; sections: Node[] }>(`/api/book${qs({ path })}`),
+
+  compile: (path: string) => req<CompileResult>(`/api/book/compile${qs({ path })}`),
+
+  exportURL: (path: string, format: ExportFormat) => `/api/book/export${qs({ path, format })}`,
+
+  render: (
+    path: string,
+    opts: { section?: string; law?: string; all?: boolean; vars?: Record<string, string>; onMissing?: string },
+  ) =>
+    req<{ text: string }>(
+      `/api/book/render${qs({
+        path,
+        section: opts.section,
+        law: opts.law,
+        all: opts.all,
+        onMissing: opts.onMissing,
+        var: opts.vars ? Object.entries(opts.vars).map(([k, v]) => `${k}:${v}`) : undefined,
+      })}`,
+    ),
+
+  createChapter: (book: string, file: string, title: string, id: string, after?: string) =>
+    req<{ id: string }>("/api/book/chapters", {
+      method: "POST",
+      body: JSON.stringify({ book, file, title, id, after }),
+    }),
+
+  createSection: (book: string, file: string, title: string, id: string, parent: string) =>
+    req<{ id: string }>("/api/book/sections", {
+      method: "POST",
+      body: JSON.stringify({ book, file, title, id, parent }),
+    }),
+
+  move: (
+    book: string,
+    kind: "chapter" | "section",
+    id: string,
+    opts: { newParentId?: string; before?: string; after?: string },
+  ) =>
+    req<{ moved: string }>("/api/book/move", {
+      method: "POST",
+      body: JSON.stringify({ book, kind, id, newParentId: opts.newParentId, before: opts.before, after: opts.after }),
+    }),
+
+  remove: (book: string, kind: "chapter" | "section", id: string, force = false) =>
+    req<{ removed: string }>(`/api/book/sections${qs({ book, kind, id, force })}`, { method: "DELETE" }),
+
+  listLaws: (book: string, sectionId: string) => req<string[]>(`/api/book/laws${qs({ book, sectionId })}`),
+
+  addLaw: (book: string, sectionId: string, text: string) =>
+    req<{ sectionId: string }>("/api/book/laws", {
+      method: "POST",
+      body: JSON.stringify({ book, sectionId, text }),
+    }),
+
+  removeLaw: (book: string, sectionId: string, number: number, force = false) =>
+    req<{ sectionId: string }>(`/api/book/laws${qs({ book, sectionId, number, force })}`, { method: "DELETE" }),
+
+  operations: () => req<Operation[]>("/api/meta/operations"),
+
+  watch: (path: string, onEvent: (ev: CompileResult & { clusterPath: string }) => void): (() => void) => {
+    const es = new EventSource(`/api/book/watch${qs({ path })}`);
+    es.onmessage = (m) => onEvent(JSON.parse(m.data));
+    return () => es.close();
+  },
+};

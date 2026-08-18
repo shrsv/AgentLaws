@@ -5,9 +5,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/athreyac4/agentlaws/internal/compiler"
 	"github.com/athreyac4/agentlaws/internal/provenance"
 	"github.com/athreyac4/agentlaws/internal/signing"
+	"github.com/athreyac4/agentlaws/pkg/alaws"
 )
 
 func newSignCmd() *cobra.Command {
@@ -17,15 +17,15 @@ func newSignCmd() *cobra.Command {
 		Short: "Sign the canonical representation of a compiled book",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			book := flagRoot
-			if len(args) == 1 {
-				book = args[0]
-			}
-			result, err := compiler.Compile(book, compiler.Options{})
+			book, err := resolveBook(firstArg(args))
 			if err != nil {
 				return err
 			}
-			canonical, err := json.Marshal(result.Lawbook)
+			b, err := alaws.Compile(book)
+			if err != nil {
+				return err
+			}
+			canonical, err := json.Marshal(b.Lawbook())
 			if err != nil {
 				return err
 			}
@@ -48,19 +48,19 @@ func newVerifyCmd() *cobra.Command {
 		Short: "Verify a book's compiled state against its signed manifest",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			book := flagRoot
-			if len(args) == 1 {
-				book = args[0]
-			}
-			result, err := compiler.Compile(book, compiler.Options{})
+			book, err := resolveBook(firstArg(args))
 			if err != nil {
 				return err
 			}
-			manifest, err := provenance.BuildManifest(result.Lawbook)
+			b, err := alaws.Compile(book)
 			if err != nil {
 				return err
 			}
-			canonical, err := json.Marshal(result.Lawbook)
+			manifest, err := provenance.BuildManifest(b.Lawbook())
+			if err != nil {
+				return err
+			}
+			canonical, err := json.Marshal(b.Lawbook())
 			if err != nil {
 				return err
 			}

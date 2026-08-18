@@ -16,20 +16,70 @@ import (
 	"github.com/athreyac4/agentlaws/internal/model"
 	"github.com/athreyac4/agentlaws/internal/resolver"
 	"github.com/athreyac4/agentlaws/internal/template"
+	"github.com/athreyac4/agentlaws/internal/validator"
 )
+
+// Diagnostic is a single compiler finding (docs/PLAN1.md §19): a problem
+// with the lawbook ranging from a hard error (the lawbook could not be
+// deterministically understood) to a warning worth an author's attention.
+type Diagnostic struct {
+	Severity string // "error" or "warning"
+	Code     string
+	Message  string
+	Source   *model.SourceRef
+}
+
+func diagnosticsFrom(diags []validator.Diagnostic) []Diagnostic {
+	out := make([]Diagnostic, len(diags))
+	for i, d := range diags {
+		out[i] = Diagnostic{
+			Severity: d.Severity.String(),
+			Code:     d.Code,
+			Message:  d.Message,
+			Source:   d.Source,
+		}
+	}
+	return out
+}
 
 // Book wraps a compiled Lawbook and exposes the library's query surface.
 type Book struct {
-	lawbook model.Lawbook
+	lawbook     model.Lawbook
+	diagnostics []Diagnostic
 }
 
-// Load compiles and loads the lawbook cluster at path.
+// Diagnostics returns the compiler findings produced when this Book was
+// compiled - populated even when Compile returned an error, so a caller
+// can show everything wrong with a lawbook rather than just the first
+// problem (docs/PLAN1.md §20).
+func (b *Book) Diagnostics() []Diagnostic { return b.diagnostics }
+
+// Lawbook returns the compiled Lawbook IR (docs/PLAN1.md §12) - the
+// canonical representation Render/HTML/PDF/JSON output are all derived
+// from.
+func (b *Book) Lawbook() model.Lawbook { return b.lawbook }
+
+// Load compiles and loads the lawbook cluster at path. It fails on any
+// error-severity diagnostic (docs/PLAN1.md §20); use Compile instead when
+// the caller wants to inspect diagnostics even for a lawbook that doesn't
+// fully compile (e.g. to implement something like `alaws validate`).
 func Load(path string) (*Book, error) {
 	result, err := compiler.Compile(path, compiler.Options{})
 	if err != nil {
 		return nil, err
 	}
-	return &Book{lawbook: result.Lawbook}, nil
+	return &Book{lawbook: result.Lawbook, diagnostics: diagnosticsFrom(result.Diagnostics)}, nil
+}
+
+// Compile compiles path and always returns a *Book with Diagnostics
+// populated, even when it also returns a non-nil error (any error-severity
+// diagnostic, or a catastrophic failure to read the lawbook at all - in
+// which case the returned Book has no sections and empty Diagnostics; the
+// error itself explains why).
+func Compile(path string) (*Book, error) {
+	result, err := compiler.Compile(path, compiler.Options{})
+	book := &Book{lawbook: result.Lawbook, diagnostics: diagnosticsFrom(result.Diagnostics)}
+	return book, err
 }
 
 // Resolve resolves a canonical citation such as "2.5.3" to its Law.

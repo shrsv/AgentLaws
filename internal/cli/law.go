@@ -2,14 +2,11 @@ package cli
 
 import (
 	"fmt"
-	"path/filepath"
 	"strconv"
 
 	"github.com/spf13/cobra"
 
-	"github.com/athreyac4/agentlaws/internal/lawedit"
-	"github.com/athreyac4/agentlaws/internal/ordering"
-	"github.com/athreyac4/agentlaws/internal/parser"
+	"github.com/athreyac4/agentlaws/pkg/alaws"
 )
 
 func newLawCmd() *cobra.Command {
@@ -21,91 +18,91 @@ func newLawCmd() *cobra.Command {
 	return cmd
 }
 
-// sectionFilePath resolves a section ID to its source file path by walking
-// the book's ordering tree.
-func sectionFilePath(book, id string) (string, error) {
-	nodes, err := ordering.Tree(configPath(book))
-	if err != nil {
-		return "", err
-	}
-	for _, n := range nodes {
-		if n.ID == id {
-			return filepath.Join(book, n.Path), nil
-		}
-	}
-	return "", fmt.Errorf("%w: section %q", errNotFound, id)
-}
-
 func newLawAddCmd() *cobra.Command {
+	var bookFlag string
 	var after int
 	cmd := &cobra.Command{
-		Use:   "add <book> <section-id> <text>",
+		Use:   "add <section-id> <text>",
 		Short: "Append a new numbered clause to a section's laws",
-		Args:  cobra.ExactArgs(3),
+		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			book, sectionID, text := args[0], args[1], args[2]
-			path, err := sectionFilePath(book, sectionID)
+			sectionID, text := args[0], args[1]
+			book, err := resolveBook(bookFlag)
 			if err != nil {
 				return err
 			}
 			if flagDryRun {
+				path, err := alaws.SectionFilePath(book, sectionID)
+				if err != nil {
+					return err
+				}
 				cmd.Printf("would add clause to %s: %q\n", path, text)
 				return nil
 			}
-			return lawedit.Add(path, text, after)
+			return alaws.AddLaw(book, sectionID, text, after)
 		},
 	}
+	cmd.Flags().StringVar(&bookFlag, "book", "", "book path (optional if it can be inferred)")
 	cmd.Flags().IntVar(&after, "after", 0, "insert after this existing clause number")
 	return cmd
 }
 
 func newLawListCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "list <book> <section-id>",
+	var bookFlag string
+	cmd := &cobra.Command{
+		Use:   "list <section-id>",
 		Short: "List a section's numbered clauses",
-		Args:  cobra.ExactArgs(2),
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			book, sectionID := args[0], args[1]
-			path, err := sectionFilePath(book, sectionID)
+			sectionID := args[0]
+			book, err := resolveBook(bookFlag)
 			if err != nil {
 				return err
 			}
-			parsed, err := parser.ParseSection(path)
+			laws, err := alaws.ListLaws(book, sectionID)
 			if err != nil {
 				return err
 			}
-			return printResult(cmd, parsed.RawLaws, func() {
-				for i, law := range parsed.RawLaws {
-					cmd.Printf("%d. %s\n", i+1, law.Text)
+			return printResult(cmd, laws, func() {
+				for i, text := range laws {
+					cmd.Printf("%d. %s\n", i+1, text)
 				}
 			})
 		},
 	}
+	cmd.Flags().StringVar(&bookFlag, "book", "", "book path (optional if it can be inferred)")
+	return cmd
 }
 
 func newLawRemoveCmd() *cobra.Command {
+	var bookFlag string
 	var force bool
 	cmd := &cobra.Command{
-		Use:   "remove <book> <section-id> <number>",
+		Use:   "remove <section-id> <number>",
 		Short: "Remove a numbered clause from a section",
-		Args:  cobra.ExactArgs(3),
+		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			book, sectionID, numStr := args[0], args[1], args[2]
+			sectionID, numStr := args[0], args[1]
 			n, err := strconv.Atoi(numStr)
 			if err != nil {
 				return &UsageError{Msg: fmt.Sprintf("invalid clause number %q", numStr)}
 			}
-			path, err := sectionFilePath(book, sectionID)
+			book, err := resolveBook(bookFlag)
 			if err != nil {
 				return err
 			}
 			if flagDryRun {
+				path, err := alaws.SectionFilePath(book, sectionID)
+				if err != nil {
+					return err
+				}
 				cmd.Printf("would remove clause %d from %s\n", n, path)
 				return nil
 			}
-			return lawedit.Remove(path, n, force)
+			return alaws.RemoveLaw(book, sectionID, n, force)
 		},
 	}
+	cmd.Flags().StringVar(&bookFlag, "book", "", "book path (optional if it can be inferred)")
 	cmd.Flags().BoolVar(&force, "force", false, "remove without confirmation")
 	return cmd
 }

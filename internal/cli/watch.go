@@ -2,12 +2,11 @@ package cli
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
 
 	"github.com/athreyac4/agentlaws/internal/server"
-	"github.com/athreyac4/agentlaws/internal/watcher"
+	"github.com/athreyac4/agentlaws/pkg/alaws"
 )
 
 func newWatchCmd() *cobra.Command {
@@ -17,17 +16,18 @@ func newWatchCmd() *cobra.Command {
 		Short: "Recompile a book on change and serve the live UI",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			book := flagRoot
-			if len(args) == 1 {
-				book = args[0]
+			book, err := resolveBook(firstArg(args))
+			if err != nil {
+				return err
 			}
 
-			events, stop, err := watcher.Watch(book)
+			events, stop, err := alaws.Watch(book)
 			if err != nil {
 				return err
 			}
 			defer stop()
 
+			server.SetRoot(flagRoot)
 			go func() {
 				addr := fmt.Sprintf(":%d", port)
 				cmd.Printf("serving UI on http://localhost%s\n", addr)
@@ -38,15 +38,15 @@ func newWatchCmd() *cobra.Command {
 
 			cmd.Printf("watching %s\n", book)
 			for ev := range events {
-				for _, d := range ev.Result.Diagnostics {
+				for _, d := range ev.Book.Diagnostics() {
 					cmd.PrintErrf("%s: %s: %s: %s\n", book, d.Severity, d.Code, d.Message)
 				}
 				if ev.Err != nil {
 					cmd.PrintErrln("compile failed:", ev.Err)
 					continue
 				}
-				outDir := filepath.Join(book, ".alaws", "build")
-				if err := writeArtifacts(outDir, "html,json", ev.Result.Lawbook); err != nil {
+				outDir := book + "/.alaws/build"
+				if err := ev.Book.WriteArtifacts(outDir, "html,json"); err != nil {
 					cmd.PrintErrln("write artifacts:", err)
 					continue
 				}
@@ -63,14 +63,17 @@ func newServeCmd() *cobra.Command {
 	var port int
 	cmd := &cobra.Command{
 		Use:   "serve [book]",
-		Short: "Serve the UI read-only, without a filesystem watcher",
+		Short: "Serve the UI, optionally pinned to a single book",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// The book argument will select which lawbook the UI's Lawbook
-			// API serves once internal/server exposes one (PLAN1 §64
-			// Milestone 9); today only the static UI shell is served.
+			book, ok := resolveBookForUI(firstArg(args))
+			server.SetRoot(flagRoot)
 			addr := fmt.Sprintf(":%d", port)
-			cmd.Printf("serving on http://localhost%s\n", addr)
+			if ok {
+				cmd.Printf("serving %s on http://localhost%s\n", book, addr)
+			} else {
+				cmd.Printf("serving on http://localhost%s (no single book resolved; pick one in the browser)\n", addr)
+			}
 			return server.ListenAndServe(addr)
 		},
 	}

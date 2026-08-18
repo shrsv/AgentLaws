@@ -8,9 +8,10 @@ material to render for an agent prompt.
 
 ```text
 examples/
-├── engineering/   Engineering Governance      16 sections, 4 levels deep
-├── payments/      Payments Authorization & Refunds
-└── support/       Customer Support Governance
+├── engineering/    Engineering Governance      19 sections, 4 levels deep
+├── payments/       Payments Authorization & Refunds
+├── support/        Customer Support Governance
+└── integration/    a runnable program: input -> prompt -> structured output -> audit trail
 ```
 
 All three are discoverable and compile cleanly:
@@ -22,9 +23,9 @@ examples/payments  Payments Authorization & Refunds
 examples/support  Customer Support Governance
 
 $ alaws compile examples/engineering examples/payments examples/support --format html,json,pdf
-compiled examples/engineering: 16 sections, 0 diagnostics -> examples/engineering/.alaws/build
-compiled examples/payments: 6 sections, 0 diagnostics -> examples/payments/.alaws/build
-compiled examples/support: 6 sections, 0 diagnostics -> examples/support/.alaws/build
+compiled examples/engineering: 19 sections, 0 diagnostics -> examples/engineering/.alaws/build
+compiled examples/payments: 9 sections, 0 diagnostics -> examples/payments/.alaws/build
+compiled examples/support: 9 sections, 0 diagnostics -> examples/support/.alaws/build
 ```
 
 ---
@@ -117,6 +118,171 @@ Variables used across the three books: `agent_name`, `repo`, `reviewer`,
 
 ---
 
+## Assembling a full agent prompt: input, role, and structured output
+
+Rendering laws (above) is only the middle of the loop. A real integration
+also needs: runtime input, a role/task framing for the model, and a
+response shape it can parse back into an auditable decision. AgentLaws
+deliberately stops at "here are the applicable laws, with variables
+substituted" (README "Using Laws from Go") - everything else here is the
+*application's* responsibility, not the lawbook's. `examples/integration/`
+is a complete, runnable, self-contained program (no LLM API key or network
+access needed - it hardcodes a plausible model response so it's
+deterministic) that does all of it for one concrete task, authorizing a
+payment:
+
+```bash
+cd examples/integration && go run .
+```
+
+**1. Runtime input.** An ordinary Go struct - not every field becomes a
+law `{{variable}}`:
+
+```go
+type TransactionRequest struct {
+    TransactionID string
+    Amount        float64
+    Currency      string
+    MerchantID    string
+    AgentName     string
+}
+```
+
+**2. Interpreting input as law variables.** A small, explicit mapping from
+input fields to the `{{variable}}` names the *laws* actually use
+(`amount`, `currency`, `merchant_id`, `agent_name` - not `transaction_id`,
+which the laws never reference):
+
+```go
+vars := map[string]string{
+    "amount":      fmt.Sprintf("%.2f", req.Amount),
+    "currency":    req.Currency,
+    "merchant_id": req.MerchantID,
+    "agent_name":  req.AgentName,
+}
+rendered, _ := laws.Render(alaws.RenderOptions{Vars: vars, OnMissing: alaws.MissingError})
+```
+
+**3. The role.** Plain Go string-building, entirely outside AgentLaws -
+the application decides what persona and task framing the model gets:
+
+```go
+role := fmt.Sprintf(`You are %s, a payments authorization agent. Decide whether to
+approve or deny transaction %s (%.2f %s to %s). Ground your decision only
+in the laws below, and cite the specific law numbers that informed it.
+
+Respond with JSON only, in exactly this shape:
+{"decision": "approve" | "deny", "laws": ["<citation>", ...], "reasoning": "<one paragraph>"}
+`, req.AgentName, req.TransactionID, req.Amount, req.Currency, req.MerchantID)
+
+prompt := role + "\nApplicable laws:\n\n" + rendered
+```
+
+Real, captured output of the assembled prompt:
+
+```text
+=== Assembled prompt ===
+You are payments-authorizer, a payments authorization agent. Decide whether to
+approve or deny transaction txn_8f2a91 (4200.00 USD to merchant_privet_drive_4). Ground your decision only
+in the laws below, and cite the specific law numbers that informed it.
+
+Respond with JSON only, in exactly this shape:
+{"decision": "approve" | "deny", "laws": ["<citation>", ...], "reasoning": "<one paragraph>"}
+
+Applicable laws:
+
+1.1.1 A transaction above 4200.00 USD to merchant merchant_privet_drive_4 must pass step-up verification before it is authorized.
+1.1.2 An agent must not increase a customer's transaction limit without an explicit, logged customer request.
+1.1.3 Velocity limits (transactions per hour) must be enforced even when each individual transaction is within its own limit.
+1.2.1 A transaction flagged by the fraud model must not be auto-approved by an agent, regardless of confidence score.
+1.2.2 Agents must not disclose to a customer which specific fraud signal triggered a hold.
+1.2.3 A false positive must be logged with enough detail to retrain the fraud model, not simply overridden and forgotten.
+```
+
+**4/5. Structured output, parsed and resolved back to source.** The model
+is asked for JSON, not prose, specifically so the response can be
+unmarshaled and its citations resolved deterministically - this is the
+audit trail:
+
+```go
+type Decision struct {
+    Decision  string   `json:"decision"`
+    Laws      []string `json:"laws"`
+    Reasoning string   `json:"reasoning"`
+}
+
+var decision Decision
+json.Unmarshal([]byte(modelResponse), &decision)
+
+for _, citation := range decision.Laws {
+    law, _ := book.Resolve(citation)
+    fmt.Printf("  %s  %s\n        source: %s:%d\n", law.Number, law.Text, law.Source.Path, law.Source.LineStart)
+}
+```
+
+```text
+=== Decision ===
+DENY: The transaction exceeds the step-up verification threshold and no step-up verification was recorded, and it was independently flagged by the fraud model; per 1.2.1 a flagged transaction may not be auto-approved.
+
+Cited laws, resolved to source:
+  1.1.1  A transaction above {{amount}} {{currency}} to merchant {{merchant_id}} must pass step-up verification before it is authorized.
+        source: ../payments/authorization/transaction-limits.md:12
+  1.2.1  A transaction flagged by the fraud model must not be auto-approved by an agent, regardless of confidence score.
+        source: ../payments/authorization/fraud-checks.md:12
+```
+
+(the source path is relative to `examples/integration/`, since that's where `go run .` above was invoked from - `book, _ := alaws.Load("../payments")`)
+
+Notice `Resolve()` returns the law's *canonical* text, `{{amount}}` still
+literal - that's the deterministic, signable source (docs/PLAN1.md §17a).
+Only the earlier `Render()` call, for the prompt, substituted variables;
+resolving a citation for an audit trail and rendering one for a prompt are
+different operations, deliberately.
+
+**The same `Decision{decision, laws, reasoning}` shape generalizes** to
+the other two books - only the `decision` field's meaning changes:
+
+```text
+engineering:  {"decision": "approve" | "reject", "laws": [...], "reasoning": "..."}
+              e.g. approving a deployment, citing engineering.operations.deployment laws
+
+support:      {"decision": "resolve" | "escalate", "laws": [...], "reasoning": "..."}
+              e.g. triaging a ticket, citing support.escalation.severity_triage laws
+```
+
+The shape (decision + cited laws + reasoning) is what makes any of these
+audits mechanical; the vocabulary of `decision` is the only thing that's
+domain-specific.
+
+---
+
+## The integration contract lives in the lawbook itself, not just a doc
+
+The response format and variable list above aren't only documented
+out-of-band (this README, `examples/integration/`) - each book states them
+as an actual "Agent Integration" chapter, with citable laws, so they show
+up in `alaws compile`/`export` output (HTML, PDF, Markdown, JSON) the same
+as every other governance rule, because that's what they are:
+
+```text
+$ alaws list examples/payments | tail -6
+3 Agent Integration (payments.integration)
+3.1 Response Format (payments.integration.response_format)
+  3.1.1 When an agent authorizes, denies, or refunds a transaction, it must respond with structured JSON, not prose, in exactly this shape: `{"decision": "approve" | "deny", "laws": ["<citation>", ...], "reasoning": "<string>"}`.
+  3.1.2 Every citation in the `laws` field must be one of the laws actually supplied to the agent for that decision.
+  3.1.3 A "deny" decision must cite at least one law that justifies it.
+3.2 Variables (payments.integration.variables)
+  3.2.1 Applications rendering this lawbook's laws for a prompt must supply a value for every variable referenced by the laws selected, or the render must fail rather than substitute a placeholder silently.
+```
+
+Every book has this chapter: `engineering.integration` (6), `payments.integration` (3), `support.integration` (3).
+An agent that ignores the required response shape isn't just failing an
+informal convention - it's violating `payments.integration.response_format`
+citation `3.1.1`, the same as it would be violating any other law in the
+book.
+
+---
+
 ## JSON output
 
 Every read command takes `--json` for machine consumption - this is the
@@ -177,6 +343,31 @@ $ alaws validate ./demo
 ./demo: 1 error(s) found
 alaws: validation failed for: ./demo
 ```
+
+---
+
+## Exporting everything, not just one book
+
+`alaws compile` produces one set of artifacts per book. To hand someone
+the whole governance program - all three books - as a single file,
+`alaws export` compiles every book under a root and renders them into one
+combined document, each book as its own part:
+
+```text
+$ alaws export examples --format html,pdf,md
+exported 3 book(s) -> examples/.alaws/export
+```
+
+`examples/.alaws/export/lawbook.html` (and `.pdf`, `.md`) contains
+Engineering Governance, Payments Authorization & Refunds, and Customer
+Support Governance in one document, each under its own heading. `md`
+(Markdown) is a supported format alongside `html`/`pdf`/`json` everywhere
+formats are accepted - `alaws compile`, `alaws export`, and the web UI's
+export buttons - useful when the destination is something that reads
+Markdown natively (a wiki, a PR description, another Markdown-based tool)
+rather than a browser or a printer. The web UI's book-list home page and
+each book's own detail view both have "Export all"/"Export" buttons for
+all three formats, backed by `GET /api/export` and `GET /api/book/export`.
 
 ---
 
