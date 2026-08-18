@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "preact/hooks";
+import { useEffect, useMemo, useState, useRef } from "preact/hooks";
 import type { VNode } from "preact";
-import { History, Plus, X, Clock } from "lucide-preact";
+import { History, Plus, X, Clock, User } from "lucide-preact";
 import { api, type Section, type Diagnostic, type RenderedSection } from "../api";
 import type { Route } from "../router";
 import { HistorySidebar } from "../components/HistorySidebar";
@@ -47,6 +47,8 @@ export function BookDetail({ path, section, navigate }: Props) {
   const [newSectionUnder, setNewSectionUnder] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [historyFilter, setHistoryFilter] = useState<{ type: "section" | "law"; id: string; sectionId?: string } | null>(null);
+  const [lawAuthors, setLawAuthors] = useState<Record<string, string>>({});
+  const fetchingAuthors = useRef<Set<string>>(new Set());
 
   const reload = () => {
     setError(null);
@@ -162,6 +164,26 @@ export function BookDetail({ path, section, navigate }: Props) {
   function openLawHistory(lawNumber: string, sectionId: string) {
     setHistoryFilter({ type: "law", id: lawNumber, sectionId });
     setShowHistory(true);
+  }
+
+  function fetchLawAuthor(sectionId: string, lawNumber: string) {
+    const key = `${sectionId}:${lawNumber}`;
+    if (lawAuthors[key] !== undefined || fetchingAuthors.current.has(key)) return;
+    fetchingAuthors.current.add(key);
+    api
+      .history(path, lawNumber)
+      .then((h) => {
+        if (h.Modifications && h.Modifications.length > 0) {
+          const last = h.Modifications[0];
+          const name = last.Author.replace(/ <.*>$/, "");
+          setLawAuthors((prev) => ({ ...prev, [key]: name }));
+        } else {
+          setLawAuthors((prev) => ({ ...prev, [key]: "" }));
+        }
+      })
+      .catch(() => {
+        setLawAuthors((prev) => ({ ...prev, [key]: "" }));
+      });
   }
 
   async function drop(targetID: string, after: boolean) {
@@ -282,27 +304,36 @@ export function BookDetail({ path, section, navigate }: Props) {
 
               {selected.Laws && selected.Laws.length > 0 ? (
                 <ol class="law-list">
-                  {selected.Laws.map((law) => (
-                    <li key={law.Number}>
-                      <span class="law-number">{law.Number}</span>
-                      <span
-                        class="law-text"
-                        dangerouslySetInnerHTML={{ __html: rendered[selected.ID]?.LawHTML?.[law.Number] ?? escapeHTML(law.Text) }}
-                      />
-                      <span class="law-actions">
-                        <button
-                          class="icon-button"
-                          title="History"
-                          onClick={() => openLawHistory(law.Number, selected.ID)}
-                        >
-                          <Clock size={11} />
-                        </button>
-                        <button class="icon-button" title="Remove law" onClick={() => removeLaw(law.Index)}>
-                          <X size={11} />
-                        </button>
-                      </span>
-                    </li>
-                  ))}
+                  {selected.Laws.map((law) => {
+                    const authorKey = `${selected.ID}:${law.Number}`;
+                    const author = lawAuthors[authorKey];
+                    return (
+                      <li key={law.Number} onMouseEnter={() => fetchLawAuthor(selected.ID, law.Number)}>
+                        <span class="law-number">{law.Number}</span>
+                        <span
+                          class="law-text"
+                          dangerouslySetInnerHTML={{ __html: rendered[selected.ID]?.LawHTML?.[law.Number] ?? escapeHTML(law.Text) }}
+                        />
+                        {author !== undefined && author !== "" && (
+                          <span class="law-author">
+                            <User size={10} /> {author}
+                          </span>
+                        )}
+                        <span class="law-actions">
+                          <button
+                            class="icon-button"
+                            title="History"
+                            onClick={() => openLawHistory(law.Number, selected.ID)}
+                          >
+                            <Clock size={11} />
+                          </button>
+                          <button class="icon-button" title="Remove law" onClick={() => removeLaw(law.Index)}>
+                            <X size={11} />
+                          </button>
+                        </span>
+                      </li>
+                    );
+                  })}
                 </ol>
               ) : (
                 <p class="empty-state">This section has no laws of its own.</p>
