@@ -423,6 +423,21 @@ input::placeholder {
   background: var(--vscode-list-hoverBackground);
 }
 
+.law-author {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.law-list li:hover .law-author {
+  opacity: 1;
+}
+
 .law-actions {
   display: flex;
   align-items: center;
