@@ -14,6 +14,7 @@ import (
 
 	"github.com/shrsv/AgentLaws/internal/compiler"
 	"github.com/shrsv/AgentLaws/internal/model"
+	"github.com/shrsv/AgentLaws/internal/provenance"
 	"github.com/shrsv/AgentLaws/internal/resolver"
 	"github.com/shrsv/AgentLaws/internal/template"
 	"github.com/shrsv/AgentLaws/internal/validator"
@@ -59,6 +60,21 @@ func (b *Book) Diagnostics() []Diagnostic { return b.diagnostics }
 // from.
 func (b *Book) Lawbook() model.Lawbook { return b.lawbook }
 
+// attachProvenance collects and attaches provenance for the lawbook at
+// path to book - the alaws binary's version/build time always, plus Git
+// identity/revision/dirty-state when path is inside a Git repo (docs/
+// PLAN1.md §24-§25). Every renderer (HTML/PDF/Markdown/JSON) reads
+// book.lawbook.Provenance, so this one call site is what makes provenance
+// appear in every export, unconditionally - not only when a book is
+// explicitly signed. Collection failures are non-fatal: a book must still
+// compile outside Git or if git metadata is unavailable.
+func attachProvenance(path string, book *Book) *Book {
+	if prov, err := provenance.Collect(path); err == nil {
+		book.lawbook.Provenance = prov
+	}
+	return book
+}
+
 // Load compiles and loads the lawbook cluster at path. It fails on any
 // error-severity diagnostic (docs/PLAN1.md §20); use Compile instead when
 // the caller wants to inspect diagnostics even for a lawbook that doesn't
@@ -68,7 +84,8 @@ func Load(path string) (*Book, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Book{lawbook: result.Lawbook, diagnostics: diagnosticsFrom(result.Diagnostics)}, nil
+	book := &Book{lawbook: result.Lawbook, diagnostics: diagnosticsFrom(result.Diagnostics)}
+	return attachProvenance(path, book), nil
 }
 
 // Compile compiles path and always returns a *Book with Diagnostics
@@ -79,7 +96,7 @@ func Load(path string) (*Book, error) {
 func Compile(path string) (*Book, error) {
 	result, err := compiler.Compile(path, compiler.Options{})
 	book := &Book{lawbook: result.Lawbook, diagnostics: diagnosticsFrom(result.Diagnostics)}
-	return book, err
+	return attachProvenance(path, book), err
 }
 
 // Resolve resolves a canonical citation such as "2.5.3" to its Law.

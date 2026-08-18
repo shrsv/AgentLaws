@@ -1,5 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
-import { api, type Section, type Diagnostic, type RenderedSection } from "../api";
+import { api, type Section, type Diagnostic, type RenderedSection, type Manifest, type LawHistory } from "../api";
 import type { Route } from "../router";
 
 interface Props {
@@ -18,6 +18,11 @@ export function BookDetail({ path, navigate }: Props) {
   const [newLawText, setNewLawText] = useState("");
   const [newChapter, setNewChapter] = useState(false);
   const [newSectionUnder, setNewSectionUnder] = useState<string | null>(null);
+  const [manifest, setManifest] = useState<Manifest | null>(null);
+  const [showProvenance, setShowProvenance] = useState(false);
+  const [history, setHistory] = useState<LawHistory | null>(null);
+  const [historyLaw, setHistoryLaw] = useState<string | null>(null);
+  const [verifyResult, setVerifyResult] = useState<string | null>(null);
 
   const reload = () => {
     setError(null);
@@ -31,6 +36,7 @@ export function BookDetail({ path, navigate }: Props) {
         if (!selectedID && r.lawbook.Sections.length > 0) setSelectedID(r.lawbook.Sections[0].ID);
       })
       .catch((e) => setError(String(e)));
+    api.manifest(path).then(setManifest).catch(() => setManifest(null));
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -79,6 +85,28 @@ export function BookDetail({ path, navigate }: Props) {
     reload();
   }
 
+  async function loadHistory(citation: string) {
+    setHistoryLaw(citation);
+    setHistory(null);
+    try {
+      const h = await api.history(path, citation);
+      setHistory(h);
+    } catch {
+      setHistory(null);
+    }
+  }
+
+  async function doVerify() {
+    if (!manifest) return;
+    setVerifyResult(null);
+    try {
+      const r = await api.verify(path, manifest);
+      setVerifyResult(r.ok ? "Verified OK" : `Failed: ${r.error}`);
+    } catch (e) {
+      setVerifyResult(`Error: ${e}`);
+    }
+  }
+
   return (
     <div class="shell">
       <div class="titlebar">
@@ -106,9 +134,43 @@ export function BookDetail({ path, navigate }: Props) {
         <button class="link-button" onClick={() => navigate({ name: "playground", path })}>
           Playground
         </button>
+        {manifest && (
+          <button class="link-button" onClick={() => setShowProvenance((v) => !v)}>
+            {showProvenance ? "Hide provenance" : "Provenance"}
+          </button>
+        )}
       </div>
 
       {error && <p class="error-text">{error}</p>}
+
+      {showProvenance && manifest && (
+        <div class="provenance-panel">
+          <div class="provenance-header">Provenance</div>
+          <table class="provenance-table">
+            <tbody>
+              <tr><td>Content hash</td><td><code>{manifest.content_hash.slice(0, 24)}…</code></td></tr>
+              {manifest.provenance.Revision && (
+                <tr>
+                  <td>Revision</td>
+                  <td><code>{manifest.provenance.Revision.slice(0, 12)}</code>{manifest.provenance.Dirty ? " (dirty)" : ""}</td>
+                </tr>
+              )}
+              {manifest.provenance.CompiledAt && <tr><td>Compiled at</td><td>{manifest.provenance.CompiledAt}</td></tr>}
+              {manifest.provenance.CompilerName && <tr><td>Compiler</td><td>{manifest.provenance.CompilerName}</td></tr>}
+              {manifest.provenance.HeadCommitAuthor && <tr><td>Last commit by</td><td>{manifest.provenance.HeadCommitAuthor}</td></tr>}
+              {manifest.provenance.HeadCommitDate && <tr><td>Last commit date</td><td>{manifest.provenance.HeadCommitDate}</td></tr>}
+              {manifest.provenance.AgentLawsVersion && <tr><td>alaws version</td><td>{manifest.provenance.AgentLawsVersion}</td></tr>}
+              {manifest.signature && (
+                <tr><td>Signature</td><td><code>{manifest.signature.slice(0, 32)}…</code></td></tr>
+              )}
+            </tbody>
+          </table>
+          <div class="provenance-actions">
+            <button class="btn" onClick={doVerify}>Verify</button>
+            {verifyResult && <span class="verify-result">{verifyResult}</span>}
+          </div>
+        </div>
+      )}
 
       <div class="workbench">
         <nav class="sidebar" aria-label="Lawbook sections">
@@ -225,6 +287,55 @@ export function BookDetail({ path, navigate }: Props) {
                   Add
                 </button>
               </div>
+
+              {selected.Laws && selected.Laws.length > 0 && (
+                <div class="history-section">
+                  <div class="history-header">
+                    Law history
+                    <select
+                      class="history-select"
+                      value={historyLaw ?? ""}
+                      onChange={(e) => {
+                        const v = (e.target as HTMLSelectElement).value;
+                        if (v) loadHistory(v);
+                      }}
+                    >
+                      <option value="">Select a law…</option>
+                      {selected.Laws.map((l) => (
+                        <option key={l.Number} value={l.Number}>
+                          {l.Number} — {l.Text.slice(0, 60)}{l.Text.length > 60 ? "…" : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {history && (
+                    <div class="history-body">
+                      {history.Introduced && (
+                        <p class="history-intro">Introduced in <code>{history.Introduced.slice(0, 12)}</code></p>
+                      )}
+                      {history.Modifications.length === 0 ? (
+                        <p class="empty-state">No modifications found.</p>
+                      ) : (
+                        <table class="history-table">
+                          <thead>
+                            <tr><th>Commit</th><th>Author</th><th>Date</th><th>Summary</th></tr>
+                          </thead>
+                          <tbody>
+                            {history.Modifications.map((m) => (
+                              <tr key={m.Commit}>
+                                <td><code>{m.Commit.slice(0, 8)}</code></td>
+                                <td>{m.Author}</td>
+                                <td>{m.Date ? new Date(m.Date).toLocaleDateString() : ""}</td>
+                                <td>{m.Summary}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           ) : (
             <p class="empty-state">Select a section.</p>

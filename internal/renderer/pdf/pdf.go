@@ -3,7 +3,9 @@
 package pdf
 
 import (
+	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-pdf/fpdf"
 
@@ -33,6 +35,7 @@ func Render(w io.Writer, book model.Lawbook) error {
 	doc.Ln(4)
 
 	renderSections(doc, tr, book.Sections)
+	renderProvenanceFooter(doc, tr, book.Provenance)
 	return doc.Output(w)
 }
 
@@ -53,6 +56,7 @@ func RenderAll(w io.Writer, title string, books []model.Lawbook) error {
 		doc.MultiCell(0, 10, tr(book.Metadata.Title), "", "L", false)
 		doc.Ln(4)
 		renderSections(doc, tr, book.Sections)
+		renderProvenanceFooter(doc, tr, book.Provenance)
 	}
 
 	return doc.Output(w)
@@ -91,4 +95,47 @@ func headingSize(level int) float64 {
 	default:
 		return 11
 	}
+}
+
+// renderProvenanceFooter writes provenance metadata at the bottom of a
+// compiled PDF (docs/PLAN1.md §24-§25, §50). Silently omitted when
+// Provenance is empty.
+func renderProvenanceFooter(doc *fpdf.Fpdf, tr func(string) string, prov model.Provenance) {
+	if prov.Revision == "" && prov.CompiledAt == "" && prov.AgentLawsVersion == "" {
+		return
+	}
+	doc.Ln(6)
+	doc.SetDrawColor(200, 200, 200)
+	doc.Line(doc.GetX(), doc.GetY(), doc.GetX()+170, doc.GetY())
+	doc.Ln(3)
+	doc.SetFont("Helvetica", "", 8)
+	doc.SetTextColor(120, 120, 120)
+
+	var parts []string
+	if prov.Revision != "" {
+		short := prov.Revision
+		if len(short) > 12 {
+			short = short[:12]
+		}
+		dirty := ""
+		if prov.Dirty {
+			dirty = " (dirty)"
+		}
+		parts = append(parts, fmt.Sprintf("revision %s%s", short, dirty))
+	}
+	if prov.CompiledAt != "" {
+		parts = append(parts, fmt.Sprintf("compiled %s", prov.CompiledAt))
+	}
+	if prov.CompilerName != "" {
+		parts = append(parts, fmt.Sprintf("by %s", prov.CompilerName))
+	}
+	if prov.AgentLawsVersion != "" {
+		v := prov.AgentLawsVersion
+		if prov.AgentLawsBuildTime != "" {
+			v += " (built " + prov.AgentLawsBuildTime + ")"
+		}
+		parts = append(parts, fmt.Sprintf("alaws %s", v))
+	}
+	doc.MultiCell(0, 4, tr(strings.Join(parts, " · ")), "", "L", false)
+	doc.SetTextColor(0, 0, 0)
 }

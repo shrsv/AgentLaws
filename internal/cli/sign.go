@@ -2,13 +2,50 @@ package cli
 
 import (
 	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 
-	"github.com/shrsv/AgentLaws/internal/provenance"
-	"github.com/shrsv/AgentLaws/internal/signing"
 	"github.com/shrsv/AgentLaws/pkg/alaws"
 )
+
+// manifestPath is where `alaws sign` writes a book's manifest and where
+// `alaws verify`/rendering look for one by default (docs/PLAN1.md §26).
+func manifestPath(book string) string {
+	return filepath.Join(book, ".alaws", "build", "manifest.json")
+}
+
+func newKeygenCmd() *cobra.Command {
+	var out string
+	cmd := &cobra.Command{
+		Use:   "keygen",
+		Short: "Generate a new Ed25519 signing keypair",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := out
+			if path == "" {
+				var err error
+				path, err = alaws.DefaultKeyPath()
+				if err != nil {
+					return err
+				}
+			}
+			if flagDryRun {
+				cmd.Printf("would write private key to %s (and %s.pub)\n", path, path)
+				return nil
+			}
+			if err := alaws.GenerateKey(path); err != nil {
+				return err
+			}
+			cmd.Printf("wrote %s and %s.pub\n", path, path)
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&out, "out", "", "path for the private key (defaults to the §5 storage hierarchy)")
+	return cmd
+}
 
 func newSignCmd() *cobra.Command {
 	var key string
@@ -25,24 +62,49 @@ func newSignCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			canonical, err := json.Marshal(b.Lawbook())
+
+			keyPath := key
+			if keyPath == "" {
+				keyPath, err = alaws.DefaultKeyPath()
+				if err != nil {
+					return err
+				}
+			}
+			if _, statErr := os.Stat(keyPath); statErr != nil {
+				return &UsageError{Msg: fmt.Sprintf("no signing key at %s - run `alaws keygen` first, or pass --key", keyPath)}
+			}
+
+			manifest, err := b.Sign(keyPath)
 			if err != nil {
 				return err
 			}
-			sig, err := signing.Sign(canonical, key)
-			if err != nil {
-				return err
+
+			if !flagDryRun {
+				out := manifestPath(book)
+				if err := os.MkdirAll(filepath.Dir(out), 0755); err != nil {
+					return err
+				}
+				data, err := json.MarshalIndent(manifest, "", "  ")
+				if err != nil {
+					return err
+				}
+				if err := os.WriteFile(out, data, 0644); err != nil {
+					return err
+				}
 			}
-			cmd.Println(sig)
-			return nil
+
+			return printResult(cmd, manifest, func() {
+				cmd.Printf("signed %s\n  content hash: %s\n  signature:    %s\n",
+					manifest.Lawbook, manifest.ContentHash, manifest.Signature)
+			})
 		},
 	}
-	cmd.Flags().StringVar(&key, "key", "", "signing key identity (defaults to the local Git identity)")
+	cmd.Flags().StringVar(&key, "key", "", "path to the private signing key (defaults to the §5 storage hierarchy)")
 	return cmd
 }
 
 func newVerifyCmd() *cobra.Command {
-	var manifestPath string
+	var manifestFlag string
 	cmd := &cobra.Command{
 		Use:   "verify [book]",
 		Short: "Verify a book's compiled state against its signed manifest",
@@ -56,21 +118,27 @@ func newVerifyCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			manifest, err := provenance.BuildManifest(b.Lawbook())
+
+			path := manifestFlag
+			if path == "" {
+				path = manifestPath(book)
+			}
+			data, err := os.ReadFile(path)
 			if err != nil {
+				return &UsageError{Msg: fmt.Sprintf("no manifest at %s - run `alaws sign` first, or pass --manifest", path)}
+			}
+			var manifest alaws.Manifest
+			if err := json.Unmarshal(data, &manifest); err != nil {
 				return err
 			}
-			canonical, err := json.Marshal(b.Lawbook())
-			if err != nil {
-				return err
-			}
-			if err := signing.Verify(canonical, manifest.Signature); err != nil {
+
+			if err := alaws.Verify(manifest, b); err != nil {
 				return err
 			}
 			cmd.Println("verified")
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&manifestPath, "manifest", "", "path to an external manifest.json (defaults to the book's build output)")
+	cmd.Flags().StringVar(&manifestFlag, "manifest", "", "path to an external manifest.json (defaults to the book's build output)")
 	return cmd
 }

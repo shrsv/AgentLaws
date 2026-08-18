@@ -3,6 +3,14 @@
 BINARY=alaws
 INSTALL_DIR=$(HOME)/go/bin
 WEB_DIR=web
+MODULE=github.com/shrsv/AgentLaws
+
+# Stamp the alaws binary's own version/build time (docs/PLAN1.md §24-§25) -
+# so a compiled lawbook's provenance can say which alaws build produced it,
+# not just which Git revision of the lawbook it compiled.
+VERSION=$(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+BUILD_TIME=$(shell date -u +%Y-%m-%dT%H:%M:%SZ)
+LDFLAGS=-X '$(MODULE)/internal/version.Version=$(VERSION)' -X '$(MODULE)/internal/version.BuildTime=$(BUILD_TIME)'
 
 all: build test
 
@@ -10,12 +18,12 @@ all: build test
 # internal/server embeds web/dist via go:embed (web/embed.go), so the UI
 # must exist before `go build` will succeed.
 build: web-build
-	go build -o $(BINARY) ./cmd/alaws
+	go build -ldflags "$(LDFLAGS)" -o $(BINARY) ./cmd/alaws
 
 # Go-only rebuild, skipping the web UI. Assumes web/dist already exists
 # from a previous `make build`/`make web-build`.
 build-go:
-	go build -o $(BINARY) ./cmd/alaws
+	go build -ldflags "$(LDFLAGS)" -o $(BINARY) ./cmd/alaws
 
 install: build
 	cp $(BINARY) $(INSTALL_DIR)/$(BINARY)

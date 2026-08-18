@@ -56,6 +56,10 @@ func registerAPI(mux *http.ServeMux) {
 	mux.HandleFunc("/api/book/move", handleMove)
 	mux.HandleFunc("/api/book/laws", handleLaws)
 	mux.HandleFunc("/api/book/watch", handleWatch)
+	mux.HandleFunc("/api/book/manifest", handleManifest)
+	mux.HandleFunc("/api/book/history", handleHistory)
+	mux.HandleFunc("/api/book/log", handleLog)
+	mux.HandleFunc("/api/book/verify", handleVerify)
 	mux.HandleFunc("/api/meta/operations", handleOperations)
 	mux.HandleFunc("/api/meta/root", handleRoot)
 	mux.HandleFunc("/api/export", handleExportAll)
@@ -463,4 +467,109 @@ func handleLaws(w http.ResponseWriter, r *http.Request) {
 	default:
 		methodNotAllowed(w)
 	}
+}
+
+// GET /api/book/manifest?path=
+func handleManifest(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		methodNotAllowed(w)
+		return
+	}
+	book := r.URL.Query().Get("path")
+	if book == "" {
+		writeError(w, errors.New("path is required"))
+		return
+	}
+	b, err := alaws.Compile(book)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	m, err := b.Manifest()
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, m)
+}
+
+// GET /api/book/history?path=&citation=
+func handleHistory(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		methodNotAllowed(w)
+		return
+	}
+	q := r.URL.Query()
+	book := q.Get("path")
+	citation := q.Get("citation")
+	if book == "" || citation == "" {
+		writeError(w, errors.New("path and citation are required"))
+		return
+	}
+	b, err := alaws.Compile(book)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	hist, err := b.History(citation)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, hist)
+}
+
+// GET /api/book/log?path=&limit=
+func handleLog(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		methodNotAllowed(w)
+		return
+	}
+	q := r.URL.Query()
+	book := q.Get("path")
+	if book == "" {
+		writeError(w, errors.New("path is required"))
+		return
+	}
+	limit := 0
+	if s := q.Get("limit"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			limit = n
+		}
+	}
+	changes, err := alaws.Log(book, limit)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	if changes == nil {
+		changes = []alaws.LogEntry{}
+	}
+	writeJSON(w, http.StatusOK, changes)
+}
+
+// POST /api/book/verify {path, manifest}
+func handleVerify(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		methodNotAllowed(w)
+		return
+	}
+	var req struct {
+		Path     string         `json:"path"`
+		Manifest alaws.Manifest `json:"manifest"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, err)
+		return
+	}
+	b, err := alaws.Compile(req.Path)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	if err := alaws.Verify(req.Manifest, b); err != nil {
+		writeJSON(w, http.StatusOK, map[string]any{"ok": false, "error": err.Error()})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }

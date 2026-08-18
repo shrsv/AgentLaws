@@ -68,6 +68,46 @@ export interface CompileResult {
   rendered: Record<string, RenderedSection>; // section ID -> rendered HTML
 }
 
+export interface Provenance {
+  Revision: string;
+  Dirty: boolean;
+  WorkingTreeHash: string;
+  CompiledAt: string;
+  CompilerName: string;
+  CompilerEmail: string;
+  HeadCommitAuthor: string;
+  HeadCommitDate: string;
+  AgentLawsVersion: string;
+  AgentLawsBuildTime: string;
+}
+
+export interface Manifest {
+  lawbook: string;
+  content_hash: string;
+  provenance: Provenance;
+  signature: string;
+}
+
+export interface HistoryEntry {
+  Commit: string;
+  Author: string;
+  Date: string;
+  Summary: string;
+}
+
+export interface LawHistory {
+  Citation: string;
+  Introduced: string;
+  Modifications: HistoryEntry[];
+}
+
+export interface LogEntry {
+  Commit: string;
+  Author: string;
+  Date: string;
+  Summary: string;
+}
+
 export interface Param {
   name: string;
   kind: string;
@@ -195,4 +235,18 @@ export const api = {
     es.onmessage = (m) => onEvent(JSON.parse(m.data));
     return () => es.close();
   },
+
+  manifest: (path: string) => req<Manifest>(`/api/book/manifest${qs({ path })}`),
+
+  history: (path: string, citation: string) =>
+    req<LawHistory>(`/api/book/history${qs({ path, citation })}`),
+
+  log: (path: string, limit?: number) =>
+    req<LogEntry[]>(`/api/book/log${qs({ path, limit })}`),
+
+  verify: (path: string, manifest: Manifest) =>
+    req<{ ok: boolean; error?: string }>("/api/book/verify", {
+      method: "POST",
+      body: JSON.stringify({ path, manifest }),
+    }),
 };

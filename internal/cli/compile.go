@@ -6,7 +6,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/shrsv/AgentLaws/internal/provenance"
 	"github.com/shrsv/AgentLaws/pkg/alaws"
 )
 
@@ -198,7 +197,7 @@ func newHistoryCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			hist, err := provenance.History(b.Lawbook(), args[0])
+			hist, err := b.History(args[0])
 			if err != nil {
 				return err
 			}
