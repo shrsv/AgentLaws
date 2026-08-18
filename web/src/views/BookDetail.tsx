@@ -1,4 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
+import type { VNode } from "preact";
 import { History, Plus, X, Clock } from "lucide-preact";
 import { api, type Section, type Diagnostic, type RenderedSection } from "../api";
 import type { Route } from "../router";
@@ -8,6 +9,29 @@ interface Props {
   path: string;
   section: string | null;
   navigate: (r: Route) => void;
+}
+
+// TreeNode is a Section plus its child sections, rebuilt from the compiled
+// IR's flat, depth-first list (Level/ParentID) into a nested tree so the
+// sidebar can show the book's chapter/section/subsection hierarchy.
+interface TreeNode {
+  section: Section;
+  children: TreeNode[];
+}
+
+function buildTree(sections: Section[]): TreeNode[] {
+  const roots: TreeNode[] = [];
+  const stack: TreeNode[] = [];
+  for (const s of sections) {
+    const node: TreeNode = { section: s, children: [] };
+    while (stack.length > 0 && stack[stack.length - 1].section.Level >= s.Level) {
+      stack.pop();
+    }
+    if (stack.length > 0) stack[stack.length - 1].children.push(node);
+    else roots.push(node);
+    stack.push(node);
+  }
+  return roots;
 }
 
 export function BookDetail({ path, section, navigate }: Props) {
@@ -56,6 +80,73 @@ export function BookDetail({ path, section, navigate }: Props) {
     setSelectedID(id);
     navigate({ name: "book", path, section: id });
   };
+
+  // Recursive sidebar renderer: each section is a row (with the same
+  // select/drag/history/remove handlers as before), and any children are
+  // rendered as a nested <ul> indented under it.
+  const renderTree = (nodes: TreeNode[]): VNode[] =>
+    nodes.map((n) => {
+      const s = n.section;
+      return (
+        <li key={s.ID} class="tree-branch">
+          <div
+            class="tree-node"
+            data-level={s.Level}
+            aria-selected={s.ID === selectedID}
+            draggable
+            onDragStart={() => setDragID(s.ID)}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+              const after = e.clientY - rect.top > rect.height / 2;
+              drop(s.ID, after);
+            }}
+            onClick={() => select(s.ID)}
+          >
+            <span class="number">{s.Number}</span>
+            <span class="node-title">{s.Title}</span>
+            <span class="node-actions">
+              <button
+                class="icon-button"
+                title="History"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openSectionHistory(s.ID);
+                }}
+              >
+                <Clock size={11} />
+              </button>
+              {s.Level === 1 && (
+                <button
+                  class="icon-button"
+                  title="New section here"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setNewSectionUnder(newSectionUnder === s.ID ? null : s.ID);
+                  }}
+                >
+                  <Plus size={11} />
+                </button>
+              )}
+              <button
+                class="icon-button"
+                title="Remove"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeNode(s);
+                }}
+              >
+                <X size={11} />
+              </button>
+            </span>
+          </div>
+          {n.children.length > 0 && (
+            <ul class="tree-children">{renderTree(n.children)}</ul>
+          )}
+        </li>
+      );
+    });
 
   const selected = sections.find((s) => s.ID === selectedID) ?? null;
   const errorCount = diagnostics.filter((d) => d.Severity === "error").length;
@@ -162,63 +253,7 @@ export function BookDetail({ path, section, navigate }: Props) {
 
           {newChapter && <NewNodeForm onSubmit={async (file, t, id) => { await api.createChapter(path, file, t, id); setNewChapter(false); reload(); }} onCancel={() => setNewChapter(false)} />}
 
-          <ul class="tree">
-            {sections.map((n) => (
-              <li
-                key={n.ID}
-                class="tree-node"
-                data-level={Math.min(n.Level, 2)}
-                aria-selected={n.ID === selectedID}
-                draggable
-                onDragStart={() => setDragID(n.ID)}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                  const after = e.clientY - rect.top > rect.height / 2;
-                  drop(n.ID, after);
-                }}
-                onClick={() => select(n.ID)}
-              >
-                <span class="number">{n.Number}</span>
-                <span class="node-title">{n.Title}</span>
-                <span class="node-actions">
-                  <button
-                    class="icon-button"
-                    title="History"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openSectionHistory(n.ID);
-                    }}
-                  >
-                    <Clock size={11} />
-                  </button>
-                  {n.Level === 1 && (
-                    <button
-                      class="icon-button"
-                      title="New section here"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setNewSectionUnder(newSectionUnder === n.ID ? null : n.ID);
-                      }}
-                    >
-                      <Plus size={11} />
-                    </button>
-                  )}
-                  <button
-                    class="icon-button"
-                    title="Remove"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeNode(n);
-                    }}
-                  >
-                    <X size={11} />
-                  </button>
-                </span>
-              </li>
-            ))}
-          </ul>
+          <ul class="tree">{renderTree(buildTree(sections))}</ul>
           {newSectionUnder && (
             <NewNodeForm
               parent={newSectionUnder}

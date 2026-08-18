@@ -52,6 +52,16 @@
   padding: 0;
 }
 
+.tree-branch {
+  list-style: none;
+}
+
+.tree-children {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
 .tree-node {
   display: flex;
   align-items: center;
@@ -61,8 +71,31 @@
   white-space: nowrap;
 }
 
+/* Nesting depth drives indentation, mirroring the section hierarchy
+   (5 -> 5.10 -> 5.10.7 -> ...). A left guide line connects children to
+   their parent's column so the tree structure reads at a glance. */
+.tree-node[data-level='1'] {
+  padding-left: 0.75rem;
+  font-weight: 600;
+}
 .tree-node[data-level='2'] {
   padding-left: 2rem;
+}
+.tree-node[data-level='3'] {
+  padding-left: 3.25rem;
+}
+.tree-node[data-level='4'] {
+  padding-left: 4.5rem;
+}
+.tree-node[data-level='5'] {
+  padding-left: 5.75rem;
+}
+.tree-node[data-level='6'] {
+  padding-left: 7rem;
+}
+
+.tree-children .tree-node {
+  border-left: 1px solid var(--vscode-panel-border);
 }
 
 .tree-node:hover {
