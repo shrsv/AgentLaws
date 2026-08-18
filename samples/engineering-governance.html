@@ -1,0 +1,216 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Engineering Governance</title><style>
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:860px;margin:2rem auto;padding:0 1rem;color:#1e1e1e;line-height:1.55}
+h1{border-bottom:1px solid #ddd;padding-bottom:.5rem}
+h2.book-title{margin-top:3rem;border-bottom:2px solid #333;padding-bottom:.4rem}
+.section-id{color:#767676;font-family:ui-monospace,Menlo,monospace;font-size:.85rem;margin-top:-.5rem}
+ol.laws{padding-left:1.4rem;list-style:none}
+ol.laws>li{margin:.4rem 0}
+ol.laws>li p{display:inline;margin:0}
+.law-number{color:#098658;font-family:ui-monospace,Menlo,monospace;margin-right:.4rem}
+code{font-family:ui-monospace,Menlo,monospace;background:#f0f0f0;padding:.1em .3em;border-radius:3px;font-size:.92em}
+pre{overflow-x:auto;border:1px solid #ddd;border-radius:6px;padding:.85rem 1rem;font-size:.85rem;line-height:1.5;background:#272822}
+pre code{background:none;padding:0;border-radius:0;font-size:1em;color:#f8f8f2}
+</style></head><body>
+<h1>Engineering Governance</h1>
+<h2 id="engineering.principles">1 Principles</h2>
+<p class="section-id">engineering.principles</p>
+<p>These are the general principles that govern every agent working in this
+codebase, regardless of task. More specific chapters (Security, Coding,
+Operations, Incident Response) refine or add to these; none of them
+override a principle stated here.</p>
+<ol class="laws">
+<li id="1.1"><span class="law-number">1.1</span><p>Agents must prefer small, reviewable changes over large, sweeping rewrites.</p>
+</li>
+<li id="1.2"><span class="law-number">1.2</span><p>Agents must not merge code without human review unless the change is explicitly pre-authorized for autonomous merge.</p>
+</li>
+<li id="1.3"><span class="law-number">1.3</span><p>Agents must explain their reasoning when a decision is not obvious from the diff alone.</p>
+</li>
+</ol>
+<h2 id="engineering.security">2 Security</h2>
+<p class="section-id">engineering.security</p>
+<p>This chapter covers how agents authenticate to systems, handle secrets, and
+vet dependencies. It is organized into three subsections; this chapter
+itself states no laws directly - see Authentication, Secrets, and
+Dependencies below.</p>
+<h3 id="engineering.security.authentication">2.1 Authentication</h3>
+<p class="section-id">engineering.security.authentication</p>
+<p>Rules governing how an agent authenticates to internal and third-party
+systems while performing a task.</p>
+<ol class="laws">
+<li id="2.1.1"><span class="law-number">2.1.1</span><p>Agent {{agent_name}} must authenticate using short-lived, scoped credentials rather than long-lived API keys wherever the target system supports it.</p>
+</li>
+<li id="2.1.2"><span class="law-number">2.1.2</span><p>Agents must not share authentication tokens between unrelated tasks or sessions.</p>
+</li>
+<li id="2.1.3"><span class="law-number">2.1.3</span><p>A failed authentication attempt must be logged with the agent's identity and the resource it attempted to access.</p>
+</li>
+</ol>
+<h3 id="engineering.security.secrets">2.2 Secrets</h3>
+<p class="section-id">engineering.security.secrets</p>
+<p>Rules for how agents handle credentials discovered in, or introduced into,
+the repository.</p>
+<ol class="laws">
+<li id="2.2.1"><span class="law-number">2.2.1</span><p>Credentials must never be committed to source control, including in commit messages or code comments.</p>
+</li>
+<li id="2.2.2"><span class="law-number">2.2.2</span><p>Agents must not print credentials into logs, error messages, or any output that may be persisted.</p>
+</li>
+<li id="2.2.3"><span class="law-number">2.2.3</span><p>Credentials discovered in source must be treated as compromised and rotated, not merely removed.</p>
+</li>
+<li id="2.2.4"><span class="law-number">2.2.4</span><p>Secrets required at runtime must be retrieved from the approved secret store, never hardcoded.</p>
+</li>
+</ol>
+<h3 id="engineering.security.dependencies">2.3 Dependencies</h3>
+<p class="section-id">engineering.security.dependencies</p>
+<p>Rules for adding, upgrading, and evaluating third-party dependencies.</p>
+<ol class="laws">
+<li id="2.3.1"><span class="law-number">2.3.1</span><p>Before adding a new dependency to {{repo}}, an agent must check it for known vulnerabilities using the approved scanner.</p>
+</li>
+<li id="2.3.2"><span class="law-number">2.3.2</span><p>Agents must not upgrade a dependency across a major version without flagging the change for human review.</p>
+</li>
+<li id="2.3.3"><span class="law-number">2.3.3</span><p>Dependencies with no maintenance activity in the last two years must be flagged as a risk, not silently relied upon.</p>
+</li>
+</ol>
+<h2 id="engineering.coding">3 Coding</h2>
+<p class="section-id">engineering.coding</p>
+<p>Rules for how agents make and submit code changes. See Code Review and
+Testing below; this chapter itself states no laws directly.</p>
+<h3 id="engineering.coding.review">3.1 Code Review</h3>
+<p class="section-id">engineering.coding.review</p>
+<p>Rules for how a code change gets reviewed before it merges.</p>
+<ol class="laws">
+<li id="3.1.1"><span class="law-number">3.1.1</span><p>Every change to {{repo}} must be reviewed by at least one human, {{reviewer}} or another qualified reviewer, before merging.</p>
+</li>
+<li id="3.1.2"><span class="law-number">3.1.2</span><p>An agent must not approve its own pull request.</p>
+</li>
+<li id="3.1.3"><span class="law-number">3.1.3</span><p>Review comments that request a change must be resolved or explicitly declined with a rationale before merge.</p>
+</li>
+</ol>
+<h3 id="engineering.coding.testing">3.2 Testing</h3>
+<p class="section-id">engineering.coding.testing</p>
+<p>Rules for what test coverage a change needs before it can be proposed.</p>
+<ol class="laws">
+<li id="3.2.1"><span class="law-number">3.2.1</span><p>A change that modifies behavior must include or update an automated test that would fail without the change.</p>
+</li>
+<li id="3.2.2"><span class="law-number">3.2.2</span><p>Agents must not disable or skip a failing test to make a build pass without flagging it to a human.</p>
+</li>
+<li id="3.2.3"><span class="law-number">3.2.3</span><p>Test suites must be run locally or in CI before a change is proposed for review.</p>
+</li>
+</ol>
+<h2 id="engineering.operations">4 Operations</h2>
+<p class="section-id">engineering.operations</p>
+<p>Rules for deploying and operating production systems. See Deployment,
+Monitoring, and Rollback below; this chapter itself states no laws
+directly.</p>
+<h3 id="engineering.operations.deployment">4.1 Deployment</h3>
+<p class="section-id">engineering.operations.deployment</p>
+<p>Rules for pushing a change to a running environment.</p>
+<ol class="laws">
+<li id="4.1.1"><span class="law-number">4.1.1</span><p>Agent {{agent_name}} must not deploy directly to the {{environment}} environment without an approved change record.</p>
+</li>
+<li id="4.1.2"><span class="law-number">4.1.2</span><p>Deployments to production must be preceded by a successful deployment to staging with the same artifact.</p>
+</li>
+<li id="4.1.3"><span class="law-number">4.1.3</span><p>A deployment must be reversible within one command or one documented procedure.</p>
+</li>
+</ol>
+<h3 id="engineering.operations.monitoring">4.2 Monitoring</h3>
+<p class="section-id">engineering.operations.monitoring</p>
+<p>Rules for alerting and anomaly handling once a service is live.</p>
+<ol class="laws">
+<li id="4.2.1"><span class="law-number">4.2.1</span><p>A new production service must have baseline alerting configured before it receives real traffic.</p>
+</li>
+<li id="4.2.2"><span class="law-number">4.2.2</span><p>Agents must not silence an alert without recording the reason and an expiry for the silence.</p>
+</li>
+<li id="4.2.3"><span class="law-number">4.2.3</span><p>Anomalies detected by an agent must be reported even if the agent itself is not the cause.</p>
+</li>
+</ol>
+<h3 id="engineering.operations.rollback">4.3 Rollback</h3>
+<p class="section-id">engineering.operations.rollback</p>
+<p>General rollback procedure: a deployment that causes an outage should be
+rolled back to the last known-good artifact rather than fixed forward
+under pressure. Emergency Procedures below covers the case where there is
+no time to wait for normal review.</p>
+<h4 id="engineering.operations.rollback.emergency">4.3.1 Emergency Procedures</h4>
+<p class="section-id">engineering.operations.rollback.emergency</p>
+<p>This section exists three levels deep in the lawbook (Operations &gt;
+Rollback &gt; Emergency Procedures), and its citations reflect that:
+1.x.y.z-style numbers. It covers the narrow exception to the normal
+rollback and deployment rules that applies only during a declared
+incident.</p>
+<ol class="laws">
+<li id="4.3.1.1"><span class="law-number">4.3.1.1</span><p>During incident {{incident_id}}, agent {{agent_name}} may roll back a production deployment without waiting for review, and must file the change record within one hour after the fact.</p>
+</li>
+<li id="4.3.1.2"><span class="law-number">4.3.1.2</span><p>An emergency rollback must be announced in the incident channel before it is executed, not only after.</p>
+</li>
+<li id="4.3.1.3"><span class="law-number">4.3.1.3</span><p>Emergency authority granted during an incident expires when the incident is closed and does not carry over to unrelated changes.</p>
+</li>
+</ol>
+<h2 id="engineering.incident_response">5 Incident Response</h2>
+<p class="section-id">engineering.incident_response</p>
+<p>Rules for classifying and communicating about production incidents. See
+Severity Levels and Communication below; this chapter itself states no
+laws directly.</p>
+<h3 id="engineering.incident_response.severity_levels">5.1 Severity Levels</h3>
+<p class="section-id">engineering.incident_response.severity_levels</p>
+<p>How an incident's severity is assigned and revised.</p>
+<ol class="laws">
+<li id="5.1.1"><span class="law-number">5.1.1</span><p>An incident that causes customer-visible data loss must be classified Severity 1 regardless of the number of customers affected.</p>
+</li>
+<li id="5.1.2"><span class="law-number">5.1.2</span><p>Severity classification must be reassessed if new information changes the blast radius, not fixed at first report.</p>
+</li>
+<li id="5.1.3"><span class="law-number">5.1.3</span><p>Agents must not downgrade a severity level without a human confirming the downgrade.</p>
+</li>
+</ol>
+<h3 id="engineering.incident_response.communication">5.2 Communication</h3>
+<p class="section-id">engineering.incident_response.communication</p>
+<p>Rules for status updates and customer-facing messaging during and after an
+incident.</p>
+<ol class="laws">
+<li id="5.2.1"><span class="law-number">5.2.1</span><p>Incident {{incident_id}} at severity {{severity}} must have a status update posted at least once per hour until resolved.</p>
+</li>
+<li id="5.2.2"><span class="law-number">5.2.2</span><p>Customer-facing communication about an incident must be reviewed by a human before it is sent.</p>
+</li>
+<li id="5.2.3"><span class="law-number">5.2.3</span><p>Post-incident reviews must be published within five business days of resolution.</p>
+</li>
+</ol>
+<h2 id="engineering.integration">6 Agent Integration</h2>
+<p class="section-id">engineering.integration</p>
+<p>This chapter governs how a tool or agent must consume this lawbook and
+respond, not what it must do to code or systems. See Response Format and
+Variables below; this chapter itself states no laws directly.</p>
+<h3 id="engineering.integration.response_format">6.1 Response Format</h3>
+<p class="section-id">engineering.integration.response_format</p>
+<p>Rules for how an agent must respond when it makes a decision governed by
+this lawbook - approving or rejecting a deployment, a pull request, or an
+emergency rollback. A structured response is what makes a decision
+auditable; a prose explanation is not. The required shape:</p>
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;"><code><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;decision&#34;</span>: <span style="color:#e6db74">&#34;approve&#34;</span> <span style="color:#960050;background-color:#1e0010">|</span> <span style="color:#e6db74">&#34;reject&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;laws&#34;</span>: [<span style="color:#e6db74">&#34;&lt;citation&gt;&#34;</span>, <span style="color:#e6db74">&#34;...&#34;</span>],
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;reasoning&#34;</span>: <span style="color:#e6db74">&#34;&lt;string&gt;&#34;</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre><ol class="laws">
+<li id="6.1.1"><span class="law-number">6.1.1</span><p>When an agent makes a decision governed by this lawbook, it must respond with structured JSON matching the schema in this section's commentary, not prose.</p>
+</li>
+<li id="6.1.2"><span class="law-number">6.1.2</span><p>Every citation in the <code>laws</code> field must be one of the laws actually supplied to the agent for that decision; citing a law it was never given is itself a violation of this section.</p>
+</li>
+<li id="6.1.3"><span class="law-number">6.1.3</span><p>An &quot;approve&quot; or &quot;reject&quot; decision must cite at least one law, unless no law in this book applied to the task at hand.</p>
+</li>
+</ol>
+<h3 id="engineering.integration.variables">6.2 Variables</h3>
+<p class="section-id">engineering.integration.variables</p>
+<p>This book's laws reference the following <code>{{variables}}</code> (docs/PLAN1.md
+§17a); an application must supply all of them before rendering a law that
+uses them:</p>
+<ul>
+<li><code>agent_name</code> - the identity of the acting agent.</li>
+<li><code>repo</code> - the repository being operated on.</li>
+<li><code>reviewer</code> - a human reviewer's identifier, where a law requires one.</li>
+<li><code>environment</code> - the deployment target (e.g. <code>staging</code>, <code>production</code>).</li>
+<li><code>incident_id</code> - the active incident's identifier.</li>
+<li><code>severity</code> - an incident's assigned severity level.</li>
+</ul>
+<ol class="laws">
+<li id="6.2.1"><span class="law-number">6.2.1</span><p>Applications rendering this lawbook's laws for a prompt must supply a value for every variable referenced by the laws selected, or the render must fail rather than substitute a placeholder silently.</p>
+</li>
+</ol>
+</body></html>

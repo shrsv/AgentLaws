@@ -1,0 +1,733 @@
+{
+  "Metadata": {
+    "Title": "Engineering Governance",
+    "Ordering": [
+      "principles.md",
+      "security.md",
+      "security/authentication.md",
+      "security/secrets.md",
+      "security/dependencies.md",
+      "coding.md",
+      "coding/review.md",
+      "coding/testing.md",
+      "operations.md",
+      "operations/deployment.md",
+      "operations/monitoring.md",
+      "operations/rollback.md",
+      "operations/rollback/emergency.md",
+      "incident-response.md",
+      "incident-response/severity-levels.md",
+      "incident-response/communication.md",
+      "integration.md",
+      "integration/response-format.md",
+      "integration/variables.md"
+    ]
+  },
+  "Sections": [
+    {
+      "ID": "engineering.principles",
+      "Number": "1",
+      "Title": "Principles",
+      "Level": 1,
+      "ParentID": "",
+      "Source": {
+        "Path": "examples/engineering/principles.md",
+        "LineStart": 1,
+        "LineEnd": 20
+      },
+      "Commentary": "These are the general principles that govern every agent working in this\ncodebase, regardless of task. More specific chapters (Security, Coding,\nOperations, Incident Response) refine or add to these; none of them\noverride a principle stated here.",
+      "Laws": [
+        {
+          "Number": "1.1",
+          "Index": 1,
+          "Text": "Agents must prefer small, reviewable changes over large, sweeping rewrites.",
+          "SectionID": "engineering.principles",
+          "Source": {
+            "Path": "examples/engineering/principles.md",
+            "LineStart": 15,
+            "LineEnd": 16
+          }
+        },
+        {
+          "Number": "1.2",
+          "Index": 2,
+          "Text": "Agents must not merge code without human review unless the change is explicitly pre-authorized for autonomous merge.",
+          "SectionID": "engineering.principles",
+          "Source": {
+            "Path": "examples/engineering/principles.md",
+            "LineStart": 17,
+            "LineEnd": 18
+          }
+        },
+        {
+          "Number": "1.3",
+          "Index": 3,
+          "Text": "Agents must explain their reasoning when a decision is not obvious from the diff alone.",
+          "SectionID": "engineering.principles",
+          "Source": {
+            "Path": "examples/engineering/principles.md",
+            "LineStart": 19,
+            "LineEnd": 20
+          }
+        }
+      ]
+    },
+    {
+      "ID": "engineering.security",
+      "Number": "2",
+      "Title": "Security",
+      "Level": 1,
+      "ParentID": "",
+      "Source": {
+        "Path": "examples/engineering/security.md",
+        "LineStart": 1,
+        "LineEnd": 14
+      },
+      "Commentary": "This chapter covers how agents authenticate to systems, handle secrets, and\nvet dependencies. It is organized into three subsections; this chapter\nitself states no laws directly - see Authentication, Secrets, and\nDependencies below.",
+      "Laws": null
+    },
+    {
+      "ID": "engineering.security.authentication",
+      "Number": "2.1",
+      "Title": "Authentication",
+      "Level": 2,
+      "ParentID": "engineering.security",
+      "Source": {
+        "Path": "examples/engineering/security/authentication.md",
+        "LineStart": 1,
+        "LineEnd": 18
+      },
+      "Commentary": "Rules governing how an agent authenticates to internal and third-party\nsystems while performing a task.",
+      "Laws": [
+        {
+          "Number": "2.1.1",
+          "Index": 1,
+          "Text": "Agent {{agent_name}} must authenticate using short-lived, scoped credentials rather than long-lived API keys wherever the target system supports it.",
+          "SectionID": "engineering.security.authentication",
+          "Source": {
+            "Path": "examples/engineering/security/authentication.md",
+            "LineStart": 13,
+            "LineEnd": 14
+          }
+        },
+        {
+          "Number": "2.1.2",
+          "Index": 2,
+          "Text": "Agents must not share authentication tokens between unrelated tasks or sessions.",
+          "SectionID": "engineering.security.authentication",
+          "Source": {
+            "Path": "examples/engineering/security/authentication.md",
+            "LineStart": 15,
+            "LineEnd": 16
+          }
+        },
+        {
+          "Number": "2.1.3",
+          "Index": 3,
+          "Text": "A failed authentication attempt must be logged with the agent's identity and the resource it attempted to access.",
+          "SectionID": "engineering.security.authentication",
+          "Source": {
+            "Path": "examples/engineering/security/authentication.md",
+            "LineStart": 17,
+            "LineEnd": 18
+          }
+        }
+      ]
+    },
+    {
+      "ID": "engineering.security.secrets",
+      "Number": "2.2",
+      "Title": "Secrets",
+      "Level": 2,
+      "ParentID": "engineering.security",
+      "Source": {
+        "Path": "examples/engineering/security/secrets.md",
+        "LineStart": 1,
+        "LineEnd": 20
+      },
+      "Commentary": "Rules for how agents handle credentials discovered in, or introduced into,\nthe repository.",
+      "Laws": [
+        {
+          "Number": "2.2.1",
+          "Index": 1,
+          "Text": "Credentials must never be committed to source control, including in commit messages or code comments.",
+          "SectionID": "engineering.security.secrets",
+          "Source": {
+            "Path": "examples/engineering/security/secrets.md",
+            "LineStart": 13,
+            "LineEnd": 14
+          }
+        },
+        {
+          "Number": "2.2.2",
+          "Index": 2,
+          "Text": "Agents must not print credentials into logs, error messages, or any output that may be persisted.",
+          "SectionID": "engineering.security.secrets",
+          "Source": {
+            "Path": "examples/engineering/security/secrets.md",
+            "LineStart": 15,
+            "LineEnd": 16
+          }
+        },
+        {
+          "Number": "2.2.3",
+          "Index": 3,
+          "Text": "Credentials discovered in source must be treated as compromised and rotated, not merely removed.",
+          "SectionID": "engineering.security.secrets",
+          "Source": {
+            "Path": "examples/engineering/security/secrets.md",
+            "LineStart": 17,
+            "LineEnd": 18
+          }
+        },
+        {
+          "Number": "2.2.4",
+          "Index": 4,
+          "Text": "Secrets required at runtime must be retrieved from the approved secret store, never hardcoded.",
+          "SectionID": "engineering.security.secrets",
+          "Source": {
+            "Path": "examples/engineering/security/secrets.md",
+            "LineStart": 19,
+            "LineEnd": 20
+          }
+        }
+      ]
+    },
+    {
+      "ID": "engineering.security.dependencies",
+      "Number": "2.3",
+      "Title": "Dependencies",
+      "Level": 2,
+      "ParentID": "engineering.security",
+      "Source": {
+        "Path": "examples/engineering/security/dependencies.md",
+        "LineStart": 1,
+        "LineEnd": 17
+      },
+      "Commentary": "Rules for adding, upgrading, and evaluating third-party dependencies.",
+      "Laws": [
+        {
+          "Number": "2.3.1",
+          "Index": 1,
+          "Text": "Before adding a new dependency to {{repo}}, an agent must check it for known vulnerabilities using the approved scanner.",
+          "SectionID": "engineering.security.dependencies",
+          "Source": {
+            "Path": "examples/engineering/security/dependencies.md",
+            "LineStart": 12,
+            "LineEnd": 13
+          }
+        },
+        {
+          "Number": "2.3.2",
+          "Index": 2,
+          "Text": "Agents must not upgrade a dependency across a major version without flagging the change for human review.",
+          "SectionID": "engineering.security.dependencies",
+          "Source": {
+            "Path": "examples/engineering/security/dependencies.md",
+            "LineStart": 14,
+            "LineEnd": 15
+          }
+        },
+        {
+          "Number": "2.3.3",
+          "Index": 3,
+          "Text": "Dependencies with no maintenance activity in the last two years must be flagged as a risk, not silently relied upon.",
+          "SectionID": "engineering.security.dependencies",
+          "Source": {
+            "Path": "examples/engineering/security/dependencies.md",
+            "LineStart": 16,
+            "LineEnd": 17
+          }
+        }
+      ]
+    },
+    {
+      "ID": "engineering.coding",
+      "Number": "3",
+      "Title": "Coding",
+      "Level": 1,
+      "ParentID": "",
+      "Source": {
+        "Path": "examples/engineering/coding.md",
+        "LineStart": 1,
+        "LineEnd": 12
+      },
+      "Commentary": "Rules for how agents make and submit code changes. See Code Review and\nTesting below; this chapter itself states no laws directly.",
+      "Laws": null
+    },
+    {
+      "ID": "engineering.coding.review",
+      "Number": "3.1",
+      "Title": "Code Review",
+      "Level": 2,
+      "ParentID": "engineering.coding",
+      "Source": {
+        "Path": "examples/engineering/coding/review.md",
+        "LineStart": 1,
+        "LineEnd": 17
+      },
+      "Commentary": "Rules for how a code change gets reviewed before it merges.",
+      "Laws": [
+        {
+          "Number": "3.1.1",
+          "Index": 1,
+          "Text": "Every change to {{repo}} must be reviewed by at least one human, {{reviewer}} or another qualified reviewer, before merging.",
+          "SectionID": "engineering.coding.review",
+          "Source": {
+            "Path": "examples/engineering/coding/review.md",
+            "LineStart": 12,
+            "LineEnd": 13
+          }
+        },
+        {
+          "Number": "3.1.2",
+          "Index": 2,
+          "Text": "An agent must not approve its own pull request.",
+          "SectionID": "engineering.coding.review",
+          "Source": {
+            "Path": "examples/engineering/coding/review.md",
+            "LineStart": 14,
+            "LineEnd": 15
+          }
+        },
+        {
+          "Number": "3.1.3",
+          "Index": 3,
+          "Text": "Review comments that request a change must be resolved or explicitly declined with a rationale before merge.",
+          "SectionID": "engineering.coding.review",
+          "Source": {
+            "Path": "examples/engineering/coding/review.md",
+            "LineStart": 16,
+            "LineEnd": 17
+          }
+        }
+      ]
+    },
+    {
+      "ID": "engineering.coding.testing",
+      "Number": "3.2",
+      "Title": "Testing",
+      "Level": 2,
+      "ParentID": "engineering.coding",
+      "Source": {
+        "Path": "examples/engineering/coding/testing.md",
+        "LineStart": 1,
+        "LineEnd": 17
+      },
+      "Commentary": "Rules for what test coverage a change needs before it can be proposed.",
+      "Laws": [
+        {
+          "Number": "3.2.1",
+          "Index": 1,
+          "Text": "A change that modifies behavior must include or update an automated test that would fail without the change.",
+          "SectionID": "engineering.coding.testing",
+          "Source": {
+            "Path": "examples/engineering/coding/testing.md",
+            "LineStart": 12,
+            "LineEnd": 13
+          }
+        },
+        {
+          "Number": "3.2.2",
+          "Index": 2,
+          "Text": "Agents must not disable or skip a failing test to make a build pass without flagging it to a human.",
+          "SectionID": "engineering.coding.testing",
+          "Source": {
+            "Path": "examples/engineering/coding/testing.md",
+            "LineStart": 14,
+            "LineEnd": 15
+          }
+        },
+        {
+          "Number": "3.2.3",
+          "Index": 3,
+          "Text": "Test suites must be run locally or in CI before a change is proposed for review.",
+          "SectionID": "engineering.coding.testing",
+          "Source": {
+            "Path": "examples/engineering/coding/testing.md",
+            "LineStart": 16,
+            "LineEnd": 17
+          }
+        }
+      ]
+    },
+    {
+      "ID": "engineering.operations",
+      "Number": "4",
+      "Title": "Operations",
+      "Level": 1,
+      "ParentID": "",
+      "Source": {
+        "Path": "examples/engineering/operations.md",
+        "LineStart": 1,
+        "LineEnd": 13
+      },
+      "Commentary": "Rules for deploying and operating production systems. See Deployment,\nMonitoring, and Rollback below; this chapter itself states no laws\ndirectly.",
+      "Laws": null
+    },
+    {
+      "ID": "engineering.operations.deployment",
+      "Number": "4.1",
+      "Title": "Deployment",
+      "Level": 2,
+      "ParentID": "engineering.operations",
+      "Source": {
+        "Path": "examples/engineering/operations/deployment.md",
+        "LineStart": 1,
+        "LineEnd": 17
+      },
+      "Commentary": "Rules for pushing a change to a running environment.",
+      "Laws": [
+        {
+          "Number": "4.1.1",
+          "Index": 1,
+          "Text": "Agent {{agent_name}} must not deploy directly to the {{environment}} environment without an approved change record.",
+          "SectionID": "engineering.operations.deployment",
+          "Source": {
+            "Path": "examples/engineering/operations/deployment.md",
+            "LineStart": 12,
+            "LineEnd": 13
+          }
+        },
+        {
+          "Number": "4.1.2",
+          "Index": 2,
+          "Text": "Deployments to production must be preceded by a successful deployment to staging with the same artifact.",
+          "SectionID": "engineering.operations.deployment",
+          "Source": {
+            "Path": "examples/engineering/operations/deployment.md",
+            "LineStart": 14,
+            "LineEnd": 15
+          }
+        },
+        {
+          "Number": "4.1.3",
+          "Index": 3,
+          "Text": "A deployment must be reversible within one command or one documented procedure.",
+          "SectionID": "engineering.operations.deployment",
+          "Source": {
+            "Path": "examples/engineering/operations/deployment.md",
+            "LineStart": 16,
+            "LineEnd": 17
+          }
+        }
+      ]
+    },
+    {
+      "ID": "engineering.operations.monitoring",
+      "Number": "4.2",
+      "Title": "Monitoring",
+      "Level": 2,
+      "ParentID": "engineering.operations",
+      "Source": {
+        "Path": "examples/engineering/operations/monitoring.md",
+        "LineStart": 1,
+        "LineEnd": 17
+      },
+      "Commentary": "Rules for alerting and anomaly handling once a service is live.",
+      "Laws": [
+        {
+          "Number": "4.2.1",
+          "Index": 1,
+          "Text": "A new production service must have baseline alerting configured before it receives real traffic.",
+          "SectionID": "engineering.operations.monitoring",
+          "Source": {
+            "Path": "examples/engineering/operations/monitoring.md",
+            "LineStart": 12,
+            "LineEnd": 13
+          }
+        },
+        {
+          "Number": "4.2.2",
+          "Index": 2,
+          "Text": "Agents must not silence an alert without recording the reason and an expiry for the silence.",
+          "SectionID": "engineering.operations.monitoring",
+          "Source": {
+            "Path": "examples/engineering/operations/monitoring.md",
+            "LineStart": 14,
+            "LineEnd": 15
+          }
+        },
+        {
+          "Number": "4.2.3",
+          "Index": 3,
+          "Text": "Anomalies detected by an agent must be reported even if the agent itself is not the cause.",
+          "SectionID": "engineering.operations.monitoring",
+          "Source": {
+            "Path": "examples/engineering/operations/monitoring.md",
+            "LineStart": 16,
+            "LineEnd": 17
+          }
+        }
+      ]
+    },
+    {
+      "ID": "engineering.operations.rollback",
+      "Number": "4.3",
+      "Title": "Rollback",
+      "Level": 2,
+      "ParentID": "engineering.operations",
+      "Source": {
+        "Path": "examples/engineering/operations/rollback.md",
+        "LineStart": 1,
+        "LineEnd": 14
+      },
+      "Commentary": "General rollback procedure: a deployment that causes an outage should be\nrolled back to the last known-good artifact rather than fixed forward\nunder pressure. Emergency Procedures below covers the case where there is\nno time to wait for normal review.",
+      "Laws": null
+    },
+    {
+      "ID": "engineering.operations.rollback.emergency",
+      "Number": "4.3.1",
+      "Title": "Emergency Procedures",
+      "Level": 3,
+      "ParentID": "engineering.operations.rollback",
+      "Source": {
+        "Path": "examples/engineering/operations/rollback/emergency.md",
+        "LineStart": 1,
+        "LineEnd": 21
+      },
+      "Commentary": "This section exists three levels deep in the lawbook (Operations \u003e\nRollback \u003e Emergency Procedures), and its citations reflect that:\n1.x.y.z-style numbers. It covers the narrow exception to the normal\nrollback and deployment rules that applies only during a declared\nincident.",
+      "Laws": [
+        {
+          "Number": "4.3.1.1",
+          "Index": 1,
+          "Text": "During incident {{incident_id}}, agent {{agent_name}} may roll back a production deployment without waiting for review, and must file the change record within one hour after the fact.",
+          "SectionID": "engineering.operations.rollback.emergency",
+          "Source": {
+            "Path": "examples/engineering/operations/rollback/emergency.md",
+            "LineStart": 16,
+            "LineEnd": 17
+          }
+        },
+        {
+          "Number": "4.3.1.2",
+          "Index": 2,
+          "Text": "An emergency rollback must be announced in the incident channel before it is executed, not only after.",
+          "SectionID": "engineering.operations.rollback.emergency",
+          "Source": {
+            "Path": "examples/engineering/operations/rollback/emergency.md",
+            "LineStart": 18,
+            "LineEnd": 19
+          }
+        },
+        {
+          "Number": "4.3.1.3",
+          "Index": 3,
+          "Text": "Emergency authority granted during an incident expires when the incident is closed and does not carry over to unrelated changes.",
+          "SectionID": "engineering.operations.rollback.emergency",
+          "Source": {
+            "Path": "examples/engineering/operations/rollback/emergency.md",
+            "LineStart": 20,
+            "LineEnd": 21
+          }
+        }
+      ]
+    },
+    {
+      "ID": "engineering.incident_response",
+      "Number": "5",
+      "Title": "Incident Response",
+      "Level": 1,
+      "ParentID": "",
+      "Source": {
+        "Path": "examples/engineering/incident-response.md",
+        "LineStart": 1,
+        "LineEnd": 13
+      },
+      "Commentary": "Rules for classifying and communicating about production incidents. See\nSeverity Levels and Communication below; this chapter itself states no\nlaws directly.",
+      "Laws": null
+    },
+    {
+      "ID": "engineering.incident_response.severity_levels",
+      "Number": "5.1",
+      "Title": "Severity Levels",
+      "Level": 2,
+      "ParentID": "engineering.incident_response",
+      "Source": {
+        "Path": "examples/engineering/incident-response/severity-levels.md",
+        "LineStart": 1,
+        "LineEnd": 17
+      },
+      "Commentary": "How an incident's severity is assigned and revised.",
+      "Laws": [
+        {
+          "Number": "5.1.1",
+          "Index": 1,
+          "Text": "An incident that causes customer-visible data loss must be classified Severity 1 regardless of the number of customers affected.",
+          "SectionID": "engineering.incident_response.severity_levels",
+          "Source": {
+            "Path": "examples/engineering/incident-response/severity-levels.md",
+            "LineStart": 12,
+            "LineEnd": 13
+          }
+        },
+        {
+          "Number": "5.1.2",
+          "Index": 2,
+          "Text": "Severity classification must be reassessed if new information changes the blast radius, not fixed at first report.",
+          "SectionID": "engineering.incident_response.severity_levels",
+          "Source": {
+            "Path": "examples/engineering/incident-response/severity-levels.md",
+            "LineStart": 14,
+            "LineEnd": 15
+          }
+        },
+        {
+          "Number": "5.1.3",
+          "Index": 3,
+          "Text": "Agents must not downgrade a severity level without a human confirming the downgrade.",
+          "SectionID": "engineering.incident_response.severity_levels",
+          "Source": {
+            "Path": "examples/engineering/incident-response/severity-levels.md",
+            "LineStart": 16,
+            "LineEnd": 17
+          }
+        }
+      ]
+    },
+    {
+      "ID": "engineering.incident_response.communication",
+      "Number": "5.2",
+      "Title": "Communication",
+      "Level": 2,
+      "ParentID": "engineering.incident_response",
+      "Source": {
+        "Path": "examples/engineering/incident-response/communication.md",
+        "LineStart": 1,
+        "LineEnd": 18
+      },
+      "Commentary": "Rules for status updates and customer-facing messaging during and after an\nincident.",
+      "Laws": [
+        {
+          "Number": "5.2.1",
+          "Index": 1,
+          "Text": "Incident {{incident_id}} at severity {{severity}} must have a status update posted at least once per hour until resolved.",
+          "SectionID": "engineering.incident_response.communication",
+          "Source": {
+            "Path": "examples/engineering/incident-response/communication.md",
+            "LineStart": 13,
+            "LineEnd": 14
+          }
+        },
+        {
+          "Number": "5.2.2",
+          "Index": 2,
+          "Text": "Customer-facing communication about an incident must be reviewed by a human before it is sent.",
+          "SectionID": "engineering.incident_response.communication",
+          "Source": {
+            "Path": "examples/engineering/incident-response/communication.md",
+            "LineStart": 15,
+            "LineEnd": 16
+          }
+        },
+        {
+          "Number": "5.2.3",
+          "Index": 3,
+          "Text": "Post-incident reviews must be published within five business days of resolution.",
+          "SectionID": "engineering.incident_response.communication",
+          "Source": {
+            "Path": "examples/engineering/incident-response/communication.md",
+            "LineStart": 17,
+            "LineEnd": 18
+          }
+        }
+      ]
+    },
+    {
+      "ID": "engineering.integration",
+      "Number": "6",
+      "Title": "Agent Integration",
+      "Level": 1,
+      "ParentID": "",
+      "Source": {
+        "Path": "examples/engineering/integration.md",
+        "LineStart": 1,
+        "LineEnd": 13
+      },
+      "Commentary": "This chapter governs how a tool or agent must consume this lawbook and\nrespond, not what it must do to code or systems. See Response Format and\nVariables below; this chapter itself states no laws directly.",
+      "Laws": null
+    },
+    {
+      "ID": "engineering.integration.response_format",
+      "Number": "6.1",
+      "Title": "Response Format",
+      "Level": 2,
+      "ParentID": "engineering.integration",
+      "Source": {
+        "Path": "examples/engineering/integration/response-format.md",
+        "LineStart": 1,
+        "LineEnd": 28
+      },
+      "Commentary": "Rules for how an agent must respond when it makes a decision governed by\nthis lawbook - approving or rejecting a deployment, a pull request, or an\nemergency rollback. A structured response is what makes a decision\nauditable; a prose explanation is not. The required shape:\n\n```json\n{\n  \"decision\": \"approve\" | \"reject\",\n  \"laws\": [\"\u003ccitation\u003e\", \"...\"],\n  \"reasoning\": \"\u003cstring\u003e\"\n}\n```",
+      "Laws": [
+        {
+          "Number": "6.1.1",
+          "Index": 1,
+          "Text": "When an agent makes a decision governed by this lawbook, it must respond with structured JSON matching the schema in this section's commentary, not prose.",
+          "SectionID": "engineering.integration.response_format",
+          "Source": {
+            "Path": "examples/engineering/integration/response-format.md",
+            "LineStart": 23,
+            "LineEnd": 24
+          }
+        },
+        {
+          "Number": "6.1.2",
+          "Index": 2,
+          "Text": "Every citation in the `laws` field must be one of the laws actually supplied to the agent for that decision; citing a law it was never given is itself a violation of this section.",
+          "SectionID": "engineering.integration.response_format",
+          "Source": {
+            "Path": "examples/engineering/integration/response-format.md",
+            "LineStart": 25,
+            "LineEnd": 26
+          }
+        },
+        {
+          "Number": "6.1.3",
+          "Index": 3,
+          "Text": "An \"approve\" or \"reject\" decision must cite at least one law, unless no law in this book applied to the task at hand.",
+          "SectionID": "engineering.integration.response_format",
+          "Source": {
+            "Path": "examples/engineering/integration/response-format.md",
+            "LineStart": 27,
+            "LineEnd": 28
+          }
+        }
+      ]
+    },
+    {
+      "ID": "engineering.integration.variables",
+      "Number": "6.2",
+      "Title": "Variables",
+      "Level": 2,
+      "ParentID": "engineering.integration",
+      "Source": {
+        "Path": "examples/engineering/integration/variables.md",
+        "LineStart": 1,
+        "LineEnd": 22
+      },
+      "Commentary": "This book's laws reference the following `{{variables}}` (docs/PLAN1.md\n§17a); an application must supply all of them before rendering a law that\nuses them:\n\n* `agent_name` - the identity of the acting agent.\n* `repo` - the repository being operated on.\n* `reviewer` - a human reviewer's identifier, where a law requires one.\n* `environment` - the deployment target (e.g. `staging`, `production`).\n* `incident_id` - the active incident's identifier.\n* `severity` - an incident's assigned severity level.",
+      "Laws": [
+        {
+          "Number": "6.2.1",
+          "Index": 1,
+          "Text": "Applications rendering this lawbook's laws for a prompt must supply a value for every variable referenced by the laws selected, or the render must fail rather than substitute a placeholder silently.",
+          "SectionID": "engineering.integration.variables",
+          "Source": {
+            "Path": "examples/engineering/integration/variables.md",
+            "LineStart": 21,
+            "LineEnd": 22
+          }
+        }
+      ]
+    }
+  ],
+  "Provenance": {
+    "Revision": "",
+    "CompiledAt": "",
+    "AgentLawsVersion": "",
+    "CompilerName": "",
+    "CompilerEmail": "",
+    "Signature": ""
+  }
+}

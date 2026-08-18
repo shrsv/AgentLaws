@@ -35,6 +35,7 @@ AgentLaws is deliberately simple today. It does not attempt to build a formal le
 | Understand what AgentLaws is and why it exists | [Why AgentLaws?](#why-agentlaws) |
 | See the lawbook analogy | [The Lawbook Analogy](#the-lawbook-analogy) |
 | Understand the source format (Markdown sections) | [The Source Format](#the-source-format) |
+| See the export formats (HTML, PDF, Markdown, JSON) | [Export Formats](#export-formats) |
 | Use it from the command line | [CLI and Library](#cli-and-library) |
 | Use it as a Go library in my app | [Using Laws from Go](#using-laws-from-go) |
 | Insert dynamic values into laws | [Variables in Prompt Composition](#variables-in-prompt-composition) |
@@ -639,6 +640,36 @@ warning: security/old_secrets.md is not present in ordering
 ```
 
 Compilation should make the resulting lawbook deterministic and inspectable.
+
+---
+
+# Export Formats
+
+AgentLaws compiles every lawbook from the same Lawbook IR, then renders it into multiple formats. Every format carries identical governance semantics — same sections, same laws, same canonical numbers, same commentary. The difference is how the recipient reads it.
+
+| Format | Use it for | Command |
+|---|---|---|
+| **HTML** | Sharing in a browser, embedding in a wiki or intranet, linking from a PR | `alaws compile --format html` |
+| **PDF** | Printing, attaching to compliance docs, offline review, emailing | `alaws compile --format pdf` |
+| **Markdown** | PR descriptions, wikis, feeding into other Markdown-based tools | `alaws compile --format md` |
+| **JSON** | Programmatic consumption, CI pipelines, diffing between versions | `alaws compile --format json` |
+
+All four formats are also available through the Go library:
+
+```go
+book, _ := alaws.Load("./governance")
+book.RenderHTML(os.Stdout)
+book.RenderPDF(os.Stdout)
+book.RenderMarkdown(os.Stdout)
+```
+
+To export every book under a root as a single combined document:
+
+```bash
+alaws export examples --format html,pdf,md --title "All Governance"
+```
+
+**See real samples:** [`samples/`](samples/) contains pre-built exports of the `examples/engineering` lawbook in every format, plus a combined export of all three example books. Use them to see what the output looks like without compiling anything.
 
 ---
 
