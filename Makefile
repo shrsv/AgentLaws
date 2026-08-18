@@ -71,7 +71,7 @@ tag:
 	git tag -a $(V) -m "Release $(V)"
 	git push origin $(V)
 	@echo "Tagged $(V). pkg.go.dev will index it within minutes."
-	@echo "Visit: https://pkg.go.dev/github.com/athreyac4/agentlaws@$(V)"
+	@echo "Visit: https://pkg.go.dev/github.com/shrsv/AgentLaws@$(V)"
 
 # Run pre-release checks: all tests and vet.
 release-check: test

@@ -5,7 +5,7 @@
 │                       ▐▛███▜▌                      │ ─────────────────────── │
 │                      ▝▜█████▛▘                     │ What's new              │
 │                        ▘▘ ▝▝                       │ Added GitLab merge req… │
-│   Sonnet 5 · Claude Pro · athreyac4@gmail.com's    │ Added an opt-in `forwa… │
+│   Sonnet 5 · Claude Pro · shrsv@gmail.com's    │ Added an opt-in `forwa… │
 │   Organization                                     │ Added opt-in memory cg… │
 │                  ~/bin/AgentLaws                   │ /release-notes for more │
 ╰──────────────────────────────────────────────────────────────────────────────╯
@@ -275,12 +275,12 @@
      now, not rushing
      half-built compiler internals.
 
-     Module path: github.com/athreyac4/agentlaws (inferred placeholder from the
+     Module path: github.com/shrsv/agentlaws (inferred placeholder from the
      user's account;
      trivially renamed later with go mod edit -module).
 
      go.mod                                    module
-     github.com/athreyac4/agentlaws, go 1.24
+     github.com/shrsv/agentlaws, go 1.24
      cmd/alaws/main.go                         calls internal/cli.Execute()
 
      internal/cli/                             cobra root + one file per
@@ -986,7 +986,7 @@
       5 import (
       6   "errors"
       7 
-      8   "github.com/athreyac4/agentlaws/internal/model"
+      8   "github.com/shrsv/agentlaws/internal/model"
       9 )
      … +31 lines (ctrl+o to expand)
 
@@ -1014,7 +1014,7 @@
       5 import (
       6   "errors"
       7 
-      8   "github.com/athreyac4/agentlaws/internal/model"
+      8   "github.com/shrsv/agentlaws/internal/model"
       9 )
      … +36 lines (ctrl+o to expand)
 
@@ -1028,7 +1028,7 @@
       5 import (
       6   "errors"
       7 
-      8   "github.com/athreyac4/agentlaws/internal/model"
+      8   "github.com/shrsv/agentlaws/internal/model"
       9 )
      … +16 lines (ctrl+o to expand)
 
@@ -1042,8 +1042,8 @@
        6 import (
        7   "errors"
        8 
-       9   "github.com/athreyac4/agentlaws/internal/model"
-      10   "github.com/athreyac4/agentlaws/internal/validator"
+       9   "github.com/shrsv/agentlaws/internal/model"
+      10   "github.com/shrsv/agentlaws/internal/validator"
      … +25 lines (ctrl+o to expand)
 
 ● Write(internal/resolver/resolver.go)
@@ -1056,7 +1056,7 @@
        5 
        6 import (
        8 
-       9   "github.com/athreyac4/agentlaws/internal/model"
+       9   "github.com/shrsv/agentlaws/internal/model"
       10 )
      … +26 lines (ctrl+o to expand)
 
@@ -1097,7 +1097,7 @@
       5 import (
       6   "errors"
       7 
-      8   "github.com/athreyac4/agentlaws/internal/model"
+      8   "github.com/shrsv/agentlaws/internal/model"
       9 )
      … +35 lines (ctrl+o to expand)
 
@@ -1140,7 +1140,7 @@
        6 import (
        8   "io"
        9 
-      10   "github.com/athreyac4/agentlaws/internal/model"
+      10   "github.com/shrsv/agentlaws/internal/model"
      … +13 lines (ctrl+o to expand)
 
 ● Write(internal/renderer/pdf/pdf.go)
@@ -1153,7 +1153,7 @@
        5 import (
        6   "errors"
        8 
-       9   "github.com/athreyac4/agentlaws/internal/model"
+       9   "github.com/shrsv/agentlaws/internal/model"
       10 )
      … +12 lines (ctrl+o to expand)
 
@@ -1985,7 +1985,7 @@
       12    "io/fs"
       13    "net/http"
       14 +                                                               
-      15 +  "github.com/athreyac4/agentlaws/web"                         
+      15 +  "github.com/shrsv/agentlaws/web"                         
       16  )
       17  
       17 -//go:embed all:dist                                            
@@ -2045,9 +2045,9 @@
       12  import (
       13 +  "strings"                                                    
       14 +                                                               
-      15    "github.com/athreyac4/agentlaws/internal/compiler"
-      16    "github.com/athreyac4/agentlaws/internal/model"
-      17    "github.com/athreyac4/agentlaws/internal/resolver"
+      15    "github.com/shrsv/agentlaws/internal/compiler"
+      16    "github.com/shrsv/agentlaws/internal/model"
+      17    "github.com/shrsv/agentlaws/internal/resolver"
 
 ● Update(pkg/alaws/alaws.go)
   ⎿  Added 6 lines, removed 4 lines
@@ -2154,8 +2154,8 @@
        3 import (
        4   "github.com/spf13/cobra"
        5 
-       6   "github.com/athreyac4/agentlaws/internal/discovery"
-       7   "github.com/athreyac4/agentlaws/internal/ordering"
+       6   "github.com/shrsv/agentlaws/internal/discovery"
+       7   "github.com/shrsv/agentlaws/internal/ordering"
        8 )
        9 
       10 func newInitCmd() *cobra.Command {
@@ -2202,7 +2202,7 @@
       5 
       6   "github.com/spf13/cobra"
       7 
-      8   "github.com/athreyac4/agentlaws/internal/ordering"
+      8   "github.com/shrsv/agentlaws/internal/ordering"
       9 )
      … +132 lines (ctrl+o to expand)
 
@@ -2216,7 +2216,7 @@
        6 
        7   "github.com/spf13/cobra"
        8 
-       9   "github.com/athreyac4/agentlaws/internal/ordering"
+       9   "github.com/shrsv/agentlaws/internal/ordering"
       10 )
      … +189 lines (ctrl+o to expand)
 
@@ -2228,7 +2228,7 @@
        2 
        3 import (
        5 
-       6   "github.com/athreyac4/agentlaws/internal/resolver"
+       6   "github.com/shrsv/agentlaws/internal/resolver"
        7 )
        8 
          ow) that
@@ -2250,7 +2250,7 @@
        7 
        8   "github.com/spf13/cobra"
        9 
-      10   "github.com/athreyac4/agentlaws/internal/lawedit"
+      10   "github.com/shrsv/agentlaws/internal/lawedit"
      … +105 lines (ctrl+o to expand)
 
 ● Now compile.go (compile, validate, list, show, resolve, history):
@@ -2264,9 +2264,9 @@
        5 
        6   "github.com/spf13/cobra"
        7 
-       8   "github.com/athreyac4/agentlaws/internal/compiler"
-       9   "github.com/athreyac4/agentlaws/internal/provenance"
-      10   "github.com/athreyac4/agentlaws/internal/resolver"
+       8   "github.com/shrsv/agentlaws/internal/compiler"
+       9   "github.com/shrsv/agentlaws/internal/provenance"
+      10   "github.com/shrsv/agentlaws/internal/resolver"
      … +167 lines (ctrl+o to expand)
 
 ● Update(internal/cli/compile.go)
@@ -2301,7 +2301,7 @@
        7 
        8   "github.com/spf13/cobra"
        9 
-      10   "github.com/athreyac4/agentlaws/pkg/alaws"
+      10   "github.com/shrsv/agentlaws/pkg/alaws"
      … +133 lines (ctrl+o to expand)
 
 ● Write(internal/cli/vars_yaml.go)
@@ -2329,8 +2329,8 @@
        5 
        6   "github.com/spf13/cobra"
        7 
-       8   "github.com/athreyac4/agentlaws/internal/server"
-       9   "github.com/athreyac4/agentlaws/internal/watcher"
+       8   "github.com/shrsv/agentlaws/internal/server"
+       9   "github.com/shrsv/agentlaws/internal/watcher"
       10 )
      … +47 lines (ctrl+o to expand)
 
@@ -2359,9 +2359,9 @@
        5 
        6   "github.com/spf13/cobra"
        7 
-       8   "github.com/athreyac4/agentlaws/internal/compiler"
-       9   "github.com/athreyac4/agentlaws/internal/provenance"
-      10   "github.com/athreyac4/agentlaws/internal/signing"
+       8   "github.com/shrsv/agentlaws/internal/compiler"
+       9   "github.com/shrsv/agentlaws/internal/provenance"
+      10   "github.com/shrsv/agentlaws/internal/signing"
      … +69 lines (ctrl+o to expand)
 
 ● Now cmd/alaws/main.go:
@@ -2376,7 +2376,7 @@
        6   "fmt"
        7   "os"
        8 
-       9   "github.com/athreyac4/agentlaws/internal/cli"
+       9   "github.com/shrsv/agentlaws/internal/cli"
       10 )
      … +7 lines (ctrl+o to expand)
 
@@ -2487,7 +2487,7 @@
   CLI reference with --json/--dry-run/exit-code conventions, and the strict VS
   Code-theming requirement for the UI.
 
-  Go module (github.com/athreyac4/agentlaws, placeholder — trivially renamed
+  Go module (github.com/shrsv/agentlaws, placeholder — trivially renamed
   with go mod edit -module): a working alaws CLI (Cobra) exposing the entire
   documented command tree via --help; real, tested internal/template (variable
   substitution) and internal/model (IR) packages; every other package (parser,
@@ -2635,7 +2635,7 @@
       11 +  "github.com/pelletier/go-toml/v2"                            
       12 +  "gopkg.in/yaml.v3"                                           
       13 +                                                               
-      14    "github.com/athreyac4/agentlaws/internal/model"
+      14    "github.com/shrsv/agentlaws/internal/model"
       15  )
       16  
       11 -// ErrNotImplemented is returned by every stub in this package 
@@ -2934,7 +2934,7 @@
        6 -  "errors"                                                     
        6 +  "fmt"                                                        
        7  
-       8    "github.com/athreyac4/agentlaws/internal/model"
+       8    "github.com/shrsv/agentlaws/internal/model"
        9  )
       10  
       11 -// ErrNotImplemented is returned by every stub in this package 
@@ -3034,8 +3034,8 @@
        6 -  "errors"                                                     
        6 +  "fmt"                                                        
        7  
-       8    "github.com/athreyac4/agentlaws/internal/model"
-       9 +  "github.com/athreyac4/agentlaws/internal/template"           
+       8    "github.com/shrsv/agentlaws/internal/model"
+       9 +  "github.com/shrsv/agentlaws/internal/template"           
       10  )
       11  
       11 -// ErrNotImplemented is returned by every stub in this package 
@@ -3178,11 +3178,11 @@
        8 +  "os"                                                         
        9 +  "path/filepath"                                              
       10  
-      11 +  "github.com/athreyac4/agentlaws/internal/discovery"          
-      12    "github.com/athreyac4/agentlaws/internal/model"
-      13 +  "github.com/athreyac4/agentlaws/internal/numbering"          
-      14 +  "github.com/athreyac4/agentlaws/internal/parser"             
-      15    "github.com/athreyac4/agentlaws/internal/validator"
+      11 +  "github.com/shrsv/agentlaws/internal/discovery"          
+      12    "github.com/shrsv/agentlaws/internal/model"
+      13 +  "github.com/shrsv/agentlaws/internal/numbering"          
+      14 +  "github.com/shrsv/agentlaws/internal/parser"             
+      15    "github.com/shrsv/agentlaws/internal/validator"
       16  )
       17  
       13 -// ErrNotImplemented is returned by every stub in this package 
@@ -3334,7 +3334,7 @@
        5  
        6    "github.com/spf13/cobra"
        7 +                                                               
-       8 +  "github.com/athreyac4/agentlaws/internal/compiler"           
+       8 +  "github.com/shrsv/agentlaws/internal/compiler"           
        9  )
       10  
       11  // configPath resolves a book argument (a directory, or an expl
@@ -3368,7 +3368,7 @@
        6    "errors"
        7 +  "fmt"                                                        
        8  
-       9    "github.com/athreyac4/agentlaws/internal/model"
+       9    "github.com/shrsv/agentlaws/internal/model"
       10  )
       11  
       12 -// ErrNotImplemented is returned by every stub in this package 
@@ -3458,7 +3458,7 @@
        15 +  "github.com/pelletier/go-toml/v2"                           
        16 +  "gopkg.in/yaml.v3"                                          
        17  
-       18 +  "github.com/athreyac4/agentlaws/internal/parser"            
+       18 +  "github.com/shrsv/agentlaws/internal/parser"            
        19 +)                                                             
        20 +                                                              
        21  // Placement describes where a new or moved entry should be in
@@ -3965,7 +3965,7 @@
       11  
       12 +  "github.com/yuin/goldmark"                                   
       13 +                                                               
-      14    "github.com/athreyac4/agentlaws/internal/model"
+      14    "github.com/shrsv/agentlaws/internal/model"
       15  )
       16  
       13 -// ErrNotImplemented is returned until the HTML renderer is imp
@@ -4052,7 +4052,7 @@
        7  
        8 +  "github.com/go-pdf/fpdf"                                     
        9 +                                                               
-      10    "github.com/athreyac4/agentlaws/internal/model"
+      10    "github.com/shrsv/agentlaws/internal/model"
       11  )
       12  
       12 -// ErrNotImplemented is returned until the PDF renderer is impl
@@ -4242,14 +4242,14 @@
        9  
       10    "github.com/spf13/cobra"
       11  
-      12    "github.com/athreyac4/agentlaws/internal/compiler"
-      13 +  renderhtml "github.com/athreyac4/agentlaws/internal/renderer/
+      12    "github.com/shrsv/agentlaws/internal/compiler"
+      13 +  renderhtml "github.com/shrsv/agentlaws/internal/renderer/
          +html"                                                          
-      14 +  renderpdf "github.com/athreyac4/agentlaws/internal/renderer/p
+      14 +  renderpdf "github.com/shrsv/agentlaws/internal/renderer/p
          +df"                                                            
-      15 +  "github.com/athreyac4/agentlaws/internal/model"              
-      16    "github.com/athreyac4/agentlaws/internal/provenance"
-      17    "github.com/athreyac4/agentlaws/internal/resolver"
+      15 +  "github.com/shrsv/agentlaws/internal/model"              
+      16    "github.com/shrsv/agentlaws/internal/provenance"
+      17    "github.com/shrsv/agentlaws/internal/resolver"
       18  )
      ...
        30        }
@@ -4839,7 +4839,7 @@
        13  
        11 -// Event describes a single recompilation triggered by a sourc
           -e change.                                                     
-       14 +  "github.com/athreyac4/agentlaws/internal/compiler"          
+       14 +  "github.com/shrsv/agentlaws/internal/compiler"          
        15 +)                                                             
        16 +                                                              
        17 +// debounceWindow avoids recompiling once per fsnotify event w
@@ -5222,7 +5222,7 @@
        8    "path/filepath"
        9    "strings"
       10 +                                                               
-      11 +  "github.com/athreyac4/agentlaws/internal/parser"             
+      11 +  "github.com/shrsv/agentlaws/internal/parser"             
       12  )
       13  
       14  var skipDirs = map[string]bool{
@@ -5276,9 +5276,9 @@
 ● Update(internal/cli/books.go)
   ⎿  Added 1 line
        5  
-       6    "github.com/athreyac4/agentlaws/internal/discovery"
-       7    "github.com/athreyac4/agentlaws/internal/ordering"
-       8 +  "github.com/athreyac4/agentlaws/internal/parser"             
+       6    "github.com/shrsv/agentlaws/internal/discovery"
+       7    "github.com/shrsv/agentlaws/internal/ordering"
+       8 +  "github.com/shrsv/agentlaws/internal/parser"             
        9  )
       10  
       11  func newInitCmd() *cobra.Command {
@@ -5771,8 +5771,8 @@
   ⎿  Added 14 lines
        6    "github.com/spf13/cobra"
        7  
-       8    "github.com/athreyac4/agentlaws/internal/compiler"
-       9 +  "github.com/athreyac4/agentlaws/internal/parser"             
+       8    "github.com/shrsv/agentlaws/internal/compiler"
+       9 +  "github.com/shrsv/agentlaws/internal/parser"             
       10  )
       11  
       12  // configPath resolves a book argument (a directory, or an expl
@@ -7173,7 +7173,7 @@
   ⎿  Wrote 26 lines to pkg/alaws/discover.go
        1 package alaws
        2 
-       3 import "github.com/athreyac4/agentlaws/internal/discovery"
+       3 import "github.com/shrsv/agentlaws/internal/discovery"
        4 
        5 // BookInfo identifies one discovered lawbook cluster.
        7   Path       string // directory containing alaws.toml
@@ -7195,9 +7195,9 @@
        4   "fmt"
        5   "path/filepath"
        6 
-       7   "github.com/athreyac4/agentlaws/internal/compiler"
-       8   "github.com/athreyac4/agentlaws/internal/ordering"
-       9   "github.com/athreyac4/agentlaws/internal/parser"
+       7   "github.com/shrsv/agentlaws/internal/compiler"
+       8   "github.com/shrsv/agentlaws/internal/ordering"
+       9   "github.com/shrsv/agentlaws/internal/parser"
       10 )
      … +216 lines (ctrl+o to expand)
 
@@ -7213,10 +7213,10 @@
        4   "fmt"
        5   "path/filepath"
        6 
-       7   "github.com/athreyac4/agentlaws/internal/lawedit"
-       8   "github.com/athreyac4/agentlaws/internal/ordering"
-       9   "github.com/athreyac4/agentlaws/internal/parser"
-      10   "github.com/athreyac4/agentlaws/internal/resolver"
+       7   "github.com/shrsv/agentlaws/internal/lawedit"
+       8   "github.com/shrsv/agentlaws/internal/ordering"
+       9   "github.com/shrsv/agentlaws/internal/parser"
+      10   "github.com/shrsv/agentlaws/internal/resolver"
      … +59 lines (ctrl+o to expand)
 
 ● Now pkg/alaws/render.go:
@@ -7227,8 +7227,8 @@
        2 
        4   "io"
        5 
-       6   renderhtml "github.com/athreyac4/agentlaws/internal/renderer/h
-       7   renderpdf "github.com/athreyac4/agentlaws/internal/renderer/pd
+       6   renderhtml "github.com/shrsv/agentlaws/internal/renderer/h
+       7   renderpdf "github.com/shrsv/agentlaws/internal/renderer/pd
          f"
        8 )
       10 // RenderHTML writes the human-readable HTML representation of t
@@ -7244,10 +7244,10 @@
 
 ● Update(pkg/alaws/alaws.go)
   ⎿  Added 53 lines, removed 3 lines
-      16    "github.com/athreyac4/agentlaws/internal/model"
-      17    "github.com/athreyac4/agentlaws/internal/resolver"
-      18    "github.com/athreyac4/agentlaws/internal/template"
-      19 +  "github.com/athreyac4/agentlaws/internal/validator"          
+      16    "github.com/shrsv/agentlaws/internal/model"
+      17    "github.com/shrsv/agentlaws/internal/resolver"
+      18    "github.com/shrsv/agentlaws/internal/template"
+      19 +  "github.com/shrsv/agentlaws/internal/validator"          
       20  )
       21  
       22 +// Diagnostic is a single compiler finding (docs/PLAN1.md §19):
@@ -7404,7 +7404,7 @@ code 0)  ⎿  Found 1 new diagnostic issue in 1 file (ctrl+o to expand)
       5   "os"
       6   "path/filepath"
       7 
-      8   "github.com/athreyac4/agentlaws/pkg/alaws"
+      8   "github.com/shrsv/agentlaws/pkg/alaws"
       9 )
      … +95 lines (ctrl+o to expand)
 
@@ -7420,7 +7420,7 @@ code 0)  ⎿  Found 1 new diagnostic issue in 1 file (ctrl+o to expand)
        6    "path/filepath"
        7 +  "strings"                                                    
        8  
-       9    "github.com/athreyac4/agentlaws/pkg/alaws"
+       9    "github.com/shrsv/agentlaws/pkg/alaws"
       10  )
 
 ● Update(internal/cli/context.go)
@@ -7451,9 +7451,9 @@ code 0)  ⎿  Found 1 new diagnostic issue in 1 file (ctrl+o to expand)
        5  
        6    "github.com/spf13/cobra"
        7  
-       8 -  "github.com/athreyac4/agentlaws/internal/compiler"           
-       9 -  "github.com/athreyac4/agentlaws/internal/parser"             
-       8 +  "github.com/athreyac4/agentlaws/pkg/alaws"                   
+       8 -  "github.com/shrsv/agentlaws/internal/compiler"           
+       9 -  "github.com/shrsv/agentlaws/internal/parser"             
+       8 +  "github.com/shrsv/agentlaws/pkg/alaws"                   
        9  )
       10  
       11  // configPath resolves a book argument (a directory, or an expl
@@ -7502,8 +7502,8 @@ code 0)  ⎿  Found 1 new diagnostic issue in 1 file (ctrl+o to expand)
        5 -                                                               
        4    "github.com/spf13/cobra"
        5  
-       8 -  "github.com/athreyac4/agentlaws/internal/ordering"           
-       6 +  "github.com/athreyac4/agentlaws/pkg/alaws"                   
+       8 -  "github.com/shrsv/agentlaws/internal/ordering"           
+       6 +  "github.com/shrsv/agentlaws/pkg/alaws"                   
        7  )
        8  
        9  func newChapterCmd() *cobra.Command {
@@ -7774,8 +7774,8 @@ code 0)  ⎿  Found 1 new diagnostic issue in 1 file (ctrl+o to expand)
        6 -                                                               
        4    "github.com/spf13/cobra"
        5  
-       9 -  "github.com/athreyac4/agentlaws/internal/ordering"           
-       6 +  "github.com/athreyac4/agentlaws/pkg/alaws"                   
+       9 -  "github.com/shrsv/agentlaws/internal/ordering"           
+       6 +  "github.com/shrsv/agentlaws/pkg/alaws"                   
        7  )
        8  
        9  func newSectionCmd() *cobra.Command {
@@ -8061,7 +8061,7 @@ code 0)  ⎿  Found 1 new diagnostic issue in 1 file (ctrl+o to expand)
       5 +                                                                
       6    "github.com/spf13/cobra"
       7  
-      8    "github.com/athreyac4/agentlaws/pkg/alaws"
+      8    "github.com/shrsv/agentlaws/pkg/alaws"
 
 ● Update(internal/cli/section.go)
   ⎿  Added 1 line, removed 1 line
@@ -8087,10 +8087,10 @@ code 0)  ⎿  Found 1 new diagnostic issue in 1 file (ctrl+o to expand)
        6  
        7    "github.com/spf13/cobra"
        8  
-      10 -  "github.com/athreyac4/agentlaws/internal/lawedit"            
-      11 -  "github.com/athreyac4/agentlaws/internal/ordering"           
-      12 -  "github.com/athreyac4/agentlaws/internal/parser"             
-       9 +  "github.com/athreyac4/agentlaws/pkg/alaws"                   
+      10 -  "github.com/shrsv/agentlaws/internal/lawedit"            
+      11 -  "github.com/shrsv/agentlaws/internal/ordering"           
+      12 -  "github.com/shrsv/agentlaws/internal/parser"             
+       9 +  "github.com/shrsv/agentlaws/pkg/alaws"                   
       10  )
       11  
       12  func newLawCmd() *cobra.Command {
@@ -8235,10 +8235,10 @@ code 0)  ⎿  Found 1 new diagnostic issue in 1 file (ctrl+o to expand)
        3  import (
        4    "github.com/spf13/cobra"
        5  
-       6 -  "github.com/athreyac4/agentlaws/internal/discovery"          
-       7 -  "github.com/athreyac4/agentlaws/internal/ordering"           
-       8 -  "github.com/athreyac4/agentlaws/internal/parser"             
-       6 +  "github.com/athreyac4/agentlaws/pkg/alaws"                   
+       6 -  "github.com/shrsv/agentlaws/internal/discovery"          
+       7 -  "github.com/shrsv/agentlaws/internal/ordering"           
+       8 -  "github.com/shrsv/agentlaws/internal/parser"             
+       6 +  "github.com/shrsv/agentlaws/pkg/alaws"                   
        7  )
        8  
        9  func newInitCmd() *cobra.Command {
@@ -8386,9 +8386,9 @@ code 0)  ⎿  Found 1 new diagnostic issue in 1 file (ctrl+o to expand)
        8 +  "path/filepath"                                              
        9 +  "strings"                                                    
       10  
-      11    renderhtml "github.com/athreyac4/agentlaws/internal/renderer/
+      11    renderhtml "github.com/shrsv/agentlaws/internal/renderer/
           html"
-      12    renderpdf "github.com/athreyac4/agentlaws/internal/renderer/p
+      12    renderpdf "github.com/shrsv/agentlaws/internal/renderer/p
           df"
 
 ● Update(pkg/alaws/render.go)
@@ -8518,15 +8518,15 @@ code 0)  ⎿  Found 1 new diagnostic issue in 1 file (ctrl+o to expand)
        6  
        7    "github.com/spf13/cobra"
        8  
-      12 -  "github.com/athreyac4/agentlaws/internal/compiler"           
-      13 -  "github.com/athreyac4/agentlaws/internal/model"              
-       9    "github.com/athreyac4/agentlaws/internal/provenance"
-      15 -  renderhtml "github.com/athreyac4/agentlaws/internal/renderer/
+      12 -  "github.com/shrsv/agentlaws/internal/compiler"           
+      13 -  "github.com/shrsv/agentlaws/internal/model"              
+       9    "github.com/shrsv/agentlaws/internal/provenance"
+      15 -  renderhtml "github.com/shrsv/agentlaws/internal/renderer/
          -html"                                                          
-      16 -  renderpdf "github.com/athreyac4/agentlaws/internal/renderer/p
+      16 -  renderpdf "github.com/shrsv/agentlaws/internal/renderer/p
          -df"                                                            
-      17 -  "github.com/athreyac4/agentlaws/internal/resolver"           
-      10 +  "github.com/athreyac4/agentlaws/pkg/alaws"                   
+      17 -  "github.com/shrsv/agentlaws/internal/resolver"           
+      10 +  "github.com/shrsv/agentlaws/pkg/alaws"                   
       11  )
       12  
       13  func newCompileCmd() *cobra.Command {
@@ -8857,9 +8857,9 @@ code 0)  ⎿  Found 1 new diagnostic issue in 1 file (ctrl+o to expand)
        5  
        6    "github.com/spf13/cobra"
        7  
-       8    "github.com/athreyac4/agentlaws/internal/server"
-      10 -  "github.com/athreyac4/agentlaws/internal/watcher"            
-       9 +  "github.com/athreyac4/agentlaws/pkg/alaws"                   
+       8    "github.com/shrsv/agentlaws/internal/server"
+      10 -  "github.com/shrsv/agentlaws/internal/watcher"            
+       9 +  "github.com/shrsv/agentlaws/pkg/alaws"                   
       10  )
       11  
       12  func newWatchCmd() *cobra.Command {
@@ -8938,10 +8938,10 @@ code 0)  ⎿  Found 1 new diagnostic issue in 1 file (ctrl+o to expand)
        5  
        6    "github.com/spf13/cobra"
        7  
-       8 -  "github.com/athreyac4/agentlaws/internal/compiler"           
-       8    "github.com/athreyac4/agentlaws/internal/provenance"
-       9    "github.com/athreyac4/agentlaws/internal/signing"
-      10 +  "github.com/athreyac4/agentlaws/pkg/alaws"                   
+       8 -  "github.com/shrsv/agentlaws/internal/compiler"           
+       8    "github.com/shrsv/agentlaws/internal/provenance"
+       9    "github.com/shrsv/agentlaws/internal/signing"
+      10 +  "github.com/shrsv/agentlaws/pkg/alaws"                   
       11  )
       12  
       13  func newSignCmd() *cobra.Command {
@@ -9113,7 +9113,7 @@ code 0)  ⎿  Found 1 new diagnostic issue in 1 file (ctrl+o to expand)
       5   "fmt"
       6   "net/http"
       7 
-      8   "github.com/athreyac4/agentlaws/pkg/alaws"
+      8   "github.com/shrsv/agentlaws/pkg/alaws"
       9 )
      … +77 lines (ctrl+o to expand)
   ⎿  Found 2 new diagnostic issues in 1 file (ctrl+o to expand)
@@ -9276,7 +9276,7 @@ code 0)  ⎿  Found 1 new diagnostic issue in 1 file (ctrl+o to expand)
        4  
        5  import (
      ...
-       9    "github.com/athreyac4/agentlaws/web"
+       9    "github.com/shrsv/agentlaws/web"
       10  )
       11  
       18 -// Handler returns an http.Handler serving the embedded web/dis
@@ -10210,10 +10210,10 @@ code 0)  ⎿  Found 1 new diagnostic issue in 1 file (ctrl+o to expand)
        9    "path/filepath"
       10    "strings"
       11  
-      12 +  "github.com/athreyac4/agentlaws/internal/model"              
-      13    renderhtml "github.com/athreyac4/agentlaws/internal/renderer/
+      12 +  "github.com/shrsv/agentlaws/internal/model"              
+      13    renderhtml "github.com/shrsv/agentlaws/internal/renderer/
           html"
-      14    renderpdf "github.com/athreyac4/agentlaws/internal/renderer/p
+      14    renderpdf "github.com/shrsv/agentlaws/internal/renderer/p
           df"
       15  )
 
@@ -10335,7 +10335,7 @@ code 0)  ⎿  Found 1 new diagnostic issue in 1 file (ctrl+o to expand)
       5 
       6   "github.com/spf13/cobra"
       7 
-      8   "github.com/athreyac4/agentlaws/pkg/alaws"
+      8   "github.com/shrsv/agentlaws/pkg/alaws"
       9 )
      … +60 lines (ctrl+o to expand)
   ⎿  Found 2 new diagnostic issues in 1 file (ctrl+o to expand)
@@ -10363,7 +10363,7 @@ code 0)  ⎿  Found 1 new diagnostic issue in 1 file (ctrl+o to expand)
        7    "net/http"
        8 +  "path/filepath"                                              
        9  
-      10    "github.com/athreyac4/agentlaws/web"
+      10    "github.com/shrsv/agentlaws/web"
       11  )
       12  
       13 +// root is the discovery root the UI should default to and disp
@@ -11538,12 +11538,12 @@ code 0)  ⎿  Found 1 new diagnostic issue in 1 file (ctrl+o to expand)
 ● Update(pkg/alaws/render.go)
   ⎿  Added 8 lines
       11  
-      12    "github.com/athreyac4/agentlaws/internal/model"
-      13    renderhtml "github.com/athreyac4/agentlaws/internal/renderer/
+      12    "github.com/shrsv/agentlaws/internal/model"
+      13    renderhtml "github.com/shrsv/agentlaws/internal/renderer/
           html"
-      14 +  rendermarkdown "github.com/athreyac4/agentlaws/internal/rende
+      14 +  rendermarkdown "github.com/shrsv/agentlaws/internal/rende
          +rer/markdown"                                                  
-      15    renderpdf "github.com/athreyac4/agentlaws/internal/renderer/p
+      15    renderpdf "github.com/shrsv/agentlaws/internal/renderer/p
           df"
       16  )
       17  
@@ -12334,7 +12334,7 @@ code 0)  ⎿  Found 1 new diagnostic issue in 1 file (ctrl+o to expand)
       14    "github.com/yuin/goldmark"
       15 +  highlighting "github.com/yuin/goldmark-highlighting/v2"      
       16  
-      17    "github.com/athreyac4/agentlaws/internal/model"
+      17    "github.com/shrsv/agentlaws/internal/model"
       18  )
       19  
       20 +// markdown is the single goldmark instance every renderer in t
@@ -12875,7 +12875,7 @@ code 0)  ⎿  Found 1 new diagnostic issue in 1 file (ctrl+o to expand)
 
 ● Write(internal/renderer/pdf/pdf.go)
   ⎿  Added 25 lines, removed 16 lines
-      10    "github.com/athreyac4/agentlaws/internal/model"
+      10    "github.com/shrsv/agentlaws/internal/model"
       11  )
       12  
       13 -// Render writes the PDF representation of book to w.          
