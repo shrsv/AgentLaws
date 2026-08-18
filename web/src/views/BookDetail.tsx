@@ -6,10 +6,11 @@ import { HistorySidebar } from "../components/HistorySidebar";
 
 interface Props {
   path: string;
+  section: string | null;
   navigate: (r: Route) => void;
 }
 
-export function BookDetail({ path, navigate }: Props) {
+export function BookDetail({ path, section, navigate }: Props) {
   const [title, setTitle] = useState("");
   const [sections, setSections] = useState<Section[]>([]);
   const [rendered, setRendered] = useState<Record<string, RenderedSection>>({});
@@ -32,13 +33,29 @@ export function BookDetail({ path, navigate }: Props) {
         setSections(r.lawbook.Sections);
         setRendered(r.rendered ?? {});
         setDiagnostics(r.diagnostics ?? []);
-        if (!selectedID && r.lawbook.Sections.length > 0) setSelectedID(r.lawbook.Sections[0].ID);
+        // Functional update: read current selection (the URL's section may
+        // have just been restored by the section-sync effect), not the
+        // stale closure value from this render.
+        setSelectedID((prev) => prev ?? r.lawbook.Sections[0]?.ID ?? null);
       })
       .catch((e) => setError(String(e)));
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(reload, [path]);
+
+  // The URL carries the selected section (e.g. #/books/<book>/<section>), so
+  // a refresh or back/forward restores the same page. Clicking a tree node
+  // pushes the id into the hash via select(); this effect picks it back up
+  // when the hash changes (or on first load after a refresh).
+  useEffect(() => {
+    if (section) setSelectedID(section);
+  }, [section]);
+
+  const select = (id: string) => {
+    setSelectedID(id);
+    navigate({ name: "book", path, section: id });
+  };
 
   const selected = sections.find((s) => s.ID === selectedID) ?? null;
   const errorCount = diagnostics.filter((d) => d.Severity === "error").length;
@@ -76,7 +93,10 @@ export function BookDetail({ path, navigate }: Props) {
     const kind = s.Level === 1 ? "chapter" : "section";
     if (!confirm(`Remove ${kind} "${s.Title}" (${s.ID})?`)) return;
     await api.remove(path, kind, s.ID, true);
-    if (selectedID === s.ID) setSelectedID(null);
+    if (selectedID === s.ID) {
+      setSelectedID(null);
+      navigate({ name: "book", path });
+    }
     reload();
   }
 
@@ -158,7 +178,7 @@ export function BookDetail({ path, navigate }: Props) {
                   const after = e.clientY - rect.top > rect.height / 2;
                   drop(n.ID, after);
                 }}
-                onClick={() => setSelectedID(n.ID)}
+                onClick={() => select(n.ID)}
               >
                 <span class="number">{n.Number}</span>
                 <span class="node-title">{n.Title}</span>

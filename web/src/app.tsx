@@ -22,7 +22,7 @@ export function App() {
     <div class="app-shell">
       <div class="app-body">
         {route.name === "books" && <BookPicker navigate={navigate} />}
-        {route.name === "book" && <BookDetail path={route.path} navigate={navigate} />}
+        {route.name === "book" && <BookDetail path={route.path} section={route.section ?? null} navigate={navigate} />}
         {route.name === "playground" && <Playground path={route.path} navigate={navigate} />}
       </div>
 
