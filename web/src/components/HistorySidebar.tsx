@@ -1,6 +1,20 @@
-import { useState, useEffect, useCallback, useRef } from "preact/hooks";
-import { History, X, ChevronRight, ChevronDown, GitCommit, User, Mail, Plus, Minus, Pencil, File, ShieldCheck } from "lucide-preact";
+import { useState, useEffect, useRef } from "preact/hooks";
+import { History, X, ChevronRight, ChevronDown, GitCommit, User, Mail, Plus, Minus, Pencil, File, ShieldCheck, Loader2 } from "lucide-preact";
 import { api, type LogEntry, type CommitDetail, type Manifest, type LawbookDiff, type Section } from "../api";
+
+// Go serializes nil slices as JSON null — normalize to empty arrays so
+// .map() calls never crash.
+function normalizeDetail(d: CommitDetail): CommitDetail {
+  if (d.diff) {
+    d.diff.AddedSections ??= [];
+    d.diff.RemovedSections ??= [];
+    d.diff.AddedLaws ??= [];
+    d.diff.RemovedLaws ??= [];
+    d.diff.ModifiedLaws ??= [];
+  }
+  d.files ??= [];
+  return d;
+}
 
 interface Props {
   path: string;
@@ -12,88 +26,62 @@ interface Props {
 
 export function HistorySidebar({ path, show, onClose, filterEntity, sections }: Props) {
   const [commits, setCommits] = useState<LogEntry[]>([]);
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [detail, setDetail] = useState<CommitDetail | null>(null);
-  const [loadingCommit, setLoadingCommit] = useState<string | null>(null);
+  const [expandedCommit, setExpandedCommit] = useState<string | null>(null);
+  const [details, setDetails] = useState<Record<string, CommitDetail | "loading" | "error">>({});
   const [manifest, setManifest] = useState<Manifest | null>(null);
   const [verifyResult, setVerifyResult] = useState<string | null>(null);
   const [diffMode, setDiffMode] = useState<"inline" | "side">("inline");
-  const fetchSeq = useRef(0);
-
-  const loadCommits = useCallback(async () => {
-    try {
-      const log = await api.log(path);
-      setCommits(log ?? []);
-    } catch {
-      setCommits([]);
-    }
-  }, [path]);
-
-  const loadManifest = useCallback(async () => {
-    try {
-      const m = await api.manifest(path);
-      setManifest(m);
-    } catch {
-      setManifest(null);
-    }
-  }, [path]);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    if (show) {
-      loadCommits();
-      loadManifest();
-    } else {
-      setExpanded(null);
-      setDetail(null);
-      setLoadingCommit(null);
+    if (!show) return;
+    let cancelled = false;
+    api.log(path).then((log) => { if (!cancelled) setCommits(log ?? []); }).catch(() => { if (!cancelled) setCommits([]); });
+    api.manifest(path).then((m) => { if (!cancelled) setManifest(m); }).catch(() => { if (!cancelled) setManifest(null); });
+    return () => { cancelled = true; };
+  }, [show, path]);
+
+  // Reset state when sidebar closes
+  useEffect(() => {
+    if (!show) {
+      setExpandedCommit(null);
+      setDetails({});
       setVerifyResult(null);
     }
-  }, [show, loadCommits, loadManifest]);
+  }, [show]);
 
-  async function toggleCommit(commit: string) {
-    if (expanded === commit) {
-      setExpanded(null);
-      setDetail(null);
+  function toggleCommit(commit: string) {
+    if (expandedCommit === commit) {
+      setExpandedCommit(null);
       return;
     }
-    // Increment sequence to invalidate any in-flight fetches
-    const seq = ++fetchSeq.current;
-    setExpanded(commit);
-    setDetail(null);
-    setLoadingCommit(commit);
-    try {
-      const d = await api.commitDetail(path, commit);
-      // Only apply if this is still the latest request
-      if (fetchSeq.current === seq) {
-        setDetail(d);
-      }
-    } catch {
-      if (fetchSeq.current === seq) {
-        setDetail(null);
-      }
-    } finally {
-      if (fetchSeq.current === seq) {
-        setLoadingCommit(null);
-      }
-    }
+    setExpandedCommit(commit);
+    // Only fetch if not already loaded/loading
+    if (details[commit]) return;
+    setDetails((prev) => ({ ...prev, [commit]: "loading" }));
+    // Abort any previous in-flight request
+    if (abortRef.current) abortRef.current.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    api.commitDetail(path, commit).then((d) => {
+      if (!ctrl.signal.aborted) setDetails((prev) => ({ ...prev, [commit]: normalizeDetail(d) }));
+    }).catch(() => {
+      if (!ctrl.signal.aborted) setDetails((prev) => ({ ...prev, [commit]: "error" }));
+    });
   }
 
-  async function doVerify() {
+  function doVerify() {
     if (!manifest) return;
     setVerifyResult(null);
     if (!manifest.signature) {
-      setVerifyResult(
-        "No signature found. This book has not been signed yet. " +
-        "To verify, first sign it with: alaws sign " + path
-      );
+      setVerifyResult("No signature found. Sign this book first: alaws sign " + path);
       return;
     }
-    try {
-      const r = await api.verify(path, manifest);
+    api.verify(path, manifest).then((r) => {
       setVerifyResult(r.ok ? "Verified OK" : `Failed: ${r.error}`);
-    } catch (e) {
+    }).catch((e) => {
       setVerifyResult(`Error: ${e}`);
-    }
+    });
   }
 
   if (!show) return null;
@@ -107,14 +95,7 @@ export function HistorySidebar({ path, show, onClose, filterEntity, sections }: 
           <History size={14} />
           History
         </span>
-        <button
-          class="icon-button"
-          title="Close"
-          onMouseDown={(e) => {
-            e.preventDefault();
-            onClose();
-          }}
-        >
+        <button class="icon-button" title="Close" onClick={() => onClose()}>
           <X size={14} />
         </button>
       </div>
@@ -147,24 +128,35 @@ export function HistorySidebar({ path, show, onClose, filterEntity, sections }: 
 
       <div class="history-timeline">
         {commits.length === 0 && <p class="empty-state">No commits found.</p>}
-        {commits.map((c) => (
-          <div key={c.Commit} class={`history-commit ${expanded === c.Commit ? "expanded" : "collapsed"}`}>
-            <div class="history-commit-row" onClick={() => toggleCommit(c.Commit)}>
-              {expanded === c.Commit ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-              <code class="history-commit-hash">{c.Commit.slice(0, 8)}</code>
-              <span class="history-commit-author">{authorName(c.Author)}</span>
-              <span class="history-commit-time">{relativeTime(c.Date)}</span>
-            </div>
-            <div class="history-commit-summary">{c.Summary}</div>
-
-            {expanded === c.Commit && (
-              <div class="history-detail">
-                {loadingCommit === c.Commit && <p class="empty-state">Loading…</p>}
-                {detail && <CommitDetailView detail={detail} diffMode={diffMode} setDiffMode={setDiffMode} sectionTitle={sectionTitle} />}
+        {commits.map((c) => {
+          const isExpanded = expandedCommit === c.Commit;
+          const state = details[c.Commit];
+          return (
+            <div key={c.Commit} class={`history-commit ${isExpanded ? "expanded" : "collapsed"}`}>
+              <div class="history-commit-row" onClick={() => toggleCommit(c.Commit)}>
+                {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                <code class="history-commit-hash">{c.Commit.slice(0, 8)}</code>
+                <span class="history-commit-author">{authorName(c.Author)}</span>
+                <span class="history-commit-time">{relativeTime(c.Date)}</span>
               </div>
-            )}
-          </div>
-        ))}
+              <div class="history-commit-summary">{c.Summary}</div>
+
+              {isExpanded && (
+                <div class="history-detail">
+                  {state === "loading" && (
+                    <div class="history-loading">
+                      <Loader2 size={14} class="spin" /> Loading diff…
+                    </div>
+                  )}
+                  {state === "error" && <p class="empty-state">Failed to load details.</p>}
+                  {state && typeof state === "object" && (
+                    <CommitDetailView detail={state} diffMode={diffMode} setDiffMode={setDiffMode} sectionTitle={sectionTitle} />
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -195,7 +187,7 @@ function CommitDetailView({ detail, diffMode, setDiffMode, sectionTitle }: {
           <div class="history-detail-header">
             <File size={11} /> Files ({detail.files.length})
           </div>
-          {detail.files.map((f) => (
+          {(detail.files ?? []).map((f) => (
             <div key={f.Path} class="history-file-item">
               <span class={`history-file-status status-${f.Status.toLowerCase()}`}>{f.Status}</span>
               <span class="history-file-path">{f.Path}</span>
@@ -229,8 +221,14 @@ function CommitDetailView({ detail, diffMode, setDiffMode, sectionTitle }: {
 }
 
 function DiffView({ diff, mode, sectionTitle }: { diff: LawbookDiff; mode: "inline" | "side"; sectionTitle: (id: string) => string }) {
-  const hasChanges = diff.AddedSections.length > 0 || diff.RemovedSections.length > 0 ||
-    diff.AddedLaws.length > 0 || diff.RemovedLaws.length > 0 || diff.ModifiedLaws.length > 0;
+  const addedSec = diff.AddedSections ?? [];
+  const removedSec = diff.RemovedSections ?? [];
+  const addedLaws = diff.AddedLaws ?? [];
+  const removedLaws = diff.RemovedLaws ?? [];
+  const modifiedLaws = diff.ModifiedLaws ?? [];
+
+  const hasChanges = addedSec.length > 0 || removedSec.length > 0 ||
+    addedLaws.length > 0 || removedLaws.length > 0 || modifiedLaws.length > 0;
 
   if (!hasChanges) return <p class="empty-state">No semantic changes.</p>;
 
@@ -239,17 +237,17 @@ function DiffView({ diff, mode, sectionTitle }: { diff: LawbookDiff; mode: "inli
       <div class="diff-side">
         <div class="diff-side-col">
           <div class="diff-side-header">Before</div>
-          {diff.RemovedSections.map((id) => <div key={id} class="diff-item diff-del"><Minus size={10} /> {sectionTitle(id)}</div>)}
-          {diff.RemovedLaws.map((l) => <div key={`r-${l.SectionID}-${l.Index}`} class="diff-item diff-del"><Minus size={10} /> {l.Number}: {l.Text.slice(0, 80)}</div>)}
-          {diff.ModifiedLaws.map((m) => <div key={`m-${m.SectionID}-${m.Index}`} class="diff-item diff-del"><Pencil size={10} /> {m.OldNumber}: {m.OldText.slice(0, 80)}</div>)}
-          {diff.RemovedSections.length === 0 && diff.RemovedLaws.length === 0 && diff.ModifiedLaws.length === 0 && <div class="empty-state">No removals</div>}
+          {removedSec.map((id) => <div key={id} class="diff-item diff-del"><Minus size={10} /> {sectionTitle(id)}</div>)}
+          {removedLaws.map((l) => <div key={`r-${l.SectionID}-${l.Index}`} class="diff-item diff-del"><Minus size={10} /> {l.Number}: {l.Text.slice(0, 80)}</div>)}
+          {modifiedLaws.map((m) => <div key={`m-${m.SectionID}-${m.Index}`} class="diff-item diff-del"><Pencil size={10} /> {m.OldNumber}: {m.OldText.slice(0, 80)}</div>)}
+          {removedSec.length === 0 && removedLaws.length === 0 && modifiedLaws.length === 0 && <div class="empty-state">No removals</div>}
         </div>
         <div class="diff-side-col">
           <div class="diff-side-header">After</div>
-          {diff.AddedSections.map((id) => <div key={id} class="diff-item diff-add"><Plus size={10} /> {sectionTitle(id)}</div>)}
-          {diff.AddedLaws.map((l) => <div key={`a-${l.SectionID}-${l.Index}`} class="diff-item diff-add"><Plus size={10} /> {l.Number}: {l.Text.slice(0, 80)}</div>)}
-          {diff.ModifiedLaws.map((m) => <div key={`m2-${m.SectionID}-${m.Index}`} class="diff-item diff-add"><Pencil size={10} /> {m.NewNumber}: {m.NewText.slice(0, 80)}</div>)}
-          {diff.AddedSections.length === 0 && diff.AddedLaws.length === 0 && diff.ModifiedLaws.length === 0 && <div class="empty-state">No additions</div>}
+          {addedSec.map((id) => <div key={id} class="diff-item diff-add"><Plus size={10} /> {sectionTitle(id)}</div>)}
+          {addedLaws.map((l) => <div key={`a-${l.SectionID}-${l.Index}`} class="diff-item diff-add"><Plus size={10} /> {l.Number}: {l.Text.slice(0, 80)}</div>)}
+          {modifiedLaws.map((m) => <div key={`m2-${m.SectionID}-${m.Index}`} class="diff-item diff-add"><Pencil size={10} /> {m.NewNumber}: {m.NewText.slice(0, 80)}</div>)}
+          {addedSec.length === 0 && addedLaws.length === 0 && modifiedLaws.length === 0 && <div class="empty-state">No additions</div>}
         </div>
       </div>
     );
@@ -257,19 +255,11 @@ function DiffView({ diff, mode, sectionTitle }: { diff: LawbookDiff; mode: "inli
 
   return (
     <div class="diff-inline">
-      {diff.AddedSections.map((id) => (
-        <div key={id} class="diff-item diff-add"><Plus size={10} /> Section: {sectionTitle(id)}</div>
-      ))}
-      {diff.RemovedSections.map((id) => (
-        <div key={id} class="diff-item diff-del"><Minus size={10} /> Section: {sectionTitle(id)}</div>
-      ))}
-      {diff.AddedLaws.map((l) => (
-        <div key={`a-${l.SectionID}-${l.Index}`} class="diff-item diff-add"><Plus size={10} /> {l.Number}: {l.Text.slice(0, 120)}</div>
-      ))}
-      {diff.RemovedLaws.map((l) => (
-        <div key={`r-${l.SectionID}-${l.Index}`} class="diff-item diff-del"><Minus size={10} /> {l.Number}: {l.Text.slice(0, 120)}</div>
-      ))}
-      {diff.ModifiedLaws.map((m) => (
+      {addedSec.map((id) => <div key={id} class="diff-item diff-add"><Plus size={10} /> Section: {sectionTitle(id)}</div>)}
+      {removedSec.map((id) => <div key={id} class="diff-item diff-del"><Minus size={10} /> Section: {sectionTitle(id)}</div>)}
+      {addedLaws.map((l) => <div key={`a-${l.SectionID}-${l.Index}`} class="diff-item diff-add"><Plus size={10} /> {l.Number}: {l.Text.slice(0, 120)}</div>)}
+      {removedLaws.map((l) => <div key={`r-${l.SectionID}-${l.Index}`} class="diff-item diff-del"><Minus size={10} /> {l.Number}: {l.Text.slice(0, 120)}</div>)}
+      {modifiedLaws.map((m) => (
         <div key={`m-${m.SectionID}-${m.Index}`} class="diff-item diff-mod">
           <Pencil size={10} />
           <span class="diff-mod-old">{m.OldText.slice(0, 60)}</span>
