@@ -217,6 +217,16 @@ var Operations = []Operation{
 		CLITemplate: "alaws verify {path} --manifest manifest.json",
 		GoTemplate:  `b, _ := alaws.Compile({path}); alaws.Verify(manifest, b)`,
 	},
+	{
+		ID: "book.commit-detail", Group: "Provenance", Summary: "Get full detail of a commit (files + semantic diff)",
+		Method: http.MethodGet, Path: "/api/book/commit-detail",
+		Params: []Param{
+			{Name: "path", Kind: "book", Required: true, Description: "the book"},
+			{Name: "commit", Kind: "text", Required: true, Description: "commit hash (full or short)"},
+		},
+		CLITemplate: "alaws log {path} (then inspect a specific commit)",
+		GoTemplate:  `detail, _ := alaws.CommitDetailFor({path}, {commit})`,
+	},
 }
 
 // GET /api/meta/operations

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "preact/hooks";
-import { api, type Operation } from "../api";
+import { History } from "lucide-preact";
+import { api, type Operation, type Section } from "../api";
 import type { Route } from "../router";
+import { HistorySidebar } from "../components/HistorySidebar";
 
 interface Props {
   path: string;
@@ -21,12 +23,15 @@ export function Playground({ path, navigate }: Props) {
   const [result, setResult] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [sections, setSections] = useState<Section[]>([]);
 
   useEffect(() => {
     api.operations().then((ops) => {
       setOperations(ops);
       if (ops.length > 0) setSelectedID(ops[0].id);
     });
+    api.compile(path).then((r) => setSections(r.lawbook.Sections)).catch(() => {});
   }, []);
 
   const op = operations.find((o) => o.id === selectedID) ?? null;
@@ -70,6 +75,13 @@ export function Playground({ path, navigate }: Props) {
         <span class="book-title">Playground</span>
         <div class="spacer" />
         <span class="path">learn the CLI and pkg/alaws while you use the UI</span>
+        <button
+          class={`link-button ${showHistory ? "active" : ""}`}
+          onClick={() => setShowHistory((v) => !v)}
+        >
+          <History size={12} style={{ verticalAlign: "middle", marginRight: 4 }} />
+          History
+        </button>
       </div>
 
       <div class="workbench playground-workbench">
@@ -134,6 +146,13 @@ export function Playground({ path, navigate }: Props) {
           )}
         </main>
       </div>
+
+      <HistorySidebar
+        path={path}
+        show={showHistory}
+        onClose={() => setShowHistory(false)}
+        sections={sections}
+      />
     </div>
   );
 }

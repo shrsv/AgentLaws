@@ -60,6 +60,7 @@ func registerAPI(mux *http.ServeMux) {
 	mux.HandleFunc("/api/book/history", handleHistory)
 	mux.HandleFunc("/api/book/log", handleLog)
 	mux.HandleFunc("/api/book/verify", handleVerify)
+	mux.HandleFunc("/api/book/commit-detail", handleCommitDetail)
 	mux.HandleFunc("/api/meta/operations", handleOperations)
 	mux.HandleFunc("/api/meta/root", handleRoot)
 	mux.HandleFunc("/api/export", handleExportAll)
@@ -572,4 +573,25 @@ func handleVerify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+// GET /api/book/commit-detail?path=&commit=
+func handleCommitDetail(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		methodNotAllowed(w)
+		return
+	}
+	q := r.URL.Query()
+	book := q.Get("path")
+	commit := q.Get("commit")
+	if book == "" || commit == "" {
+		writeError(w, errors.New("path and commit are required"))
+		return
+	}
+	detail, err := alaws.CommitDetailFor(book, commit)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, detail)
 }

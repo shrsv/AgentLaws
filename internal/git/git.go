@@ -299,6 +299,65 @@ type HistoryEntry struct {
 	Summary string
 }
 
+// FileChange describes one file that changed between two commits.
+type FileChange struct {
+	Path    string
+	Status  string // "A", "M", "D", "R" (added, modified, deleted, renamed)
+	Added   int    // lines added (0 for binary or status D)
+	Deleted int    // lines deleted (0 for binary or status D)
+}
+
+// DiffFiles returns the list of files that changed between two revisions,
+// scoped to paths (repoRoot-relative). It uses git diff --numstat for
+// structured line-count data.
+func DiffFiles(repoRoot, from, to string, paths []string) ([]FileChange, error) {
+	args := []string{"diff", "--numstat", "--diff-filter=ADMRT", from, to, "--"}
+	args = append(args, paths...)
+	out, err := run(repoRoot, args...)
+	if err != nil {
+		return nil, err
+	}
+	if out == "" {
+		return nil, nil
+	}
+
+	var changes []FileChange
+	for line := range strings.SplitSeq(out, "\n") {
+		parts := strings.SplitN(line, "\t", 3)
+		if len(parts) != 3 {
+			continue
+		}
+		added := 0
+		deleted := 0
+		if parts[0] != "-" {
+			fmt.Sscanf(parts[0], "%d", &added)
+		}
+		if parts[1] != "-" {
+			fmt.Sscanf(parts[1], "%d", &deleted)
+		}
+		changes = append(changes, FileChange{
+			Path:    parts[2],
+			Status:  diffStatus(added, deleted, parts[0], parts[1]),
+			Added:   added,
+			Deleted: deleted,
+		})
+	}
+	return changes, nil
+}
+
+func diffStatus(added, deleted int, rawAdd, rawDel string) string {
+	if rawAdd == "-" && rawDel == "-" {
+		return "B" // binary
+	}
+	if added > 0 && deleted == 0 {
+		return "A"
+	}
+	if added == 0 && deleted > 0 {
+		return "D"
+	}
+	return "M"
+}
+
 var commitHeaderRe = regexp.MustCompile(`^[0-9a-f]{40}` + fieldSep)
 
 // LineHistory returns the Git history of the line range [lineStart,
