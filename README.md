@@ -16,8 +16,8 @@ AgentLaws is deliberately simple today. It does not attempt to build a formal le
 
 <table>
 <tr>
-<td align="center"><b>Book picker</b><br><img src="media/agent-laws-home.png" width="420" alt="Home view showing discovered lawbooks"></td>
-<td align="center"><b>Book view</b><br><img src="media/agent-laws-book-view.png" width="420" alt="Detail view showing sidebar tree, commentary, and numbered laws"></td>
+<td align="center"><b>Lawbook picker</b><br><img src="media/agent-laws-home.png" width="420" alt="Home view showing discovered lawbooks"></td>
+<td align="center"><b>Lawbook view</b><br><img src="media/agent-laws-book-view.png" width="420" alt="Detail view showing sidebar tree, commentary, and numbered laws"></td>
 </tr>
 <tr>
 <td align="center"><b>API Playground</b><br><img src="media/agent-laws-api-playground.png" width="420" alt="Interactive playground for testing the render and resolve API"></td>
@@ -86,7 +86,7 @@ alaws --help
 ## Create your first lawbook
 
 ```bash
-# 1. Create a book
+# 1. Create a lawbook
 alaws books create ./my-governance --title "My Governance"
 
 # 2. Add a chapter
@@ -258,7 +258,7 @@ History of changes
 
 # An AgentLaws Lawbook
 
-A AgentLaws lawbook is a collection of ordered Markdown files.
+An AgentLaws lawbook is a collection of ordered Markdown files.
 
 For example:
 
@@ -610,7 +610,7 @@ book.RenderPDF(os.Stdout)
 book.RenderMarkdown(os.Stdout)
 ```
 
-To export every book under a root as a single combined document:
+To export every lawbook under a root as a single combined document:
 
 ```bash
 alaws export examples --format html,pdf,md --title "All Governance"
@@ -783,7 +783,7 @@ var buf strings.Builder
 book.RenderHTML(&buf)
 ```
 
-## Discover all books
+## Discover all lawbooks
 
 ```go
 books, _ := alaws.Discover(".")
@@ -792,7 +792,7 @@ for _, b := range books {
 }
 ```
 
-## Compile everything
+## Compile all lawbooks
 
 ```go
 books, _ := alaws.CompileAll(".")
@@ -1187,7 +1187,7 @@ The `alaws` binary is organized around the same objects as the lawbook itself â€
 # List all books under a root
 alaws books list --root .
 
-# Show a book's structure
+# Show a lawbook's structure
 alaws books show ./my-governance
 
 # List chapters and sections
@@ -1219,7 +1219,7 @@ alaws watch ./my-governance
 | `alaws init [path] --title "..."` | Create a new lawbook (alias for `books create`) |
 | `alaws books list [--root .] [--json]` | Discover lawbook clusters |
 | `alaws books create <path> --title "..."` | Create a new lawbook |
-| `alaws books show <path> [--json]` | Show a book's structure |
+| `alaws books show <path> [--json]` | Show a lawbook's structure |
 | `alaws chapter create/list/move/remove` | Manage top-level sections |
 | `alaws section create/list/show/move/remove` | Manage nested sections |
 | `alaws law add/list/remove` | Manage numbered clauses |
