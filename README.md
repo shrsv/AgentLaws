@@ -14,6 +14,52 @@ AgentLaws is deliberately simple today. It does not attempt to build a formal le
 
 ---
 
+<table>
+<tr>
+<td align="center"><b>Book picker</b><br><img src="media/agent-laws-home.png" width="420" alt="Home view showing discovered lawbooks"></td>
+<td align="center"><b>Book view</b><br><img src="media/agent-laws-book-view.png" width="420" alt="Detail view showing sidebar tree, commentary, and numbered laws"></td>
+</tr>
+<tr>
+<td align="center"><b>API Playground</b><br><img src="media/agent-laws-api-playground.png" width="420" alt="Interactive playground for testing the render and resolve API"></td>
+<td align="center"><b>HTML export</b><br><img src="media/agent-laws-html-export.png" width="420" alt="Standalone HTML export of a compiled lawbook"></td>
+</tr>
+</table>
+
+---
+
+**Jump to:**
+
+| I want to... | Go to |
+|---|---|
+| Get up and running quickly | [Get Started](#get-started) |
+| Understand what AgentLaws is and why it exists | [Why AgentLaws?](#why-agentlaws) |
+| See the lawbook analogy | [The Lawbook Analogy](#the-lawbook-analogy) |
+| Understand the source format (Markdown sections) | [The Source Format](#the-source-format) |
+| Use it from the command line | [CLI and Library](#cli-and-library) |
+| Use it as a Go library in my app | [Using Laws from Go](#using-laws-from-go) |
+| Insert dynamic values into laws | [Variables in Prompt Composition](#variables-in-prompt-composition) |
+| Understand canonical citation numbers | [Canonical Law Numbers](#canonical-law-numbers) |
+| See how agent citations create an audit trail | [Agent Citations](#agent-citations) |
+| Browse the lawbook in a web UI | [Local Web UI](#local-web-ui) |
+| Understand provenance and signed compilation | [Provenance and History](#provenance-and-history) |
+| See what AgentLaws deliberately does *not* do | [What AgentLaws Does Not Try to Do Yet](#what-agentlaws-does-not-try-to-do-yet) |
+| Read the implementation design | [docs/PLAN1.md](docs/PLAN1.md) |
+
+---
+
+**Use cases:**
+
+| Use case | How AgentLaws helps |
+|---|---|
+| Governing an AI coding agent | Write security, ops, and coding laws; agent cites them in every decision |
+| Building an agent with auditable decisions | `alaws render` produces numbered, traceable laws for the prompt; `alaws resolve` traces citations back to source |
+| Collaborative prompt governance | Lawbook lives in Git; changes are normal PRs with diffs, blame, and history |
+| Multi-agent systems | Each agent loads only the laws relevant to its role via `Selector` |
+| Compliance and audit | Every agent decision cites specific law numbers; provenance traces them to who wrote them and when |
+| Live development of governance rules | `alaws watch` + web UI for real-time preview as you edit Markdown |
+
+---
+
 # Get Started
 
 ## Install
@@ -1122,18 +1168,7 @@ This is particularly useful for Prompt Governors working collaboratively on word
 
 AgentLaws includes a local Preact-based UI, styled strictly like VS Code — it uses VS Code's own color and font tokens and its flat, tree-navigation visual language rather than a generic web-app look.
 
-The UI presents the lawbook as an ordered tree and provides an easier way to work with it than editing configuration manually.
-
-<table>
-<tr>
-<td align="center"><b>Book picker</b><br><img src="media/agent-laws-home.png" width="420" alt="Home view showing discovered lawbooks"></td>
-<td align="center"><b>Book view — sections and laws</b><br><img src="media/agent-laws-book-view.png" width="420" alt="Detail view showing sidebar tree, commentary, and numbered laws"></td>
-</tr>
-<tr>
-<td align="center"><b>API Playground</b><br><img src="media/agent-laws-api-playground.png" width="420" alt="Interactive playground for testing the render and resolve API"></td>
-<td align="center"><b>HTML export</b><br><img src="media/agent-laws-html-export.png" width="420" alt="Standalone HTML export of a compiled lawbook"></td>
-</tr>
-</table>
+The UI presents the lawbook as an ordered tree and provides an easier way to work with it than editing configuration manually. See the [screenshots at the top](#agentlaws) for what it looks like.
 
 One important operation is reordering.
 
