@@ -5,6 +5,7 @@ import (
 
 	"github.com/athreyac4/agentlaws/internal/discovery"
 	"github.com/athreyac4/agentlaws/internal/ordering"
+	"github.com/athreyac4/agentlaws/internal/parser"
 )
 
 func newInitCmd() *cobra.Command {
@@ -46,7 +47,11 @@ func newBooksListCmd() *cobra.Command {
 			}
 			return printResult(cmd, clusters, func() {
 				for _, c := range clusters {
-					cmd.Println(c.Path)
+					title := c.Title
+					if title == "" {
+						title = "(untitled)"
+					}
+					cmd.Printf("%s  %s\n", c.Path, title)
 				}
 			})
 		},
@@ -79,19 +84,33 @@ func runBooksCreate(cmd *cobra.Command, path string, title string) error {
 	return nil
 }
 
+// BookInfo is the JSON/human shape of `alaws books show`: the book's own
+// title (PLAN1 §4) alongside its ordering tree.
+type BookInfo struct {
+	Title    string          `json:"title"`
+	Sections []ordering.Node `json:"sections"`
+}
+
 func newBooksShowCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "show <path>",
-		Short: "Show a book's ordering tree and metadata",
+		Short: "Show a book's title, ordering tree, and metadata",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			nodes, err := ordering.Tree(configPath(args[0]))
+			cfgPath := configPath(args[0])
+			meta, err := parser.ParseLawbookConfig(cfgPath)
 			if err != nil {
 				return err
 			}
-			return printResult(cmd, nodes, func() {
+			nodes, err := ordering.Tree(cfgPath)
+			if err != nil {
+				return err
+			}
+			info := BookInfo{Title: meta.Title, Sections: nodes}
+			return printResult(cmd, info, func() {
+				cmd.Printf("%s  (%s)\n", meta.Title, args[0])
 				for _, n := range nodes {
-					cmd.Printf("level %d  %s  (%s)\n", n.Level, n.ID, n.Path)
+					cmd.Printf("  level %d  %s  (%s)\n", n.Level, n.ID, n.Path)
 				}
 			})
 		},

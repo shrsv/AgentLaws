@@ -69,25 +69,39 @@ There should be one canonical interpretation of the source.
 
 The implementation should preserve the following invariants.
 
-## 2.1 Folders have no semantic meaning
+## 2.1 Folder names carry no meaning; folder depth is a default, not a rule
 
-Directory layout is purely for human organization.
+Directory layout is for human organization, and a folder's *name* never
+has semantic meaning: nothing about `security/` versus `foo/` tells the
+compiler anything, and renaming a directory never changes governance
+semantics.
 
-These are semantically equivalent:
+Nesting *depth*, however, is used as the default presentation level (§8):
+a file one directory below the lawbook root defaults to level 2, two
+directories down defaults to level 3, and so on. This is a convenience
+default, not an identity. These two are level-equivalent by default:
 
 ```text
-security/secrets.md
+security/secrets.md          (1 separator  -> level 2)
 ```
-
-and:
 
 ```text
-foo/bar/secrets.md
+foo/bar/secrets.md           (2 separators -> level 3, NOT equivalent by default)
 ```
 
-provided the file is referenced identically in the lawbook ordering and has equivalent metadata/content.
+The second one is only level 2 if its frontmatter says `level: 2`
+explicitly - the default always follows depth, and depth follows wherever
+the ordering entry's path happens to put the file. Two files at the same
+depth (`security/secrets.md` and `foo/bar/secrets.md` are *not* the same
+depth - compare `security/secrets.md` and `ops/rollback.md`, both one
+level down) are level-equivalent regardless of what their directories are
+named.
 
-Moving a file between directories must not silently change its place in the lawbook.
+Moving a file to a different depth changes its default level unless an
+explicit `level:` override travels with it (or is added at the same time,
+e.g. by `alaws section move --parent`, which fixes this up automatically -
+see §32). Moving a file between same-depth directories never changes
+anything.
 
 ---
 
@@ -377,21 +391,44 @@ The compiler should not initially attempt sophisticated semantic interpretation 
 
 The section file's `title` becomes the title/heading associated with that source file.
 
-By default, its heading level should be derived from the compiled ordering structure rather than filesystem depth.
+## The default rule
 
-Important:
+> **A section's default level is 1 plus the number of path separators in
+> its ordering entry.**
 
-> **Filesystem depth must never determine heading level.**
+`principles.md` has none, so it defaults to level 1 (a chapter).
+`security/secrets.md` has one, so it defaults to level 2.
+`operations/rollback/emergency.md` has two, so it defaults to level 3.
 
-The filesystem has no semantic meaning.
+This makes the common case require no metadata at all: an author creates
+`security/authentication.md` under a `Security` chapter and it is simply a
+level-2 section, the same way most static-site generators infer a page's
+place from where its file lives. `alaws section create --parent <id>`
+(§32) relies on exactly this default when it inserts a new section under a
+chapter.
 
-The implementation needs a defined rule for the default level based on the lawbook's ordered structure. Where the default is inappropriate, metadata can override it:
+Folder *names* still carry no meaning (§2.1) - only depth does. A file's
+depth is counted from its ordering entry's path, not from its absolute
+filesystem location, so a lawbook nested inside a larger repository is
+unaffected by how deep the repository itself is.
+
+## The override
+
+Depth is a default, not a constraint. Where a section's intended
+presentation level doesn't match where its file happens to live, metadata
+overrides it:
 
 ```yaml
 level: 2
 ```
 
-This should only override presentation hierarchy; it does not alter the lawbook ordering itself.
+This only overrides presentation hierarchy; it does not alter the
+lawbook ordering itself, and it does not need to be present anywhere the
+default already produces the right answer - which, for a lawbook laid out
+the way its authors think about it, is most of the time. Tooling that
+creates or moves sections on an author's behalf (§32's `chapter`/`section`
+commands) writes this override automatically, and only when the file's
+depth wouldn't already imply the requested level.
 
 Markdown headings inside a section remain normal Markdown content and can be used by the author freely.
 
@@ -864,11 +901,15 @@ invalid-laws
 invalid-ordering
 invalid-metadata
 invalid-template
+ambiguous-numbering
 ```
 
 `invalid-template` covers malformed `{{...}}` placeholders in law or commentary text — see §17a
 for the variable substitution model. It is a syntax check performed at compile time; it does not
 mean a variable is missing a value, since values are only resolved at render time.
+
+`ambiguous-numbering` covers a section that has both child sections and laws of its own (§32) —
+both are numbered `<section-number>.<N>`, so the two would collide.
 
 A structured diagnostic model will make it easier for the future web UI to display the same errors as the CLI.
 
@@ -1243,15 +1284,25 @@ onto the Lawbook IR (§12), plus lawbook-level operations.
 
 * **book** — a lawbook cluster: a directory containing `alaws.toml` (README's "lawbook" =
   this document's "cluster", §3).
-* **chapter** — a top-level `Section` (`level: 1`, no parent), listed directly in `ordering`.
-  A chapter typically holds commentary and may also contain its own laws.
-* **section** — a `Section` at `level ≥ 2`, created under a specific parent chapter. A
+* **chapter** — a top-level `Section` (level 1, no parent), listed directly in `ordering`.
+  A chapter typically holds commentary and may also contain its own laws, but not both a
+  law list and child sections (§32's "Ambiguous numbering" note below).
+* **section** — a `Section` at level ≥ 2, created under a specific parent chapter. A
   section's parent is *derived*, not a stored field: it is the nearest preceding `ordering`
   entry whose level is lower than its own — the same outline rule already implied by the
   heading-level model in §8. `section create --parent <chapter-id>` computes the correct
-  insertion index (immediately after the parent's last existing descendant) and defaults
-  `level` to `parent.level + 1` unless `--level` overrides it.
+  insertion index (immediately after the parent's last existing descendant) and the desired
+  level (`parent.level + 1` unless `--level` overrides it), then writes an explicit `level:`
+  into the new file's frontmatter only if that desired level wouldn't already be produced by
+  the file's own folder depth (§8) — the common case, where the file naturally lives one
+  directory below its parent, needs no override at all.
 * **law** — a numbered clause inside a section's `<!-- alaws:laws -->` region.
+
+A section may have child sections, or laws of its own, but not both: both are numbered
+`<section-number>.<N>`, so a section with children and its own laws would have a law and a
+subsection sharing one citation. The compiler rejects this as the `ambiguous-numbering`
+diagnostic (§19) — which is also why a chapter's laws belong not on the chapter itself but on
+its child sections, as demonstrated throughout `examples/`.
 
 Chapters and sections are not a new persisted concept — both are ordinary `Section` files.
 "Chapter" vs "section" is CLI/library vocabulary for "top-level" vs "nested" sections, chosen
@@ -2576,7 +2627,7 @@ Wheplementation decisions become ambiguous, prefer the option that preserves the
 
 1. **The source remains human-readable.**
 2. **Ordering is explicit.**
-3. **Directories remain purely organizational.**
+3. **Directory names remain purely organizational; only nesting depth is meaningful, as a default.**
 4. **The compiler is deterministic.**
 5. **Stable IDs are separate from presentation numbers.**
 6. **Commentary and laws remain ordinary Markdown content.**

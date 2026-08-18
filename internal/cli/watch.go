@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 
@@ -20,18 +21,36 @@ func newWatchCmd() *cobra.Command {
 			if len(args) == 1 {
 				book = args[0]
 			}
+
 			events, stop, err := watcher.Watch(book)
 			if err != nil {
 				return err
 			}
 			defer stop()
-			cmd.Printf("watching %s, serving on :%d\n", book, port)
+
+			go func() {
+				addr := fmt.Sprintf(":%d", port)
+				cmd.Printf("serving UI on http://localhost%s\n", addr)
+				if err := server.ListenAndServe(addr); err != nil {
+					cmd.PrintErrln("serve:", err)
+				}
+			}()
+
+			cmd.Printf("watching %s\n", book)
 			for ev := range events {
+				for _, d := range ev.Result.Diagnostics {
+					cmd.PrintErrf("%s: %s: %s: %s\n", book, d.Severity, d.Code, d.Message)
+				}
 				if ev.Err != nil {
-					cmd.PrintErrln("compile error:", ev.Err)
+					cmd.PrintErrln("compile failed:", ev.Err)
 					continue
 				}
-				cmd.Println("recompiled", ev.ClusterPath)
+				outDir := filepath.Join(book, ".alaws", "build")
+				if err := writeArtifacts(outDir, "html,json", ev.Result.Lawbook); err != nil {
+					cmd.PrintErrln("write artifacts:", err)
+					continue
+				}
+				cmd.Printf("recompiled %s -> %s\n", book, outDir)
 			}
 			return nil
 		},

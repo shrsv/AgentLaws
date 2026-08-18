@@ -1,12 +1,19 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/athreyac4/agentlaws/internal/compiler"
+	"github.com/athreyac4/agentlaws/internal/model"
 	"github.com/athreyac4/agentlaws/internal/provenance"
+	renderhtml "github.com/athreyac4/agentlaws/internal/renderer/html"
+	renderpdf "github.com/athreyac4/agentlaws/internal/renderer/pdf"
 	"github.com/athreyac4/agentlaws/internal/resolver"
 )
 
@@ -23,18 +30,80 @@ func newCompileCmd() *cobra.Command {
 			}
 			for _, book := range books {
 				result, err := compiler.Compile(book, compiler.Options{Strict: strict})
+				for _, d := range result.Diagnostics {
+					cmd.PrintErrf("%s: %s: %s\n", book, d.Code, d.Message)
+				}
 				if err != nil {
 					return fmt.Errorf("%s: %w", book, err)
 				}
-				cmd.Printf("compiled %s: %d sections, %d diagnostics\n", book, len(result.Lawbook.Sections), len(result.Diagnostics))
+
+				outDir := out
+				if outDir == "" {
+					outDir = filepath.Join(book, ".alaws", "build")
+				}
+				if flagDryRun {
+					cmd.Printf("would write %s to %s (%s)\n", book, outDir, format)
+					continue
+				}
+				if err := writeArtifacts(outDir, format, result.Lawbook); err != nil {
+					return fmt.Errorf("%s: %w", book, err)
+				}
+				cmd.Printf("compiled %s: %d sections, %d diagnostics -> %s\n", book, len(result.Lawbook.Sections), len(result.Diagnostics), outDir)
 			}
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&out, "out", "", "output directory for compiled artifacts")
+	cmd.Flags().StringVar(&out, "out", "", "output directory for compiled artifacts (default <book>/.alaws/build)")
 	cmd.Flags().StringVar(&format, "format", "html,json", "comma-separated artifact formats: html,json,pdf")
 	cmd.Flags().BoolVar(&strict, "strict", false, "treat warnings as errors")
 	return cmd
+}
+
+// writeArtifacts renders book into outDir in each of the comma-separated
+// formats, per docs/PLAN1.md §22-§23, §26: every format is a renderer over
+// the same Lawbook IR, not a separate parse of the source.
+func writeArtifacts(outDir, format string, book model.Lawbook) error {
+	if err := os.MkdirAll(outDir, 0755); err != nil {
+		return err
+	}
+	for _, f := range strings.Split(format, ",") {
+		switch strings.TrimSpace(f) {
+		case "html":
+			if err := writeArtifact(filepath.Join(outDir, "lawbook.html"), func(w *os.File) error {
+				return renderhtml.Render(w, book)
+			}); err != nil {
+				return err
+			}
+		case "pdf":
+			if err := writeArtifact(filepath.Join(outDir, "lawbook.pdf"), func(w *os.File) error {
+				return renderpdf.Render(w, book)
+			}); err != nil {
+				return err
+			}
+		case "json":
+			if err := writeArtifact(filepath.Join(outDir, "lawbook.json"), func(w *os.File) error {
+				enc := json.NewEncoder(w)
+				enc.SetIndent("", "  ")
+				return enc.Encode(book)
+			}); err != nil {
+				return err
+			}
+		case "":
+			// allow trailing commas
+		default:
+			return &UsageError{Msg: "unknown --format value " + f}
+		}
+	}
+	return nil
+}
+
+func writeArtifact(path string, render func(*os.File) error) error {
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return render(f)
 }
 
 func newValidateCmd() *cobra.Command {
@@ -46,18 +115,32 @@ func newValidateCmd() *cobra.Command {
 			if len(books) == 0 {
 				books = []string{flagRoot}
 			}
+			var failed []string
 			for _, book := range books {
+				// Compile() returns an error both when the lawbook can't be
+				// read at all (Diagnostics is then empty) and when it was
+				// read but contains error-severity diagnostics; either way,
+				// validate's whole job is to show what it found, so it must
+				// print before deciding whether to fail.
 				result, err := compiler.Compile(book, compiler.Options{})
-				if err != nil {
-					return fmt.Errorf("%s: %w", book, err)
-				}
-				if err := printResult(cmd, result.Diagnostics, func() {
-					for _, d := range result.Diagnostics {
-						cmd.Printf("%s: %s: %s\n", book, d.Code, d.Message)
+				if perr := printResult(cmd, result.Diagnostics, func() {
+					if len(result.Diagnostics) == 0 {
+						cmd.Printf("%s: OK\n", book)
+						return
 					}
-				}); err != nil {
-					return err
+					for _, d := range result.Diagnostics {
+						cmd.Printf("%s: %s: %s: %s\n", book, d.Severity, d.Code, d.Message)
+					}
+				}); perr != nil {
+					return perr
 				}
+				if err != nil {
+					cmd.PrintErrf("%s: %v\n", book, err)
+					failed = append(failed, book)
+				}
+			}
+			if len(failed) > 0 {
+				return fmt.Errorf("validation failed for: %s", strings.Join(failed, ", "))
 			}
 			return nil
 		},
@@ -79,7 +162,8 @@ func newListCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return printResult(cmd, result.Lawbook.Sections, func() {
+			return printResult(cmd, result.Lawbook, func() {
+				cmd.Printf("%s\n", result.Lawbook.Metadata.Title)
 				for _, s := range result.Lawbook.Sections {
 					cmd.Printf("%s %s (%s)\n", s.Number, s.Title, s.ID)
 					for _, law := range s.Laws {

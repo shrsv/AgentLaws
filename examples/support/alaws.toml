@@ -1,0 +1,10 @@
+title = "Customer Support Governance"
+
+ordering = [
+  "customer-data.md",
+  "customer-data/pii-handling.md",
+  "customer-data/retention.md",
+  "escalation.md",
+  "escalation/severity-triage.md",
+  "escalation/handoff.md",
+]

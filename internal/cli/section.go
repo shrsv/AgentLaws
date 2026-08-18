@@ -35,8 +35,9 @@ func newSectionCreateCmd() *cobra.Command {
 			book, file := args[0], args[1]
 			path := filepath.Join(book, file)
 
+			explicitLevel := level > 0
 			resolvedLevel := level
-			if resolvedLevel == 0 {
+			if !explicitLevel {
 				nodes, err := ordering.Tree(configPath(book))
 				if err != nil {
 					return err
@@ -52,7 +53,14 @@ func newSectionCreateCmd() *cobra.Command {
 				}
 			}
 
-			meta := ordering.SectionMeta{Title: title, ID: id, Level: resolvedLevel}
+			// Only write an explicit level into the file when the caller
+			// asked for one directly, or when the file's own folder depth
+			// wouldn't already produce it by default (see levelOverride).
+			metaLevel := resolvedLevel
+			if !explicitLevel {
+				metaLevel = levelOverride(file, resolvedLevel)
+			}
+			meta := ordering.SectionMeta{Title: title, ID: id, Level: metaLevel}
 			if flagDryRun {
 				cmd.Printf("would create %s (level %d, parent %s) and insert into %s\n", path, resolvedLevel, parent, configPath(book))
 				return nil
@@ -144,18 +152,46 @@ func newSectionMoveCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			book, id := args[0], args[1]
-			p := placement(after, position)
-			if before != "" {
-				p.After = before
-			}
-			if parent != "" && p.After == "" && p.Position == 0 {
+			p := ordering.Placement{After: after, Before: before, Position: position}
+			if parent != "" && p.After == "" && p.Before == "" && p.Position == 0 {
+				// Default: append as the new parent's last child.
 				p.After = parent
 			}
 			if flagDryRun {
 				cmd.Printf("would move %s in %s\n", id, configPath(book))
 				return nil
 			}
-			return ordering.Move(configPath(book), id, p)
+			if err := ordering.Move(configPath(book), id, p); err != nil {
+				return err
+			}
+			if parent == "" {
+				return nil
+			}
+			// Moving under a new parent changes this section's intended
+			// nesting depth. The file didn't move, so fix its frontmatter
+			// to match (an explicit override if its folder depth no
+			// longer implies the right level, cleared otherwise).
+			nodes, err := ordering.Tree(configPath(book))
+			if err != nil {
+				return err
+			}
+			var childPath string
+			parentLevel := -1
+			for _, n := range nodes {
+				if n.ID == id {
+					childPath = n.Path
+				}
+				if n.ID == parent {
+					parentLevel = n.Level
+				}
+			}
+			if childPath == "" {
+				return fmt.Errorf("%w: section %q", errNotFound, id)
+			}
+			if parentLevel == -1 {
+				return fmt.Errorf("%w: chapter/section %q", errNotFound, parent)
+			}
+			return ordering.SetLevel(filepath.Join(book, childPath), levelOverride(childPath, parentLevel+1))
 		},
 	}
 	cmd.Flags().StringVar(&parent, "parent", "", "new parent chapter ID")

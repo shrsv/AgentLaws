@@ -57,9 +57,52 @@ type LawSet struct {
 	Laws []model.Law
 }
 
-// Laws selects laws from the book per sel.
+// Laws selects laws from the book per sel: every law in the book (All),
+// every law in the given sections (SectionIDs), and/or individually cited
+// laws (Citations). Selected laws are returned in book order, section by
+// section, deduplicated by citation.
 func (b *Book) Laws(sel Selector) (LawSet, error) {
-	return LawSet{}, compiler.ErrNotImplemented
+	var out []model.Law
+	seen := map[string]bool{}
+
+	add := func(l model.Law) {
+		if !seen[l.Number] {
+			seen[l.Number] = true
+			out = append(out, l)
+		}
+	}
+
+	if sel.All {
+		for _, s := range b.lawbook.Sections {
+			for _, l := range s.Laws {
+				add(l)
+			}
+		}
+	}
+
+	if len(sel.SectionIDs) > 0 {
+		wanted := map[string]bool{}
+		for _, id := range sel.SectionIDs {
+			wanted[id] = true
+		}
+		for _, s := range b.lawbook.Sections {
+			if wanted[s.ID] {
+				for _, l := range s.Laws {
+					add(l)
+				}
+			}
+		}
+	}
+
+	for _, citation := range sel.Citations {
+		law, err := resolver.ResolveLaw(b.lawbook, citation)
+		if err != nil {
+			return LawSet{}, err
+		}
+		add(law)
+	}
+
+	return LawSet{Laws: out}, nil
 }
 
 // MissingPolicy controls Render's behavior for a placeholder with no value.

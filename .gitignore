@@ -1,2 +1,6 @@
 /alaws
 /coverage.out
+
+# `alaws compile` output (docs/PLAN1.md §26) - not the .alaws/ marker
+# directory itself, which is meaningful repo-local governance state.
+**/.alaws/build/

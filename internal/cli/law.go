@@ -76,7 +76,7 @@ func newLawListCmd() *cobra.Command {
 			}
 			return printResult(cmd, parsed.RawLaws, func() {
 				for i, law := range parsed.RawLaws {
-					cmd.Printf("%d. %s\n", i+1, law)
+					cmd.Printf("%d. %s\n", i+1, law.Text)
 				}
 			})
 		},

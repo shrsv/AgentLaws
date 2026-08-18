@@ -1,0 +1,10 @@
+title = "Payments Authorization & Refunds"
+
+ordering = [
+  "authorization.md",
+  "authorization/transaction-limits.md",
+  "authorization/fraud-checks.md",
+  "refunds.md",
+  "refunds/approval-thresholds.md",
+  "refunds/customer-communication.md",
+]

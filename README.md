@@ -392,7 +392,7 @@ Git history
 
 # Hierarchy and Ordering
 
-AgentLaws keeps hierarchy explicit without giving folders semantic meaning.
+AgentLaws keeps hierarchy explicit without giving folder *names* semantic meaning.
 
 The `ordering` list determines the order of files in the lawbook:
 
@@ -405,9 +405,16 @@ ordering = [
 ]
 ```
 
-By default, a file's position in the ordered structure determines its heading level.
+By default, a file's heading level is 1 plus how many directories deep its
+ordering entry is: `principles.md` defaults to level 1, `security/authentication.md`
+defaults to level 2, and a file two directories down would default to
+level 3. This means a lawbook organized into folders the way its authors
+already think about it - a `security/` folder holding the sections that
+belong under a Security chapter - just works, with no metadata required.
 
-That can optionally be overridden in the file metadata.
+That default can optionally be overridden in the file metadata, for the
+case where a section's intended place in the lawbook doesn't match where
+its file happens to live.
 
 For example:
 
@@ -431,7 +438,7 @@ level: 2
 
 The author can therefore explicitly control presentation when the default is not appropriate.
 
-Folders themselves never create chapters or sections. If a heading is needed, the author can simply write it in the Markdown content.
+Folder *names* themselves never create chapters or sections - `security/` carries no meaning that a differently-named folder at the same depth wouldn't. If a heading is needed, the author can simply write it in the Markdown content.
 
 ---
 
@@ -990,9 +997,9 @@ Authors should be able to open a `.md` file and understand it immediately.
 
 If a file belongs to a lawbook, it should appear in `alaws.toml`.
 
-### Folders are organizational only
+### Folder names are organizational only
 
-Moving a file between directories should not silently change its governance semantics.
+Nesting *depth* sets a section's default presentation level; a folder's *name* never carries meaning, so renaming one or moving a file between same-depth directories never silently changes governance semantics.
 
 ### Law identities are stable
 

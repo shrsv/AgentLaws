@@ -32,7 +32,7 @@ func newChapterCreateCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			book, file := args[0], args[1]
 			path := filepath.Join(book, file)
-			meta := ordering.SectionMeta{Title: title, ID: id, Level: 1}
+			meta := ordering.SectionMeta{Title: title, ID: id, Level: levelOverride(file, 1)}
 			if flagDryRun {
 				cmd.Printf("would create %s and insert into %s\n", path, configPath(book))
 				return nil
@@ -86,12 +86,7 @@ func newChapterMoveCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			book, id := args[0], args[1]
-			p := placement(after, position)
-			if before != "" {
-				// Placement is expressed as "after"; moving before X means
-				// after X's predecessor - resolved once ordering.Tree exists.
-				p.After = before
-			}
+			p := ordering.Placement{After: after, Before: before, Position: position}
 			if flagDryRun {
 				cmd.Printf("would move %s in %s\n", id, configPath(book))
 				return nil

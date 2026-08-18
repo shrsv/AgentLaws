@@ -1,0 +1,20 @@
+title = "Engineering Governance"
+
+ordering = [
+  "principles.md",
+  "security.md",
+  "security/authentication.md",
+  "security/secrets.md",
+  "security/dependencies.md",
+  "coding.md",
+  "coding/review.md",
+  "coding/testing.md",
+  "operations.md",
+  "operations/deployment.md",
+  "operations/monitoring.md",
+  "operations/rollback.md",
+  "operations/rollback/emergency.md",
+  "incident-response.md",
+  "incident-response/severity-levels.md",
+  "incident-response/communication.md",
+]
