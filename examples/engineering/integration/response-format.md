@@ -22,6 +22,14 @@ auditable; a prose explanation is not. The required shape:
 
 1. When an agent makes a decision governed by this lawbook, it must respond with structured JSON matching the schema in this section's commentary, not prose.
 
+   ```json
+   {
+     "decision": "approve",
+     "laws": ["4.1.2", "4.1.3"],
+     "reasoning": "The deployment passes all checks and the rollback path is ready."
+   }
+   ```
+
 2. Every citation in the `laws` field must be one of the laws actually supplied to the agent for that decision; citing a law it was never given is itself a violation of this section.
 
 3. An "approve" or "reject" decision must cite at least one law, unless no law in this book applied to the task at hand.
