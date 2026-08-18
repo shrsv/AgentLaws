@@ -108,6 +108,39 @@ export interface LogEntry {
   Summary: string;
 }
 
+export interface FileChange {
+  Path: string;
+  Status: string;
+  Added: number;
+  Deleted: number;
+}
+
+export interface LawChange {
+  SectionID: string;
+  Index: number;
+  OldNumber: string;
+  NewNumber: string;
+  OldText: string;
+  NewText: string;
+}
+
+export interface LawbookDiff {
+  AddedSections: string[];
+  RemovedSections: string[];
+  AddedLaws: Law[];
+  RemovedLaws: Law[];
+  ModifiedLaws: LawChange[];
+}
+
+export interface CommitDetail {
+  commit: string;
+  author: string;
+  date: string;
+  summary: string;
+  files: FileChange[];
+  diff?: LawbookDiff;
+}
+
 export interface Param {
   name: string;
   kind: string;
@@ -249,4 +282,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ path, manifest }),
     }),
+
+  commitDetail: (path: string, commit: string) =>
+    req<CommitDetail>(`/api/book/commit-detail${qs({ path, commit })}`),
 };
