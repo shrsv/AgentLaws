@@ -1,4 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
+import { Eye, EyeOff } from "lucide-preact";
 import "./app.css";
 import { api } from "./api";
 import { useRoute } from "./router";
@@ -28,7 +29,8 @@ export function App() {
 
       <div class="app-footer">
         <button class="link-button" onClick={() => setWatchOpen((v) => !v)}>
-          {watchOpen ? "Hide watch" : currentPath ? `Watch ${currentPath}` : "Watch all books"}
+          {watchOpen ? <EyeOff size={12} /> : <Eye size={12} />}
+          {watchOpen ? " Hide watch" : currentPath ? ` Watch ${currentPath}` : " Watch all books"}
         </button>
       </div>
 

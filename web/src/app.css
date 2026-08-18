@@ -174,6 +174,9 @@
 }
 
 .empty-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   color: var(--vscode-descriptionForeground);
 }
 
@@ -230,6 +233,9 @@
 /* --- Buttons / inputs --- */
 
 .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   background: var(--vscode-button-background);
   color: var(--vscode-button-foreground);
   border: none;
@@ -253,6 +259,9 @@
 }
 
 .link-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   background: none;
   border: none;
   color: inherit;
@@ -311,6 +320,9 @@ input::placeholder {
 }
 
 .error-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   color: var(--vscode-errorForeground);
   padding: 0.5rem 1rem;
   margin: 0;
@@ -363,6 +375,9 @@ input::placeholder {
 }
 
 .book-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
   text-align: left;
   background: var(--vscode-sideBar-background);
   border: 1px solid var(--vscode-panel-border);
@@ -371,6 +386,7 @@ input::placeholder {
   cursor: pointer;
   color: inherit;
   font: inherit;
+  min-width: 0;
 }
 
 .book-card:hover {
@@ -378,15 +394,32 @@ input::placeholder {
   border-color: var(--vscode-focusBorder);
 }
 
+.book-card-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.book-card-body {
+  min-width: 0;
+  overflow: hidden;
+}
+
 .book-card-title {
   font-weight: 600;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.15rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .book-card-path {
   font-family: var(--vscode-editor-font-family);
   font-size: 12px;
   color: var(--vscode-descriptionForeground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* --- Tree node CRUD affordances --- */
@@ -477,6 +510,9 @@ input::placeholder {
 }
 
 .playground-subheading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -626,6 +662,9 @@ input::placeholder {
 }
 
 .verify-result {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   font-size: 12px;
 }
 

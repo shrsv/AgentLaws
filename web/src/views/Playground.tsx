@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "preact/hooks";
-import { History } from "lucide-preact";
+import { History, ArrowLeft, Play, Loader2, Terminal, Code, FileOutput, CircleAlert } from "lucide-preact";
 import { api, type Operation, type Section } from "../api";
 import type { Route } from "../router";
 import { HistorySidebar } from "../components/HistorySidebar";
@@ -70,7 +70,7 @@ export function Playground({ path, navigate }: Props) {
     <div class="shell">
       <div class="titlebar">
         <button class="link-button" onClick={() => navigate({ name: "book", path })}>
-          ← {path}
+          <ArrowLeft size={12} /> {path}
         </button>
         <span class="book-title">Playground</span>
         <div class="spacer" />
@@ -125,20 +125,20 @@ export function Playground({ path, navigate }: Props) {
                   </label>
                 ))}
                 <button class="btn btn-primary" disabled={running} onClick={run}>
-                  {running ? "Running…" : "Run"}
+                  {running ? <><Loader2 size={12} class="spin" /> Running…</> : <><Play size={12} /> Run</>}
                 </button>
               </div>
 
-              <h2 class="playground-subheading">Equivalent CLI command</h2>
+              <h2 class="playground-subheading"><Terminal size={13} /> Equivalent CLI command</h2>
               <pre class="code-block">{fill(op.cliTemplate, values)}</pre>
 
-              <h2 class="playground-subheading">Equivalent Go (pkg/alaws)</h2>
+              <h2 class="playground-subheading"><Code size={13} /> Equivalent Go (pkg/alaws)</h2>
               <pre class="code-block">{fill(op.goTemplate, values)}</pre>
 
-              {error && <p class="error-text">{error}</p>}
+              {error && <p class="error-text"><CircleAlert size={12} /> {error}</p>}
               {result && (
                 <>
-                  <h2 class="playground-subheading">Result</h2>
+                  <h2 class="playground-subheading"><FileOutput size={13} /> Result</h2>
                   <pre class="code-block result-block">{result}</pre>
                 </>
               )}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "preact/hooks";
+import { X, Loader2 } from "lucide-preact";
 import { api, type BookInfo } from "../api";
 
 interface Props {
@@ -71,11 +72,11 @@ export function WatchPanel({ path, root, open, onClose }: Props) {
       <div class="watch-panel-header">
         <span>Watch {path ? `— ${path}` : root ? `— all books under ${root}` : ""}</span>
         <button class="icon-button" onClick={onClose}>
-          ×
+          <X size={14} />
         </button>
       </div>
       <div class="watch-panel-body">
-        {entries.length === 0 && <p class="empty-state">Waiting for changes…</p>}
+        {entries.length === 0 && <p class="empty-state"><Loader2 size={14} class="spin" /> Waiting for changes…</p>}
         {entries.map((e, i) => (
           <div key={i} class="watch-event">
             <div class={`watch-event-summary ${e.ok ? "" : "error"}`}>

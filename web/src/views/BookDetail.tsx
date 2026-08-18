@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from "preact/hooks";
 import type { VNode } from "preact";
-import { History, Plus, X, Clock, User } from "lucide-preact";
+import { History, Plus, X, Clock, User, ArrowLeft, FileText, Download, FlaskConical, CircleAlert, TriangleAlert, List, MousePointer } from "lucide-preact";
 import { api, type Section, type Diagnostic, type RenderedSection } from "../api";
 import type { Route } from "../router";
 import { HistorySidebar } from "../components/HistorySidebar";
@@ -232,7 +232,7 @@ export function BookDetail({ path, section, navigate }: Props) {
     <div class="shell">
       <div class="titlebar">
         <button class="link-button" onClick={() => navigate({ name: "books" })}>
-          ← Books
+          <ArrowLeft size={12} /> Books
         </button>
         <span class="book-title">{title || path}</span>
         <span class="path">{path}</span>
@@ -240,20 +240,20 @@ export function BookDetail({ path, section, navigate }: Props) {
         <div class="export-group">
           <span class="export-group-label">Export this book:</span>
           <a class="link-button" href={api.exportURL(path, "html")} target="_blank" rel="noreferrer">
-            HTML
+            <FileText size={12} /> HTML
           </a>
           <a class="link-button" href={api.exportURL(path, "pdf")} target="_blank" rel="noreferrer">
-            PDF
+            <FileText size={12} /> PDF
           </a>
           <a class="link-button" href={api.exportURL(path, "md")} target="_blank" rel="noreferrer">
-            Markdown
+            <FileText size={12} /> Markdown
           </a>
         </div>
         <button class="link-button" onClick={() => navigate({ name: "books" })} title="Export every book, from the home view">
-          Export all books…
+          <Download size={12} /> Export all books…
         </button>
         <button class="link-button" onClick={() => navigate({ name: "playground", path })}>
-          Playground
+          <FlaskConical size={12} /> Playground
         </button>
         <button
           class={`link-button ${showHistory ? "active" : ""}`}
@@ -264,7 +264,7 @@ export function BookDetail({ path, section, navigate }: Props) {
         </button>
       </div>
 
-      {error && <p class="error-text">{error}</p>}
+      {error && <p class="error-text"><CircleAlert size={12} /> {error}</p>}
 
       <div class="workbench">
         <nav class="sidebar" aria-label="Lawbook sections">
@@ -336,7 +336,7 @@ export function BookDetail({ path, section, navigate }: Props) {
                   })}
                 </ol>
               ) : (
-                <p class="empty-state">This section has no laws of its own.</p>
+                <p class="empty-state"><List size={14} /> This section has no laws of its own.</p>
               )}
 
               <div class="add-law-form">
@@ -347,12 +347,12 @@ export function BookDetail({ path, section, navigate }: Props) {
                   onKeyDown={(e) => e.key === "Enter" && addLaw()}
                 />
                 <button class="btn" onClick={addLaw}>
-                  Add
+                  <Plus size={12} /> Add
                 </button>
               </div>
             </>
           ) : (
-            <p class="empty-state">Select a section.</p>
+            <p class="empty-state"><MousePointer size={14} /> Select a section.</p>
           )}
         </main>
       </div>
@@ -366,8 +366,8 @@ export function BookDetail({ path, section, navigate }: Props) {
       />
 
       <div class="statusbar">
-        <span class={`diagnostic-count ${errorCount > 0 ? "error" : ""}`}>{errorCount} errors</span>
-        <span class={`diagnostic-count ${warningCount > 0 ? "warning" : ""}`}>{warningCount} warnings</span>
+        <span class={`diagnostic-count ${errorCount > 0 ? "error" : ""}`}><CircleAlert size={11} /> {errorCount} errors</span>
+        <span class={`diagnostic-count ${warningCount > 0 ? "warning" : ""}`}><TriangleAlert size={11} /> {warningCount} warnings</span>
       </div>
     </div>
   );
@@ -394,10 +394,10 @@ function NewNodeForm(props: {
       <input placeholder="id" value={id} onInput={(e) => setId((e.target as HTMLInputElement).value)} required />
       <div class="new-node-form-actions">
         <button class="btn btn-primary" type="submit">
-          Create
+          <Plus size={12} /> Create
         </button>
         <button class="btn" type="button" onClick={props.onCancel}>
-          Cancel
+          <X size={12} /> Cancel
         </button>
       </div>
     </form>

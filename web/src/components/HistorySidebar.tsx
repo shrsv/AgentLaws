@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "preact/hooks";
-import { History, X, ChevronRight, ChevronDown, GitCommit, User, Mail, Plus, Minus, Pencil, File, ShieldCheck, Loader2 } from "lucide-preact";
+import { History, X, ChevronRight, ChevronDown, GitCommit, User, Mail, Plus, Minus, Pencil, File, ShieldCheck, Loader2, CircleCheck, CircleX, Inbox, CircleAlert } from "lucide-preact";
 import { api, type LogEntry, type CommitDetail, type Manifest, type LawbookDiff, type Section } from "../api";
 
 // Go serializes nil slices as JSON null — normalize to empty arrays so
@@ -112,7 +112,8 @@ export function HistorySidebar({ path, show, onClose, filterEntity, sections }: 
             </button>
             {verifyResult && (
               <span class={`verify-result ${verifyResult.startsWith("Verified") ? "verify-ok" : "verify-fail"}`}>
-                {verifyResult}
+                {verifyResult.startsWith("Verified") ? <CircleCheck size={12} /> : <CircleX size={12} />}
+                {" "}{verifyResult}
               </span>
             )}
           </div>
@@ -122,12 +123,12 @@ export function HistorySidebar({ path, show, onClose, filterEntity, sections }: 
       {filterEntity && (
         <div class="history-filter-badge">
           {filterEntity.type === "law" ? `Law ${filterEntity.id}` : sectionTitle(filterEntity.sectionId ?? filterEntity.id)}
-          <button class="icon-button" onClick={() => onClose()} title="Clear filter">×</button>
+          <button class="icon-button" onClick={() => onClose()} title="Clear filter"><X size={12} /></button>
         </div>
       )}
 
       <div class="history-timeline">
-        {commits.length === 0 && <p class="empty-state">No commits found.</p>}
+        {commits.length === 0 && <p class="empty-state"><Inbox size={14} /> No commits found.</p>}
         {commits.map((c) => {
           const isExpanded = expandedCommit === c.Commit;
           const state = details[c.Commit];
@@ -148,7 +149,7 @@ export function HistorySidebar({ path, show, onClose, filterEntity, sections }: 
                       <Loader2 size={14} class="spin" /> Loading diff…
                     </div>
                   )}
-                  {state === "error" && <p class="empty-state">Failed to load details.</p>}
+                  {state === "error" && <p class="empty-state"><CircleAlert size={12} /> Failed to load details.</p>}
                   {state && typeof state === "object" && (
                     <CommitDetailView detail={state} diffMode={diffMode} setDiffMode={setDiffMode} sectionTitle={sectionTitle} />
                   )}
@@ -214,7 +215,7 @@ function CommitDetailView({ detail, diffMode, setDiffMode, sectionTitle }: {
       )}
 
       {!detail.diff && !detail.files?.length && (
-        <p class="empty-state">No detailed changes available.</p>
+        <p class="empty-state"><Inbox size={12} /> No detailed changes available.</p>
       )}
     </>
   );
@@ -230,7 +231,7 @@ function DiffView({ diff, mode, sectionTitle }: { diff: LawbookDiff; mode: "inli
   const hasChanges = addedSec.length > 0 || removedSec.length > 0 ||
     addedLaws.length > 0 || removedLaws.length > 0 || modifiedLaws.length > 0;
 
-  if (!hasChanges) return <p class="empty-state">No semantic changes.</p>;
+  if (!hasChanges) return <p class="empty-state"><Inbox size={12} /> No semantic changes.</p>;
 
   if (mode === "side") {
     return (
@@ -240,14 +241,14 @@ function DiffView({ diff, mode, sectionTitle }: { diff: LawbookDiff; mode: "inli
           {removedSec.map((id) => <div key={id} class="diff-item diff-del"><Minus size={10} /> {sectionTitle(id)}</div>)}
           {removedLaws.map((l) => <div key={`r-${l.SectionID}-${l.Index}`} class="diff-item diff-del"><Minus size={10} /> {l.Number}: {l.Text.slice(0, 80)}</div>)}
           {modifiedLaws.map((m) => <div key={`m-${m.SectionID}-${m.Index}`} class="diff-item diff-del"><Pencil size={10} /> {m.OldNumber}: {m.OldText.slice(0, 80)}</div>)}
-          {removedSec.length === 0 && removedLaws.length === 0 && modifiedLaws.length === 0 && <div class="empty-state">No removals</div>}
+          {removedSec.length === 0 && removedLaws.length === 0 && modifiedLaws.length === 0 && <div class="empty-state"><Inbox size={10} /> No removals</div>}
         </div>
         <div class="diff-side-col">
           <div class="diff-side-header">After</div>
           {addedSec.map((id) => <div key={id} class="diff-item diff-add"><Plus size={10} /> {sectionTitle(id)}</div>)}
           {addedLaws.map((l) => <div key={`a-${l.SectionID}-${l.Index}`} class="diff-item diff-add"><Plus size={10} /> {l.Number}: {l.Text.slice(0, 80)}</div>)}
           {modifiedLaws.map((m) => <div key={`m2-${m.SectionID}-${m.Index}`} class="diff-item diff-add"><Pencil size={10} /> {m.NewNumber}: {m.NewText.slice(0, 80)}</div>)}
-          {addedSec.length === 0 && addedLaws.length === 0 && modifiedLaws.length === 0 && <div class="empty-state">No additions</div>}
+          {addedSec.length === 0 && addedLaws.length === 0 && modifiedLaws.length === 0 && <div class="empty-state"><Inbox size={10} /> No additions</div>}
         </div>
       </div>
     );

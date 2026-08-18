@@ -1,4 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
+import { Plus, X, FileText, BookOpen, Loader2, CircleAlert, Inbox } from "lucide-preact";
 import { api, type BookInfo } from "../api";
 import type { Route } from "../router";
 
@@ -53,18 +54,18 @@ export function BookPicker({ navigate }: Props) {
             <div class="export-group">
               <span class="export-group-label">Export all books:</span>
               <a class="link-button" href={api.exportAllURL(undefined, "html")} target="_blank" rel="noreferrer">
-                HTML
+                <FileText size={12} /> HTML
               </a>
               <a class="link-button" href={api.exportAllURL(undefined, "pdf")} target="_blank" rel="noreferrer">
-                PDF
+                <FileText size={12} /> PDF
               </a>
               <a class="link-button" href={api.exportAllURL(undefined, "md")} target="_blank" rel="noreferrer">
-                Markdown
+                <FileText size={12} /> Markdown
               </a>
             </div>
           )}
           <button class="btn" onClick={() => setCreating((v) => !v)}>
-            {creating ? "Cancel" : "+ New book"}
+            {creating ? <><X size={12} /> Cancel</> : <><Plus size={12} /> New book</>}
           </button>
         </div>
       </div>
@@ -74,24 +75,27 @@ export function BookPicker({ navigate }: Props) {
           <input placeholder="path, e.g. ./governance" value={newPath} onInput={(e) => setNewPath((e.target as HTMLInputElement).value)} required />
           <input placeholder="title" value={newTitle} onInput={(e) => setNewTitle((e.target as HTMLInputElement).value)} required />
           <button class="btn btn-primary" type="submit">
-            Create
+            <Plus size={12} /> Create
           </button>
         </form>
       )}
 
-      {error && <p class="error-text">{error}</p>}
+      {error && <p class="error-text"><CircleAlert size={12} /> {error}</p>}
 
-      {books === null && !error && <p class="empty-state">Loading…</p>}
+      {books === null && !error && <p class="empty-state"><Loader2 size={14} class="spin" /> Loading…</p>}
 
       {books !== null && books.length === 0 && (
-        <p class="empty-state">No lawbooks found under {root ?? "this root"}. Create one above, or run "alaws books create" from the CLI.</p>
+        <p class="empty-state"><Inbox size={14} /> No lawbooks found under {root ?? "this root"}. Create one above, or run "alaws books create" from the CLI.</p>
       )}
 
       <div class="book-grid">
         {books?.map((b) => (
-          <button key={b.Path} class="book-card" onClick={() => navigate({ name: "book", path: b.Path })}>
-            <div class="book-card-title">{b.Title || "(untitled)"}</div>
-            <div class="book-card-path">{b.Path}</div>
+          <button key={b.Path} class="book-card" title={`${b.Title || "(untitled)"}\n${b.Path}`} onClick={() => navigate({ name: "book", path: b.Path })}>
+            <BookOpen size={16} class="book-card-icon" />
+            <div class="book-card-body">
+              <div class="book-card-title">{b.Title || "(untitled)"}</div>
+              <div class="book-card-path">{b.Path}</div>
+            </div>
           </button>
         ))}
       </div>
