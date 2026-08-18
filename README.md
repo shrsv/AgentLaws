@@ -1,5 +1,7 @@
 # AgentLaws
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/athreyac4/agentlaws.svg)](https://pkg.go.dev/github.com/athreyac4/agentlaws)
+
 **Govern Agents Through Prompts Organized Like Law.**
 
 AgentLaws (`alaws`) is a governance system for AI agents built around a simple idea:
@@ -9,6 +11,109 @@ AgentLaws (`alaws`) is a governance system for AI agents built around a simple i
 Instead of maintaining one giant system prompt, an AgentLaws project consists of small, structured law sections written in Markdown. Humans can read and discuss the resulting lawbook; agents receive the specific laws relevant to a task; and every agent citation can be traced back to the exact source, revision, and people who changed it.
 
 AgentLaws is deliberately simple today. It does not attempt to build a formal legal logic or automatically resolve contradictions. It provides the structure, compilation, numbering, provenance, and tooling needed to build that system over time.
+
+---
+
+# Get Started
+
+## Install
+
+```bash
+go install github.com/athreyac4/agentlaws/cmd/alaws@latest
+```
+
+Or build from source:
+
+```bash
+git clone https://github.com/athreyac4/agentlaws.git
+cd agentlaws
+go build -o alaws ./cmd/alaws
+```
+
+Verify:
+
+```bash
+alaws --help
+```
+
+## Create your first lawbook
+
+```bash
+# 1. Create a book
+alaws books create ./my-governance --title "My Governance"
+
+# 2. Add a chapter
+alaws chapter create ./my-governance security.md \
+  --title Security --id my.security
+
+# 3. Add a section under that chapter
+alaws section create ./my-governance security/secrets.md \
+  --parent my.security --title Secrets --id my.security.secrets
+
+# 4. Add laws
+alaws law add ./my-governance my.security.secrets \
+  "Credentials must never be committed to source control."
+alaws law add ./my-governance my.security.secrets \
+  "Agents must not print credentials into logs."
+
+# 5. Compile
+alaws compile ./my-governance
+```
+
+## Explore the full CLI
+
+Every read command supports `--json`. Every mutating command supports `--dry-run`.
+
+```bash
+# List all books under a root
+alaws books list --root .
+
+# Show a book's structure
+alaws books show ./my-governance
+
+# List chapters and sections
+alaws chapter list ./my-governance
+alaws section list ./my-governance
+
+# Resolve a citation
+alaws resolve 1.1.1 --root ./my-governance
+
+# Render laws with variable substitution for an agent prompt
+alaws render --book ./my-governance --section my.security.secrets \
+  --var agent_name=ci-bot --var repo=org/app
+
+# Validate without compiling
+alaws validate ./my-governance
+
+# Export to HTML, PDF, or Markdown
+alaws compile ./my-governance --format html,pdf,md
+
+# Live-reload with the web UI
+alaws watch ./my-governance
+# then open http://localhost:8420
+```
+
+## Command reference
+
+| Command | Description |
+|---|---|
+| `alaws init [path] --title "..."` | Create a new lawbook (alias for `books create`) |
+| `alaws books list [--root .] [--json]` | Discover lawbook clusters |
+| `alaws books create <path> --title "..."` | Create a new lawbook |
+| `alaws books show <path> [--json]` | Show a book's structure |
+| `alaws chapter create/list/move/remove` | Manage top-level sections |
+| `alaws section create/list/show/move/remove` | Manage nested sections |
+| `alaws law add/list/remove` | Manage numbered clauses |
+| `alaws compile [book...] [--format html,json,pdf,md]` | Compile lawbook(s) |
+| `alaws validate [book...]` | Check for problems |
+| `alaws list [book] [--json]` | List compiled sections and laws |
+| `alaws show <citation-or-id> [--json]` | Show a section or law |
+| `alaws resolve <citation> [--json]` | Resolve a citation to its source |
+| `alaws render --book <path> --section/--law/--all [--var k=v]` | Render laws with variables |
+| `alaws watch [book] [--port 8420]` | Live-reload with web UI |
+| `alaws serve [book] [--port 8420]` | Serve web UI (read-only) |
+
+See `docs/PLAN1.md` §32 for the full specification of every command and flag.
 
 ---
 
@@ -525,27 +630,57 @@ When an application needs to give an agent some of it, AgentLaws simply extracts
 
 # Using Laws from Go
 
-AgentLaws is also a Go library.
+AgentLaws is also a Go library. Applications can load, compile, resolve, and render lawbooks without shelling out to the CLI.
 
-An application can load a lawbook and select parts of it for an agent prompt.
+## Install
 
-The exact API is still evolving, but conceptually:
-
-```go
-book, err := alaws.Load(...)
-if err != nil {
-    return err
-}
-
-laws, err := book.Laws(...)
-if err != nil {
-    return err
-}
-
-prompt := laws.Render()
+```bash
+go get github.com/athreyac4/agentlaws/pkg/alaws
 ```
 
-The resulting content can contain canonical citations:
+## Load a lawbook and select laws
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+
+    "github.com/athreyac4/agentlaws/pkg/alaws"
+)
+
+func main() {
+    book, err := alaws.Load("./governance")
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    // Select laws from a specific section.
+    laws, err := book.Laws(alaws.Selector{
+        SectionIDs: []string{"engineering.security.secrets"},
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    // Render with variable substitution — ready for an agent prompt.
+    rendered, err := laws.Render(alaws.RenderOptions{
+        Vars: map[string]string{
+            "agent_name": "ci-bot",
+            "repo":       "org/app",
+        },
+        OnMissing: alaws.MissingError, // fail if a {{var}} has no value
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    fmt.Println(rendered)
+}
+```
+
+Output:
 
 ```text
 2.5.1 Credentials must never be committed to source control.
@@ -553,9 +688,114 @@ The resulting content can contain canonical citations:
 2.5.3 Credentials discovered in source must be treated as compromised.
 ```
 
-The application can then include that material in whatever larger prompt it constructs.
+## Resolve a citation
 
-AgentLaws is responsible for managing and resolving the governance content; the application remains responsible for the rest of the agent prompt.
+```go
+book, _ := alaws.Load("./governance")
+
+law, err := book.Resolve("2.5.3")
+if err != nil {
+    log.Fatal(err)
+}
+
+fmt.Printf("Text:    %s\n", law.Text)
+fmt.Printf("Section: %s\n", law.SectionID)
+fmt.Printf("Source:  %s:%d\n", law.Source.Path, law.Source.LineStart)
+```
+
+This is the core of the audit trail: a citation resolves to the exact law, its section, its source file, and its line number.
+
+## Select laws by citation
+
+When an agent cites specific laws, fetch just those:
+
+```go
+laws, _ := book.Laws(alaws.Selector{
+    Citations: []string{"2.5.1", "2.5.3"},
+})
+
+rendered, _ := laws.Render(alaws.RenderOptions{
+    Vars: map[string]string{"agent_name": "ci-bot"},
+})
+```
+
+## Select all laws
+
+```go
+laws, _ := book.Laws(alaws.Selector{All: true})
+rendered, _ := laws.Render(alaws.RenderOptions{
+    Vars:      map[string]string{"agent_name": "ci-bot"},
+    OnMissing: alaws.MissingKeepPlaceholder, // leave unresolved {{vars}} as-is
+})
+```
+
+## Compile with diagnostics
+
+`Compile` always returns a `*Book` even when the lawbook has errors, so you can inspect everything wrong:
+
+```go
+book, err := alaws.Compile("./governance")
+if err != nil {
+    fmt.Printf("compile error: %v\n", err)
+}
+
+for _, d := range book.Diagnostics() {
+    fmt.Printf("[%s] %s: %s\n", d.Severity, d.Code, d.Message)
+}
+```
+
+## Render to HTML/PDF/Markdown
+
+```go
+book, _ := alaws.Load("./governance")
+
+// To a file.
+f, _ := os.Create("lawbook.html")
+defer f.Close()
+book.RenderHTML(f)
+
+// To a buffer.
+var buf strings.Builder
+book.RenderHTML(&buf)
+```
+
+## Discover all books
+
+```go
+books, _ := alaws.Discover(".")
+for _, b := range books {
+    fmt.Printf("%-30s %s\n", b.Path, b.Title)
+}
+```
+
+## Compile everything
+
+```go
+books, _ := alaws.CompileAll(".")
+f, _ := os.Create("all-governance.html")
+defer f.Close()
+alaws.RenderCombinedHTML(f, "All Governance", books)
+```
+
+## Watch for changes
+
+```go
+events, stop, _ := alaws.Watch("./governance")
+defer stop()
+
+for ev := range events {
+    if ev.Err != nil {
+        fmt.Printf("error: %v\n", ev.Err)
+        continue
+    }
+    fmt.Printf("recompiled: %s (%d sections)\n",
+        ev.ClusterPath, len(ev.Book.Lawbook().Sections))
+}
+```
+
+## Full API reference
+
+See [pkg.go.dev](https://pkg.go.dev/github.com/athreyac4/agentlaws/pkg/alaws) or run `go doc github.com/athreyac4/agentlaws/pkg/alaws` locally.
 
 ---
 
@@ -883,6 +1123,17 @@ This is particularly useful for Prompt Governors working collaboratively on word
 AgentLaws includes a local Preact-based UI, styled strictly like VS Code — it uses VS Code's own color and font tokens and its flat, tree-navigation visual language rather than a generic web-app look.
 
 The UI presents the lawbook as an ordered tree and provides an easier way to work with it than editing configuration manually.
+
+<table>
+<tr>
+<td align="center"><b>Book picker</b><br><img src="media/agent-laws-home.png" width="420" alt="Home view showing discovered lawbooks"></td>
+<td align="center"><b>Book view — sections and laws</b><br><img src="media/agent-laws-book-view.png" width="420" alt="Detail view showing sidebar tree, commentary, and numbered laws"></td>
+</tr>
+<tr>
+<td align="center"><b>API Playground</b><br><img src="media/agent-laws-api-playground.png" width="420" alt="Interactive playground for testing the render and resolve API"></td>
+<td align="center"><b>HTML export</b><br><img src="media/agent-laws-html-export.png" width="420" alt="Standalone HTML export of a compiled lawbook"></td>
+</tr>
+</table>
 
 One important operation is reordering.
 
