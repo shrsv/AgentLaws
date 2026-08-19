@@ -19,6 +19,15 @@ export function App() {
 
   const currentPath = route.name === "books" ? null : route.path;
 
+  // Auto-watch when a book is opened; stop when navigated away
+  useEffect(() => {
+    if (currentPath) {
+      setWatchOpen(true);
+    } else {
+      setWatchOpen(false);
+    }
+  }, [currentPath]);
+
   return (
     <div class="app-shell">
       <div class="app-body">
