@@ -24,6 +24,7 @@ export function useShortcuts(shortcuts: Shortcut[]) {
     registry.push(...shortcuts);
     const handler = (e: KeyboardEvent) => {
       if (isInputFocused()) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
       for (const s of shortcuts) {
         if (e.key === s.key) {
           e.preventDefault();
