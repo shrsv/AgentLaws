@@ -188,6 +188,21 @@
   font-size: 0.92em;
 }
 
+.commentary a,
+.law-text a {
+  color: var(--vscode-textLink-foreground, #3794ff);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s;
+}
+
+.commentary a:hover,
+.law-text a:hover {
+  color: var(--vscode-textLink-activeForeground, #5ca8ff);
+  text-decoration: none;
+  border-bottom-color: var(--vscode-textLink-foreground, #3794ff);
+}
+
 .commentary pre,
 .law-text pre {
   margin: 0.75rem 0;
