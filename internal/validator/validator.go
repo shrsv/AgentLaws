@@ -4,6 +4,8 @@ package validator
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/shrsv/AgentLaws/internal/model"
 	"github.com/shrsv/AgentLaws/internal/template"
@@ -29,7 +31,8 @@ func (s Severity) String() string {
 //
 // Code is one of: missing-config, missing-file, unused-file, missing-title,
 // missing-id, duplicate-id, missing-commentary, missing-laws, invalid-laws,
-// invalid-ordering, invalid-metadata, invalid-template, ambiguous-numbering.
+// invalid-ordering, invalid-metadata, invalid-template, ambiguous-numbering,
+// unfenced-json.
 type Diagnostic struct {
 	Severity Severity
 	Code     string
@@ -117,6 +120,16 @@ func Validate(sections []model.Section) []Diagnostic {
 				Source:   &s.Source,
 			})
 		}
+		if unfencedJSON(s.Commentary) {
+			diags = append(diags, Diagnostic{
+				Severity: SeverityWarning,
+				Code:     "unfenced-json",
+				Message: fmt.Sprintf(
+					"%s: commentary: JSON written in single backticks will render as inline code, not a highlighted block; use a ```json fenced block instead",
+					s.ID),
+				Source: &s.Source,
+			})
+		}
 		for _, law := range s.Laws {
 			if err := template.ValidateSyntax(law.Text); err != nil {
 				src := law.Source
@@ -127,8 +140,73 @@ func Validate(sections []model.Section) []Diagnostic {
 					Source:   &src,
 				})
 			}
+			if unfencedJSON(law.Text) {
+				src := law.Source
+				diags = append(diags, Diagnostic{
+					Severity: SeverityWarning,
+					Code:     "unfenced-json",
+					Message: fmt.Sprintf(
+						"%s: law %s: JSON written in single backticks will render as inline code, not a highlighted block; use a ```json fenced block instead",
+						s.ID, law.Number),
+					Source: &src,
+				})
+			}
 		}
 	}
 
 	return diags
+}
+
+// inlineCodeSpan matches a single- or double-backtick inline code span.
+var inlineCodeSpan = regexp.MustCompile("`([^`]+)`")
+
+// unfencedJSON reports whether text contains JSON that an author meant as a
+// fenced block but wrote with single backticks instead of ```json. Such a
+// span renders as inline code, not a highlighted block. It matches a
+// backtick span whose content is a json info string plus more content, a
+// span that begins with a JSON object/array literal, or a lone "`json" line
+// (an unclosed single-backtick opener). Proper ```json fenced blocks are
+// stripped out first, so they are never flagged.
+func unfencedJSON(text string) bool {
+	text = stripFencedBlocks(text)
+	for _, m := range inlineCodeSpan.FindAllStringSubmatch(text, -1) {
+		content := strings.TrimSpace(m[1])
+		lower := strings.ToLower(content)
+		if strings.HasPrefix(lower, "json") && len(content) > len("json") {
+			return true
+		}
+		if (strings.HasPrefix(content, "{") || strings.HasPrefix(content, "[")) &&
+			strings.Contains(content, ":") {
+			return true
+		}
+	}
+	for _, line := range strings.Split(text, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "`json") {
+			rest := strings.TrimSpace(trimmed[len("`json"):])
+			if rest == "" || strings.HasPrefix(rest, "{") || strings.HasPrefix(rest, "[") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// stripFencedBlocks removes ``` and ~~~ fenced regions so inline-span
+// detection below cannot mistake the backticks of a proper code block for
+// single-tick delimiters.
+func stripFencedBlocks(text string) string {
+	inFence := false
+	var out []string
+	for _, line := range strings.Split(text, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "~~~") {
+			inFence = !inFence
+			continue
+		}
+		if !inFence {
+			out = append(out, line)
+		}
+	}
+	return strings.Join(out, "\n")
 }
