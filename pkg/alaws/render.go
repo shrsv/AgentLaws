@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/shrsv/AgentLaws/internal/model"
+	"github.com/shrsv/AgentLaws/internal/resolver"
 	renderhtml "github.com/shrsv/AgentLaws/internal/renderer/html"
 	rendermarkdown "github.com/shrsv/AgentLaws/internal/renderer/markdown"
 	renderpdf "github.com/shrsv/AgentLaws/internal/renderer/pdf"
@@ -46,17 +47,39 @@ type RenderedSection struct {
 }
 
 // RenderedSections returns every section's commentary and law text
-// rendered to HTML fragments, keyed by section ID.
+// rendered to HTML fragments, keyed by section ID. alaws: links are
+// rewritten to app hash routes.
 func (b *Book) RenderedSections() (map[string]RenderedSection, error) {
+	resolve := func(token string) (string, bool) {
+		r, err := resolver.Resolve(b.lawbook, token)
+		if err != nil {
+			return "", false
+		}
+		switch r.Kind {
+		case resolver.KindLaw:
+			lawAnchor := r.Law.Slug
+			if lawAnchor == "" {
+				lawAnchor = fmt.Sprintf("%d", r.Law.Index)
+			}
+			// Use ~ separator between section ID and law slug so the hash
+			// router can unambiguously split them (both are dot-separated).
+			// The __BOOK_PATH__ placeholder is replaced in handleCompile.
+			return fmt.Sprintf("#/books/__BOOK_PATH__/%s~%s", r.Law.SectionID, lawAnchor), true
+		case resolver.KindSection:
+			return fmt.Sprintf("#/books/__BOOK_PATH__/%s", r.Section.ID), true
+		}
+		return "", false
+	}
+
 	out := make(map[string]RenderedSection, len(b.lawbook.Sections))
 	for _, s := range b.lawbook.Sections {
-		commentaryHTML, err := renderhtml.RenderFragment(s.Commentary)
+		commentaryHTML, err := renderhtml.RenderFragment(s.Commentary, resolve)
 		if err != nil {
 			return nil, err
 		}
 		lawHTML := make(map[string]string, len(s.Laws))
 		for _, law := range s.Laws {
-			frag, err := renderhtml.RenderFragment(law.Text)
+			frag, err := renderhtml.RenderFragment(law.Text, resolve)
 			if err != nil {
 				return nil, err
 			}

@@ -9,13 +9,17 @@ package pdf
 import (
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 
-	"github.com/stephenafamo/goldmark-pdf"
+	pdflib "github.com/stephenafamo/goldmark-pdf"
 	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
+	"github.com/yuin/goldmark/util"
 
 	"github.com/shrsv/AgentLaws/internal/model"
+	"github.com/shrsv/AgentLaws/internal/resolver"
 )
 
 // markdownPDF is the goldmark instance configured for PDF output.
@@ -24,15 +28,75 @@ var markdownPDF = goldmark.New(
 		extension.GFM,
 	),
 	goldmark.WithRenderer(
-		pdf.New(
-			pdf.WithEscapeHTML(false),
+		pdflib.New(
+			pdflib.WithEscapeHTML(false),
+			pdflib.WithNodeRenderers(
+				util.Prioritized(&anchorNodeRenderer{}, 100),
+			),
 		),
 	),
 )
 
+// anchorSentinelRe matches <!--alaws-anchor:...--> sentinel comments.
+var anchorSentinelRe = regexp.MustCompile(`^<!--alaws-anchor:(.+)-->$`)
+
+// anchorNodeRenderer handles raw HTML nodes that are alaws-anchor
+// sentinels, registering them as internal PDF link anchors.
+type anchorNodeRenderer struct{}
+
+func (r *anchorNodeRenderer) RegisterFuncs(reg pdflib.NodeRendererFuncRegisterer) {
+	reg.Register(ast.KindRawHTML, r.renderRawHTML)
+}
+
+func (r *anchorNodeRenderer) renderRawHTML(w *pdflib.Writer, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	if !entering {
+		return ast.WalkContinue, nil
+	}
+	n := node.(*ast.RawHTML)
+	segs := n.Segments
+	var content string
+	for i := 0; i < segs.Len(); i++ {
+		seg := segs.At(i)
+		content += string(seg.Value(source))
+	}
+	if m := anchorSentinelRe.FindStringSubmatch(content); m != nil {
+		w.Pdf.AddInternalLink(m[1])
+	}
+	return ast.WalkContinue, nil
+}
+
+// ResolveFunc resolves an alaws: link token to an href.
+type ResolveFunc func(token string) (href string, ok bool)
+
+// makeResolveFunc builds a ResolveFunc for a single book.
+func makeResolveFunc(book model.Lawbook) ResolveFunc {
+	return func(token string) (string, bool) {
+		r, err := resolver.Resolve(book, token)
+		if err != nil {
+			return "", false
+		}
+		return "#" + resolver.AnchorFor(r), true
+	}
+}
+
+// makeCombinedResolveFunc builds a ResolveFunc that searches all books.
+func makeCombinedResolveFunc(books []model.Lawbook) ResolveFunc {
+	return func(token string) (string, bool) {
+		for _, book := range books {
+			r, err := resolver.Resolve(book, token)
+			if err != nil {
+				continue
+			}
+			return "#" + resolver.AnchorFor(r), true
+		}
+		return "", false
+	}
+}
+
 // Render writes the PDF representation of book to w.
 func Render(w io.Writer, book model.Lawbook) error {
-	md := buildMarkdown(book)
+	resolve := makeResolveFunc(book)
+	md := buildMarkdown(book, resolve)
 	return markdownPDF.Convert([]byte(md), w)
 }
 
@@ -40,26 +104,27 @@ func Render(w io.Writer, book model.Lawbook) error {
 // starting on a fresh page under title - the "export everything under
 // this root" counterpart to Render (docs/PLAN1.md §57).
 func RenderAll(w io.Writer, title string, books []model.Lawbook) error {
+	resolve := makeCombinedResolveFunc(books)
 	var b strings.Builder
 	fmt.Fprintf(&b, "# %s\n\n", title)
 	for i, book := range books {
 		if i > 0 {
 			b.WriteString("\n\\newpage\n\n")
 		}
-		buildMarkdownInto(&b, book)
+		buildMarkdownInto(&b, book, resolve)
 	}
 	return markdownPDF.Convert([]byte(b.String()), w)
 }
 
 // buildMarkdown converts a Lawbook IR into a Markdown string that
 // goldmark-pdf can render with full CommonMark + GFM support.
-func buildMarkdown(book model.Lawbook) string {
+func buildMarkdown(book model.Lawbook, resolve ResolveFunc) string {
 	var b strings.Builder
-	buildMarkdownInto(&b, book)
+	buildMarkdownInto(&b, book, resolve)
 	return b.String()
 }
 
-func buildMarkdownInto(b *strings.Builder, book model.Lawbook) {
+func buildMarkdownInto(b *strings.Builder, book model.Lawbook, resolve ResolveFunc) {
 	fmt.Fprintf(b, "# %s\n\n", book.Metadata.Title)
 
 	for _, s := range book.Sections {
@@ -73,15 +138,17 @@ func buildMarkdownInto(b *strings.Builder, book model.Lawbook) {
 		// Section ID as a muted line
 		fmt.Fprintf(b, "*%s*\n\n", s.ID)
 
-		// Commentary (already markdown)
+		// Commentary (already markdown — rewrite alaws: links)
 		if s.Commentary != "" {
-			b.WriteString(s.Commentary)
+			b.WriteString(rewriteAlawsLinks(s.Commentary, resolve))
 			b.WriteString("\n\n")
 		}
 
 		// Laws
 		for _, law := range s.Laws {
-			fmt.Fprintf(b, "**%s** %s\n\n", law.Number, law.Text)
+			anchor := resolver.AnchorFor(resolver.Resolved{Kind: resolver.KindLaw, Law: law})
+			fmt.Fprintf(b, "<!--alaws-anchor:%s-->\n", anchor)
+			fmt.Fprintf(b, "**%s** %s\n\n", law.Number, rewriteAlawsLinks(law.Text, resolve))
 		}
 	}
 
@@ -115,4 +182,27 @@ func buildMarkdownInto(b *strings.Builder, book model.Lawbook) {
 		}
 		fmt.Fprintf(b, "*%s*\n", strings.Join(parts, " · "))
 	}
+}
+
+// alawsLinkRe matches Markdown links with alaws: destinations.
+var alawsLinkRe = regexp.MustCompile(`\[([^\]]*)\]\(alaws:([^)]+)\)`)
+
+// rewriteAlawsLinks replaces [text](alaws:token) links with
+// [text](#anchor) links using the resolver.
+func rewriteAlawsLinks(md string, resolve ResolveFunc) string {
+	if resolve == nil {
+		return md
+	}
+	return alawsLinkRe.ReplaceAllStringFunc(md, func(match string) string {
+		m := alawsLinkRe.FindStringSubmatch(match)
+		if m == nil {
+			return match
+		}
+		text, token := m[1], m[2]
+		href, ok := resolve(token)
+		if !ok {
+			return match
+		}
+		return fmt.Sprintf("[%s](%s)", text, href)
+	})
 }

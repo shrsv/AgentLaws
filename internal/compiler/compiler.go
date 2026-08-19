@@ -87,6 +87,7 @@ func Compile(path string, opts Options) (Result, error) {
 		for _, rl := range ps.RawLaws {
 			sec.Laws = append(sec.Laws, model.Law{
 				Text:   rl.Text,
+				Slug:   rl.Slug,
 				Source: model.SourceRef{Path: full, LineStart: rl.LineStart, LineEnd: rl.LineEnd},
 			})
 		}
@@ -98,7 +99,12 @@ func Compile(path string, opts Options) (Result, error) {
 		return Result{}, err
 	}
 
-	diags = append(diags, validator.Validate(numbered)...)
+	lawbook := model.Lawbook{
+		Metadata: meta,
+		Sections: numbered,
+	}
+
+	diags = append(diags, validator.Validate(lawbook)...)
 
 	if unordered, uErr := discovery.UnorderedFiles(discovery.Cluster{Path: dir, ConfigPath: configPath}, meta.Ordering); uErr == nil {
 		for _, f := range unordered {
@@ -111,10 +117,7 @@ func Compile(path string, opts Options) (Result, error) {
 	}
 
 	result := Result{
-		Lawbook: model.Lawbook{
-			Metadata: meta,
-			Sections: numbered,
-		},
+		Lawbook:     lawbook,
 		Diagnostics: diags,
 	}
 

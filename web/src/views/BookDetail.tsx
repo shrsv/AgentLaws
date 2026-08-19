@@ -11,6 +11,7 @@ import { useShortcuts, useEscape, getRegisteredShortcuts } from "../hooks/useKey
 interface Props {
   path: string;
   section: string | null;
+  law?: string | null;
   navigate: (r: Route) => void;
   onSectionsChange?: (sections: Section[]) => void;
   onOpenCommandPalette?: () => void;
@@ -39,7 +40,7 @@ function buildTree(sections: Section[]): TreeNode[] {
   return roots;
 }
 
-export function BookDetail({ path, section, navigate, onSectionsChange, onOpenCommandPalette }: Props) {
+export function BookDetail({ path, section, law, navigate, onSectionsChange, onOpenCommandPalette }: Props) {
   const [title, setTitle] = useState("");
   const [sections, setSections] = useState<Section[]>([]);
   const [rendered, setRendered] = useState<Record<string, RenderedSection>>({});
@@ -55,6 +56,7 @@ export function BookDetail({ path, section, navigate, onSectionsChange, onOpenCo
   const [lawAuthors, setLawAuthors] = useState<Record<string, string>>({});
   const [sourceContent, setSourceContent] = useState<{ path: string; lineStart: number; lineEnd: number; content: string } | null>(null);
   const [copiedPath, setCopiedPath] = useState(false);
+  const [copiedLawLink, setCopiedLawLink] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -122,6 +124,26 @@ export function BookDetail({ path, section, navigate, onSectionsChange, onOpenCo
       });
     }
   }, [highlightQuery, selectedID]);
+
+  // Auto-scroll to a specific law when navigating via alaws: link.
+  // The law prop is just the slug (e.g. "every-change-reviewed-least-one"),
+  // but the <li> id is "sectionid.slug". Reconstruct the full ID using
+  // selectedID (the section) and flash-highlight the target.
+  useEffect(() => {
+    if (law && selectedID) {
+      requestAnimationFrame(() => {
+        const el = document.getElementById(selectedID + "." + law) || document.getElementById("law-" + law);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          el.classList.remove("law-flash");
+          // Force reflow to restart animation
+          void (el as HTMLElement).offsetWidth;
+          el.classList.add("law-flash");
+          el.addEventListener("animationend", () => el.classList.remove("law-flash"), { once: true });
+        }
+      });
+    }
+  }, [law, selectedID]);
 
   // Persist sidebar width and visibility
   useEffect(() => {
@@ -502,7 +524,7 @@ export function BookDetail({ path, section, navigate, onSectionsChange, onOpenCo
                     const authorKey = `${selected.ID}:${law.Number}`;
                     const author = lawAuthors[authorKey];
                     return (
-                      <li key={law.Number} onMouseEnter={() => fetchLawAuthor(selected.ID, law.Number)}>
+                      <li key={law.Number} id={`law-${law.Slug || String(law.Index)}`} onMouseEnter={() => fetchLawAuthor(selected.ID, law.Number)}>
                         <span class="law-number">{law.Number}</span>
                         <span
                           class="law-text"
@@ -514,6 +536,23 @@ export function BookDetail({ path, section, navigate, onSectionsChange, onOpenCo
                           </span>
                         )}
                         <span class="law-actions">
+                          <button
+                            class="icon-button"
+                            title="Copy link"
+                            onClick={() => {
+                              const lawId = law.Slug || String(law.Index);
+                              const hash = `#/books/${encodeURIComponent(path)}/${encodeURIComponent(selected.ID)}~${encodeURIComponent(lawId)}`;
+                              const url = window.location.origin + window.location.pathname + hash;
+                              navigator.clipboard.writeText(url);
+                              window.location.hash = hash;
+                              setCopiedLawLink(law.Number);
+                              setTimeout(() => setCopiedLawLink((v) => v === law.Number ? null : v), 1500);
+                            }}
+                          >
+                            {copiedLawLink === law.Number
+                              ? <Check size={11} />
+                              : <span style="font-size:11px;font-weight:600">#</span>}
+                          </button>
                           <button
                             class="icon-button"
                             title="History"

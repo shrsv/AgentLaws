@@ -10,8 +10,8 @@ request.
 
 <!-- alaws:laws -->
 
-1. A closed ticket containing PII must be redacted or deleted according to the retention schedule, not kept indefinitely by default.
+1. A closed ticket containing PII must be redacted or deleted according to the retention schedule, not kept indefinitely by default. {#closed-ticket-containing-pii-redacted}
 
-2. A customer's data deletion request must be honored within the legally required window, tracked to completion.
+2. A customer's data deletion request must be honored within the legally required window, tracked to completion. {#customers-data-deletion-request-honored}
 
-3. Agents must not export customer data to a personal device or unapproved tool for any reason.
+3. Agents must not export customer data to a personal device or unapproved tool for any reason. {#agents-export-customer-data-personal}

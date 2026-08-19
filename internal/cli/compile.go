@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/shrsv/AgentLaws/internal/resolver"
 	"github.com/shrsv/AgentLaws/pkg/alaws"
 )
 
@@ -124,7 +125,7 @@ func newShowCmd() *cobra.Command {
 	var bookFlag string
 	cmd := &cobra.Command{
 		Use:   "show <citation-or-id>",
-		Short: "Show a law or section by citation or stable ID",
+		Short: "Show a law or section by citation, slug, or stable ID",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			book, err := resolveBook(bookFlag)
@@ -135,46 +136,17 @@ func newShowCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if law, err := b.Resolve(args[0]); err == nil {
-				return printResult(cmd, law, func() {
-					cmd.Printf("%s %s\n", law.Number, law.Text)
-				})
-			}
-			section, err := b.Section(args[0])
+			r, err := resolver.Resolve(b.Lawbook(), args[0])
 			if err != nil {
 				return err
 			}
-			return printResult(cmd, section, func() {
-				cmd.Printf("%s %s (%s)\n", section.Number, section.Title, section.ID)
-			})
-		},
-	}
-	cmd.Flags().StringVar(&bookFlag, "book", "", "book path (optional if it can be inferred)")
-	return cmd
-}
-
-func newResolveCmd() *cobra.Command {
-	var bookFlag string
-	cmd := &cobra.Command{
-		Use:   "resolve <citation>",
-		Short: "Resolve a canonical citation (e.g. 2.5.3) to its source",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			book, err := resolveBook(bookFlag)
-			if err != nil {
-				return err
-			}
-			b, err := alaws.Compile(book)
-			if err != nil {
-				return err
-			}
-			law, err := b.Resolve(args[0])
-			if err != nil {
-				return err
-			}
-			return printResult(cmd, law, func() {
-				cmd.Printf("%s %s\n  section: %s\n  source:  %s:%d-%d\n",
-					law.Number, law.Text, law.SectionID, law.Source.Path, law.Source.LineStart, law.Source.LineEnd)
+			return printResult(cmd, r, func() {
+				switch r.Kind {
+				case resolver.KindLaw:
+					cmd.Printf("%s %s\n", r.Law.Number, r.Law.Text)
+				case resolver.KindSection:
+					cmd.Printf("%s %s (%s)\n", r.Section.Number, r.Section.Title, r.Section.ID)
+				}
 			})
 		},
 	}

@@ -10,8 +10,8 @@ systems while performing a task.
 
 <!-- alaws:laws -->
 
-1. Agent {{agent_name}} must authenticate using short-lived, scoped credentials rather than long-lived API keys wherever the target system supports it.
+1. Agent {{agent_name}} must authenticate using short-lived, scoped credentials rather than long-lived API keys wherever the target system supports it. {#agent-authenticate-using-short-lived-scoped}
 
-2. Agents must not share authentication tokens between unrelated tasks or sessions.
+2. Agents must not share authentication tokens between unrelated tasks or sessions. {#agents-share-authentication-tokens-between}
 
-3. A failed authentication attempt must be logged with the agent's identity and the resource it attempted to access.
+3. A failed authentication attempt must be logged with the agent's identity and the resource it attempted to access. {#failed-authentication-attempt-logged-agents}

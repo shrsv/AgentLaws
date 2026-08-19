@@ -27,13 +27,14 @@ func SectionFilePath(book, id string) (string, error) {
 
 // AddLaw appends a new numbered clause to sectionID's laws region. If
 // after > 0, the clause is inserted immediately after that existing
-// clause number instead of at the end.
-func AddLaw(book, sectionID, text string, after int) error {
+// clause number instead of at the end. If slug is empty, one is
+// auto-generated from the text.
+func AddLaw(book, sectionID, text string, slug string, after int) error {
 	path, err := SectionFilePath(book, sectionID)
 	if err != nil {
 		return err
 	}
-	return lawedit.Add(path, text, after)
+	return lawedit.Add(path, text, slug, after)
 }
 
 // RemoveLaw deletes the numbered clause `number` from sectionID's laws

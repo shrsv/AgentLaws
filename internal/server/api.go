@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -204,6 +205,16 @@ func handleCompile(w http.ResponseWriter, r *http.Request) {
 	rendered, renderErr := b.RenderedSections()
 	if renderErr != nil && err == nil {
 		err = renderErr
+	}
+	// Replace __BOOK_PATH__ placeholder with the actual book path in all
+	// rendered HTML fragments, so alaws: links become navigable hash routes.
+	escapedBookPath := url.PathEscape(book)
+	for id, rs := range rendered {
+		rs.CommentaryHTML = strings.ReplaceAll(rs.CommentaryHTML, "__BOOK_PATH__", escapedBookPath)
+		for num, html := range rs.LawHTML {
+			rs.LawHTML[num] = strings.ReplaceAll(html, "__BOOK_PATH__", escapedBookPath)
+		}
+		rendered[id] = rs
 	}
 	// Diagnostics matter even when err != nil (docs/PLAN1.md §20), so this
 	// endpoint always returns 200 with both; the caller checks "ok".
@@ -423,6 +434,7 @@ type addLawRequest struct {
 	Book      string `json:"book"`
 	SectionID string `json:"sectionId"`
 	Text      string `json:"text"`
+	Slug      string `json:"slug"`
 	After     int    `json:"after"`
 }
 
@@ -449,7 +461,7 @@ func handleLaws(w http.ResponseWriter, r *http.Request) {
 			writeError(w, err)
 			return
 		}
-		if err := alaws.AddLaw(req.Book, req.SectionID, req.Text, req.After); err != nil {
+		if err := alaws.AddLaw(req.Book, req.SectionID, req.Text, req.Slug, req.After); err != nil {
 			writeError(w, err)
 			return
 		}

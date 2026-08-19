@@ -7,15 +7,46 @@ package markdown
 import (
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 
 	"github.com/shrsv/AgentLaws/internal/model"
+	"github.com/shrsv/AgentLaws/internal/resolver"
 )
+
+// ResolveFunc resolves an alaws: link token to an href.
+type ResolveFunc func(token string) (href string, ok bool)
+
+// makeResolveFunc builds a ResolveFunc for a single book.
+func makeResolveFunc(book model.Lawbook) ResolveFunc {
+	return func(token string) (string, bool) {
+		r, err := resolver.Resolve(book, token)
+		if err != nil {
+			return "", false
+		}
+		return "#" + resolver.AnchorFor(r), true
+	}
+}
+
+// makeCombinedResolveFunc builds a ResolveFunc that searches all books.
+func makeCombinedResolveFunc(books []model.Lawbook) ResolveFunc {
+	return func(token string) (string, bool) {
+		for _, book := range books {
+			r, err := resolver.Resolve(book, token)
+			if err != nil {
+				continue
+			}
+			return "#" + resolver.AnchorFor(r), true
+		}
+		return "", false
+	}
+}
 
 // Render writes the Markdown representation of book to w.
 func Render(w io.Writer, book model.Lawbook) error {
+	resolve := makeResolveFunc(book)
 	fmt.Fprintf(w, "# %s\n\n", book.Metadata.Title)
-	renderSections(w, book.Sections, 0)
+	renderSections(w, book.Sections, 0, resolve)
 	renderProvenanceFooter(w, book.Provenance)
 	return nil
 }
@@ -24,33 +55,61 @@ func Render(w io.Writer, book model.Lawbook) error {
 // books, each as its own top-level part under title - the "export
 // everything under this root" counterpart to Render (docs/PLAN1.md §57).
 func RenderAll(w io.Writer, title string, books []model.Lawbook) error {
+	resolve := makeCombinedResolveFunc(books)
 	fmt.Fprintf(w, "# %s\n\n", title)
 	for _, book := range books {
 		fmt.Fprintf(w, "## %s\n\n", book.Metadata.Title)
-		renderSections(w, book.Sections, 1)
+		renderSections(w, book.Sections, 1, resolve)
 		renderProvenanceFooter(w, book.Provenance)
 	}
 	return nil
 }
 
-func renderSections(w io.Writer, sections []model.Section, levelOffset int) {
+func renderSections(w io.Writer, sections []model.Section, levelOffset int, resolve ResolveFunc) {
 	for _, s := range sections {
 		level := min(s.Level+1+levelOffset, 6)
 		fmt.Fprintf(w, "%s %s %s\n\n", strings.Repeat("#", level), s.Number, s.Title)
 		fmt.Fprintf(w, "`%s`\n\n", s.ID)
 
 		if s.Commentary != "" {
-			fmt.Fprintf(w, "%s\n\n", s.Commentary)
+			fmt.Fprintf(w, "%s\n\n", rewriteAlawsLinks(s.Commentary, resolve))
 		}
 
 		for _, law := range s.Laws {
+			anchor := resolver.AnchorFor(resolver.Resolved{Kind: resolver.KindLaw, Law: law})
+			if anchor != "" {
+				fmt.Fprintf(w, "<a id=%q></a>\n", anchor)
+			}
 			// Bold citation prefix, not a Markdown ordered-list marker -
 			// a "1. 2.5.3 text" line would let most Markdown renderers'
 			// own auto-numbering double up with the citation number, the
 			// same bug this fixed in the HTML renderer's <ol>.
-			fmt.Fprintf(w, "**%s** %s\n\n", law.Number, law.Text)
+			fmt.Fprintf(w, "**%s** %s\n\n", law.Number, rewriteAlawsLinks(law.Text, resolve))
 		}
 	}
+}
+
+// alawsLinkRe matches Markdown links with alaws: destinations.
+var alawsLinkRe = regexp.MustCompile(`\[([^\]]*)\]\(alaws:([^)]+)\)`)
+
+// rewriteAlawsLinks replaces [text](alaws:token) links with
+// [text](#anchor) links using the resolver.
+func rewriteAlawsLinks(md string, resolve ResolveFunc) string {
+	if resolve == nil {
+		return md
+	}
+	return alawsLinkRe.ReplaceAllStringFunc(md, func(match string) string {
+		m := alawsLinkRe.FindStringSubmatch(match)
+		if m == nil {
+			return match
+		}
+		text, token := m[1], m[2]
+		href, ok := resolve(token)
+		if !ok {
+			return match
+		}
+		return fmt.Sprintf("[%s](%s)", text, href)
+	})
 }
 
 // renderProvenanceFooter writes a horizontal rule and provenance metadata

@@ -22,8 +22,8 @@ that override exists for.
 
 <!-- alaws:laws -->
 
-1. Credentials must never be committed to source control.
+1. Credentials must never be committed to source control. {#credentials-never-committed-source-control}
 
-2. Agents must not print credentials into logs.
+2. Agents must not print credentials into logs. {#agents-print-credentials-into-logs}
 
-3. Credentials discovered in source must be treated as compromised.
+3. Credentials discovered in source must be treated as compromised. {#credentials-discovered-source-treated-compromised}

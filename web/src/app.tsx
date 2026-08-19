@@ -99,7 +99,7 @@ export function App() {
     <div class="app-shell">
       <div class="app-body">
         {route.name === "books" && <BookPicker navigate={navigate} />}
-        {route.name === "book" && <BookDetail path={route.path} section={route.section ?? null} navigate={navigate} onSectionsChange={setSections} onOpenCommandPalette={() => setCmdOpen(true)} />}
+        {route.name === "book" && <BookDetail path={route.path} section={route.section ?? null} law={route.law ?? null} navigate={navigate} onSectionsChange={setSections} onOpenCommandPalette={() => setCmdOpen(true)} />}
         {route.name === "playground" && <Playground path={route.path} navigate={navigate} />}
       </div>
 

@@ -28,6 +28,7 @@ export interface Law {
   Number: string;
   Index: number;
   Text: string;
+  Slug: string;
   SectionID: string;
   Source: SourceRef;
 }

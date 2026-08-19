@@ -9,8 +9,8 @@ Rules for alerting and anomaly handling once a service is live.
 
 <!-- alaws:laws -->
 
-1. A new production service must have baseline alerting configured before it receives real traffic.
+1. A new production service must have baseline alerting configured before it receives real traffic. {#new-production-service-baseline-alerting}
 
-2. Agents must not silence an alert without recording the reason and an expiry for the silence.
+2. Agents must not silence an alert without recording the reason and an expiry for the silence. {#agents-silence-alert-without-recording}
 
-3. Anomalies detected by an agent must be reported even if the agent itself is not the cause.
+3. Anomalies detected by an agent must be reported even if the agent itself is not the cause. {#anomalies-detected-agent-reported-even}

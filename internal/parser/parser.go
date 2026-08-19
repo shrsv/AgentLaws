@@ -41,10 +41,14 @@ func ResolveLevel(entryPath string, override *int) int {
 
 var lawLineRe = regexp.MustCompile(`^\s*(\d+)\.\s+(.*)$`)
 
+// SlugAttrRe matches a {#slug} attribute at the end of a law's text.
+var SlugAttrRe = regexp.MustCompile(`\s*\{#([a-z][a-z0-9-]*)\}\s*$`)
+
 // RawLaw is one numbered clause as found in the laws region, before
 // canonical numbering is assigned by the compiler.
 type RawLaw struct {
 	Text      string
+	Slug      string
 	LineStart int
 	LineEnd   int
 }
@@ -142,7 +146,7 @@ func ParseSection(path string) (ParsedSection, error) {
 	}
 
 	commentary := strings.TrimSpace(strings.Join(lines[commentaryLine+1:lawsLine], "\n"))
-	rawLaws := parseLawLines(lines[lawsLine+1:], lawsLine+1)
+	rawLaws := ParseLawLines(lines[lawsLine+1:], lawsLine+1)
 
 	return ParsedSection{
 		ID:         fm.ID,
@@ -154,7 +158,7 @@ func ParseSection(path string) (ParsedSection, error) {
 	}, nil
 }
 
-// parseLawLines extracts numbered clauses from the laws region. A clause
+// ParseLawLines extracts numbered clauses from the laws region. A clause
 // starts with "<N>. " at the beginning of a line; subsequent non-blank
 // lines before the next numbered line are folded into the same clause,
 // which lets an author wrap a long clause across multiple source lines.
@@ -164,7 +168,10 @@ func ParseSection(path string) (ParsedSection, error) {
 // survives intact for the renderer instead of collapsing onto one line.
 // While a fence is open, no line is treated as the start of a new clause,
 // and blank lines are preserved. Fence state is tracked by lawFencer.
-func parseLawLines(lines []string, startLineNo int) []RawLaw {
+//
+// If a clause's text ends with {#slug}, the slug is extracted into
+// RawLaw.Slug and stripped from Text.
+func ParseLawLines(lines []string, startLineNo int) []RawLaw {
 	var laws []RawLaw
 	var current *RawLaw
 	var fence lawFencer
@@ -183,6 +190,7 @@ func parseLawLines(lines []string, startLineNo int) []RawLaw {
 		if m := lawLineRe.FindStringSubmatch(line); m != nil {
 			if current != nil {
 				current.Text = strings.TrimSpace(current.Text)
+				extractSlug(current)
 				current.LineEnd = lineNo - 1
 			}
 			text := m[2]
@@ -198,12 +206,22 @@ func parseLawLines(lines []string, startLineNo int) []RawLaw {
 	}
 	if current != nil {
 		current.Text = strings.TrimSpace(current.Text)
+		extractSlug(current)
 		current.LineEnd = startLineNo + len(lines)
 	}
 	return laws
 }
 
-// lawFencer is the folding state machine behind parseLawLines: it tracks
+// extractSlug checks rl.Text for a trailing {#slug} attribute. If found,
+// it sets rl.Slug and strips the attribute from Text.
+func extractSlug(rl *RawLaw) {
+	if m := SlugAttrRe.FindStringSubmatchIndex(rl.Text); m != nil {
+		rl.Slug = rl.Text[m[2]:m[3]]
+		rl.Text = strings.TrimSpace(rl.Text[:m[0]])
+	}
+}
+
+// lawFencer is the folding state machine behind ParseLawLines: it tracks
 // whether a fenced code block is open inside the current clause and folds
 // each continuation line accordingly. Keeping it out of the loop makes the
 // two states (in-fence and prose) explicit.

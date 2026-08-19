@@ -16,10 +16,15 @@ type SourceRef struct {
 // Number is the canonical citation (e.g. "2.5.3"), assigned during
 // compilation. It is never authored directly and must not be treated as a
 // stable identity — SectionID + Index is the stable identity (§14).
+//
+// Slug, when present, is the law's stable identity combined with its
+// section's ID (see docs/linking.md §2). Authors assign it via {#slug}
+// in the source Markdown. Falls back to Number when absent.
 type Law struct {
 	Number    string
 	Index     int
 	Text      string
+	Slug      string
 	SectionID string
 	Source    SourceRef
 }

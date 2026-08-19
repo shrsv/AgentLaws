@@ -10,6 +10,6 @@ repository.
 
 <!-- alaws:laws -->
 
-1. Agents must prefer small, reviewable changes over large rewrites.
+1. Agents must prefer small, reviewable changes over large rewrites. {#agents-prefer-small-reviewable-changes}
 
-2. Agents must not merge code without human review unless explicitly authorized.
+2. Agents must not merge code without human review unless explicitly authorized. {#agents-merge-code-without-human}

@@ -1,4 +1,4 @@
-# All Governance
+# Combined Governance
 
 ## Engineering Governance
 
@@ -11,10 +11,18 @@ codebase, regardless of task. More specific chapters (Security, Coding,
 Operations, Incident Response) refine or add to these; none of them
 override a principle stated here.
 
+For example, the principle of small reviewable changes is complemented by
+[review requirements](#engineering.coding.review.every-change-reviewed-least-one)
+and [testing obligations](#engineering.coding.testing.change-modifies-behavior-include-update).
+Agents must also follow [secrets handling](#engineering.security.secrets.credentials-never-committed-source-control) when working with credentials.
+
+<a id="engineering.principles.agents-prefer-small-reviewable-changes"></a>
 **1.1** Agents must prefer small, reviewable changes over large, sweeping rewrites.
 
+<a id="engineering.principles.agents-merge-code-without-human"></a>
 **1.2** Agents must not merge code without human review unless the change is explicitly pre-authorized for autonomous merge.
 
+<a id="engineering.principles.agents-explain-their-reasoning-decision"></a>
 **1.3** Agents must explain their reasoning when a decision is not obvious from the diff alone.
 
 ### 2 Security
@@ -23,8 +31,10 @@ override a principle stated here.
 
 This chapter covers how agents authenticate to systems, handle secrets, and
 vet dependencies. It is organized into three subsections; this chapter
-itself states no laws directly - see Authentication, Secrets, and
-Dependencies below.
+itself states no laws directly - see
+[Authentication](#engineering.security.authentication),
+[Secrets](#engineering.security.secrets), and
+[Dependencies](#engineering.security.dependencies) below.
 
 #### 2.1 Authentication
 
@@ -33,10 +43,13 @@ Dependencies below.
 Rules governing how an agent authenticates to internal and third-party
 systems while performing a task.
 
+<a id="engineering.security.authentication.agent-authenticate-using-short-lived-scoped"></a>
 **2.1.1** Agent {{agent_name}} must authenticate using short-lived, scoped credentials rather than long-lived API keys wherever the target system supports it.
 
+<a id="engineering.security.authentication.agents-share-authentication-tokens-between"></a>
 **2.1.2** Agents must not share authentication tokens between unrelated tasks or sessions.
 
+<a id="engineering.security.authentication.failed-authentication-attempt-logged-agents"></a>
 **2.1.3** A failed authentication attempt must be logged with the agent's identity and the resource it attempted to access.
 
 #### 2.2 Secrets
@@ -44,14 +57,20 @@ systems while performing a task.
 `engineering.security.secrets`
 
 Rules for how agents handle credentials discovered in, or introduced into,
-the repository.
+the repository. These rules work alongside
+[authentication requirements](#engineering.security.authentication.agent-authenticate-using-short-lived-scoped) -
+a leaked credential is useless if auth is short-lived and scoped.
 
+<a id="engineering.security.secrets.credentials-never-committed-source-control"></a>
 **2.2.1** Credentials must never be committed to source control, including in commit messages or code comments.
 
+<a id="engineering.security.secrets.agents-print-credentials-into-logs"></a>
 **2.2.2** Agents must not print credentials into logs, error messages, or any output that may be persisted.
 
+<a id="engineering.security.secrets.credentials-discovered-source-treated-compromised"></a>
 **2.2.3** Credentials discovered in source must be treated as compromised and rotated, not merely removed.
 
+<a id="engineering.security.secrets.secrets-required-runtime-retrieved-approved"></a>
 **2.2.4** Secrets required at runtime must be retrieved from the approved secret store, never hardcoded.
 
 #### 2.3 Dependencies
@@ -60,10 +79,13 @@ the repository.
 
 Rules for adding, upgrading, and evaluating third-party dependencies.
 
+<a id="engineering.security.dependencies.before-adding-new-dependency-agent"></a>
 **2.3.1** Before adding a new dependency to {{repo}}, an agent must check it for known vulnerabilities using the approved scanner.
 
+<a id="engineering.security.dependencies.agents-upgrade-dependency-across-major"></a>
 **2.3.2** Agents must not upgrade a dependency across a major version without flagging the change for human review.
 
+<a id="engineering.security.dependencies.dependencies-maintenance-activity-last-two"></a>
 **2.3.3** Dependencies with no maintenance activity in the last two years must be flagged as a risk, not silently relied upon.
 
 ### 3 Coding
@@ -77,12 +99,17 @@ Testing below; this chapter itself states no laws directly.
 
 `engineering.coding.review`
 
-Rules for how a code change gets reviewed before it merges.
+Rules for how a code change gets reviewed before it merges. A reviewer
+should verify that [testing obligations](#engineering.coding.testing.change-modifies-behavior-include-update) have been met and that
+[secrets are not introduced](#engineering.security.secrets.credentials-never-committed-source-control) into the change.
 
+<a id="engineering.coding.review.every-change-reviewed-least-one"></a>
 **3.1.1** Every change to {{repo}} must be reviewed by at least one human, {{reviewer}} or another qualified reviewer, before merging.
 
+<a id="engineering.coding.review.agent-approve-own-pull-request"></a>
 **3.1.2** An agent must not approve its own pull request.
 
+<a id="engineering.coding.review.review-comments-request-change-resolved"></a>
 **3.1.3** Review comments that request a change must be resolved or explicitly declined with a rationale before merge.
 
 #### 3.2 Testing
@@ -90,11 +117,16 @@ Rules for how a code change gets reviewed before it merges.
 `engineering.coding.testing`
 
 Rules for what test coverage a change needs before it can be proposed.
+Tests are validated during [code review](#engineering.coding.review.every-change-reviewed-least-one), and failing tests must not be hidden
+to circumvent the [review process](#engineering.coding.review.review-comments-request-change-resolved).
 
+<a id="engineering.coding.testing.change-modifies-behavior-include-update"></a>
 **3.2.1** A change that modifies behavior must include or update an automated test that would fail without the change.
 
+<a id="engineering.coding.testing.agents-disable-skip-failing-test"></a>
 **3.2.2** Agents must not disable or skip a failing test to make a build pass without flagging it to a human.
 
+<a id="engineering.coding.testing.test-suites-run-locally-ci"></a>
 **3.2.3** Test suites must be run locally or in CI before a change is proposed for review.
 
 ### 4 Operations
@@ -109,12 +141,17 @@ directly.
 
 `engineering.operations.deployment`
 
-Rules for pushing a change to a running environment.
+Rules for pushing a change to a running environment. Every deployment
+must have a rollback plan (see [Rollback](#engineering.operations.rollback)) before it proceeds, and
+[monitoring](#engineering.operations.monitoring) must be in place to detect failures quickly.
 
+<a id="engineering.operations.deployment.agent-deploy-directly-environment-without"></a>
 **4.1.1** Agent {{agent_name}} must not deploy directly to the {{environment}} environment without an approved change record.
 
+<a id="engineering.operations.deployment.deployments-production-preceded-successful-deployment"></a>
 **4.1.2** Deployments to production must be preceded by a successful deployment to staging with the same artifact.
 
+<a id="engineering.operations.deployment.deployment-reversible-within-one-command"></a>
 **4.1.3** A deployment must be reversible within one command or one documented procedure.
 
 #### 4.2 Monitoring
@@ -123,10 +160,13 @@ Rules for pushing a change to a running environment.
 
 Rules for alerting and anomaly handling once a service is live.
 
+<a id="engineering.operations.monitoring.new-production-service-baseline-alerting"></a>
 **4.2.1** A new production service must have baseline alerting configured before it receives real traffic.
 
+<a id="engineering.operations.monitoring.agents-silence-alert-without-recording"></a>
 **4.2.2** Agents must not silence an alert without recording the reason and an expiry for the silence.
 
+<a id="engineering.operations.monitoring.anomalies-detected-agent-reported-even"></a>
 **4.2.3** Anomalies detected by an agent must be reported even if the agent itself is not the cause.
 
 #### 4.3 Rollback
@@ -135,8 +175,9 @@ Rules for alerting and anomaly handling once a service is live.
 
 General rollback procedure: a deployment that causes an outage should be
 rolled back to the last known-good artifact rather than fixed forward
-under pressure. Emergency Procedures below covers the case where there is
-no time to wait for normal review.
+under pressure. Rollback applies after a
+[staging-to-production deployment](#engineering.operations.deployment.deployments-production-preceded-successful-deployment) fails, and the
+[incident severity](#engineering.incident_response.severity_levels.incident-causes-customer-visible-data-loss) determines how quickly a rollback must execute.
 
 ##### 4.3.1 Emergency Procedures
 
@@ -148,10 +189,13 @@ Rollback > Emergency Procedures), and its citations reflect that:
 rollback and deployment rules that applies only during a declared
 incident.
 
+<a id="engineering.operations.rollback.emergency.during-incident-agent-roll-back"></a>
 **4.3.1.1** During incident {{incident_id}}, agent {{agent_name}} may roll back a production deployment without waiting for review, and must file the change record within one hour after the fact.
 
+<a id="engineering.operations.rollback.emergency.emergency-rollback-announced-incident-channel"></a>
 **4.3.1.2** An emergency rollback must be announced in the incident channel before it is executed, not only after.
 
+<a id="engineering.operations.rollback.emergency.emergency-authority-granted-during-incident"></a>
 **4.3.1.3** Emergency authority granted during an incident expires when the incident is closed and does not carry over to unrelated changes.
 
 ### 5 Incident Response
@@ -166,12 +210,17 @@ laws directly.
 
 `engineering.incident_response.severity_levels`
 
-How an incident's severity is assigned and revised.
+How an incident's severity is assigned and revised. Severity directly
+governs [communication cadence](#engineering.incident_response.communication.incident-severity-status-update-posted) and determines whether
+automated [rollback](#engineering.operations.rollback) should be triggered.
 
+<a id="engineering.incident_response.severity_levels.incident-causes-customer-visible-data-loss"></a>
 **5.1.1** An incident that causes customer-visible data loss must be classified Severity 1 regardless of the number of customers affected.
 
+<a id="engineering.incident_response.severity_levels.severity-classification-reassessed-new-information"></a>
 **5.1.2** Severity classification must be reassessed if new information changes the blast radius, not fixed at first report.
 
+<a id="engineering.incident_response.severity_levels.agents-downgrade-severity-level-without"></a>
 **5.1.3** Agents must not downgrade a severity level without a human confirming the downgrade.
 
 #### 5.2 Communication
@@ -179,12 +228,17 @@ How an incident's severity is assigned and revised.
 `engineering.incident_response.communication`
 
 Rules for status updates and customer-facing messaging during and after an
-incident.
+incident. Communication frequency is driven by
+[severity level](#engineering.incident_response.severity_levels.incident-causes-customer-visible-data-loss), and post-incident reviews must reference the
+original [severity classification](#engineering.incident_response.severity_levels.severity-classification-reassessed-new-information).
 
+<a id="engineering.incident_response.communication.incident-severity-status-update-posted"></a>
 **5.2.1** Incident {{incident_id}} at severity {{severity}} must have a status update posted at least once per hour until resolved.
 
+<a id="engineering.incident_response.communication.customer-facing-communication-about-incident-reviewed"></a>
 **5.2.2** Customer-facing communication about an incident must be reviewed by a human before it is sent.
 
+<a id="engineering.incident_response.communication.post-incident-reviews-published-within-five"></a>
 **5.2.3** Post-incident reviews must be published within five business days of resolution.
 
 ### 6 Agent Integration
@@ -212,10 +266,20 @@ auditable; a prose explanation is not. The required shape:
 }
 ```
 
+<a id="engineering.integration.response_format.agent-makes-decision-governed-lawbook"></a>
 **6.1.1** When an agent makes a decision governed by this lawbook, it must respond with structured JSON matching the schema in this section's commentary, not prose.
+   ```json
+   {
+     "decision": "approve",
+     "laws": ["4.1.2", "4.1.3"],
+     "reasoning": "The deployment passes all checks and the rollback path is ready."
+   }
+   ```
 
+<a id="engineering.integration.response_format.every-citation-laws-field-one"></a>
 **6.1.2** Every citation in the `laws` field must be one of the laws actually supplied to the agent for that decision; citing a law it was never given is itself a violation of this section.
 
+<a id="engineering.integration.response_format.approve-reject-decision-cite-least"></a>
 **6.1.3** An "approve" or "reject" decision must cite at least one law, unless no law in this book applied to the task at hand.
 
 #### 6.2 Variables
@@ -233,7 +297,12 @@ uses them:
 * `incident_id` - the active incident's identifier.
 * `severity` - an incident's assigned severity level.
 
+<a id="engineering.integration.variables.applications-rendering-lawbooks-laws-prompt"></a>
 **6.2.1** Applications rendering this lawbook's laws for a prompt must supply a value for every variable referenced by the laws selected, or the render must fail rather than substitute a placeholder silently.
+
+---
+
+*revision `08cb50cdac66 (dirty)` · compiled 2026-08-19T19:29:05Z · by Shrijith Venkatramana · alaws v0.1.0-30-g08cb50c-dirty (built 2026-08-19T19:18:11Z)*
 
 ## Payments Authorization & Refunds
 
@@ -251,10 +320,13 @@ directly.
 
 Rules for per-transaction and velocity limits.
 
+<a id="payments.authorization.transaction_limits.transaction-above-merchant-pass-step-up"></a>
 **1.1.1** A transaction above {{amount}} {{currency}} to merchant {{merchant_id}} must pass step-up verification before it is authorized.
 
+<a id="payments.authorization.transaction_limits.agent-increase-customers-transaction-limit"></a>
 **1.1.2** An agent must not increase a customer's transaction limit without an explicit, logged customer request.
 
+<a id="payments.authorization.transaction_limits.velocity-limits-transactions-per-hour"></a>
 **1.1.3** Velocity limits (transactions per hour) must be enforced even when each individual transaction is within its own limit.
 
 #### 1.2 Fraud Checks
@@ -262,11 +334,16 @@ Rules for per-transaction and velocity limits.
 `payments.authorization.fraud_checks`
 
 Rules for how an agent handles a transaction flagged by the fraud model.
+Fraud checks run in addition to [transaction limit verification](#payments.authorization.transaction_limits.transaction-above-merchant-pass-step-up) - a
+transaction must pass both before it is processed.
 
+<a id="payments.authorization.fraud_checks.transaction-flagged-fraud-model-auto-approved"></a>
 **1.2.1** A transaction flagged by the fraud model must not be auto-approved by an agent, regardless of confidence score.
 
+<a id="payments.authorization.fraud_checks.agents-disclose-customer-which-specific"></a>
 **1.2.2** Agents must not disclose to a customer which specific fraud signal triggered a hold.
 
+<a id="payments.authorization.fraud_checks.false-positive-logged-enough-detail"></a>
 **1.2.3** A false positive must be logged with enough detail to retrain the fraud model, not simply overridden and forgotten.
 
 ### 2 Refunds
@@ -281,11 +358,17 @@ Customer Communication below; this chapter itself states no laws directly.
 `payments.refunds.approval_thresholds`
 
 Rules for how much of a refund an agent can approve on its own authority.
+Large refunds may trigger additional [fraud screening](#payments.authorization.fraud_checks.transaction-flagged-fraud-model-auto-approved) to prevent
+refund abuse, and agents must follow the standard
+[response format](#payments.integration.response_format.agent-authorizes-denies-refunds-transaction) when reporting approval decisions.
 
+<a id="payments.refunds.approval_thresholds.agent-approve-refund-up-without"></a>
 **2.1.1** Agent {{agent_name}} may approve a refund up to {{amount}} {{currency}} without additional sign-off.
 
+<a id="payments.refunds.approval_thresholds.refund-above-agents-approval-threshold"></a>
 **2.1.2** A refund above the agent's approval threshold must be routed to a human approver with the original transaction attached.
 
+<a id="payments.refunds.approval_thresholds.refunds-split-into-smaller-amounts"></a>
 **2.1.3** Refunds must not be split into smaller amounts to stay under an approval threshold.
 
 #### 2.2 Customer Communication
@@ -294,10 +377,13 @@ Rules for how much of a refund an agent can approve on its own authority.
 
 Rules for what a customer must be told about a refund.
 
+<a id="payments.refunds.customer_communication.customer-notified-their-refund-approved"></a>
 **2.2.1** A customer must be notified when their refund is approved and again when funds are received, not only once.
 
+<a id="payments.refunds.customer_communication.agents-promise-specific-refund-timeline"></a>
 **2.2.2** Agents must not promise a specific refund timeline that the payment processor cannot guarantee.
 
+<a id="payments.refunds.customer_communication.refund-denials-include-specific-reason"></a>
 **2.2.3** Refund denials must include the specific reason, not a generic rejection message.
 
 ### 3 Agent Integration
@@ -324,10 +410,13 @@ auditable; a prose explanation is not. The required shape:
 }
 ```
 
+<a id="payments.integration.response_format.agent-authorizes-denies-refunds-transaction"></a>
 **3.1.1** When an agent authorizes, denies, or refunds a transaction, it must respond with structured JSON matching the schema in this section's commentary, not prose.
 
+<a id="payments.integration.response_format.every-citation-laws-field-one"></a>
 **3.1.2** Every citation in the `laws` field must be one of the laws actually supplied to the agent for that decision.
 
+<a id="payments.integration.response_format.deny-decision-cite-least-one"></a>
 **3.1.3** A "deny" decision must cite at least one law that justifies it.
 
 #### 3.2 Variables
@@ -343,7 +432,12 @@ uses them:
 * `merchant_id` - the merchant the transaction is with.
 * `agent_name` - the identity of the acting agent.
 
+<a id="payments.integration.variables.applications-rendering-lawbooks-laws-prompt"></a>
 **3.2.1** Applications rendering this lawbook's laws for a prompt must supply a value for every variable referenced by the laws selected, or the render must fail rather than substitute a placeholder silently.
+
+---
+
+*revision `08cb50cdac66 (dirty)` · compiled 2026-08-19T19:29:05Z · by Shrijith Venkatramana · alaws v0.1.0-30-g08cb50c-dirty (built 2026-08-19T19:18:11Z)*
 
 ## Customer Support Governance
 
@@ -361,10 +455,13 @@ directly.
 
 Rules for keeping personal information out of places it shouldn't end up.
 
+<a id="support.customer_data.pii_handling.agent-paste-customer-personal-information"></a>
 **1.1.1** Agent {{agent_name}} must not paste customer {{customer_id}}'s personal information into a ticket visible outside the support system.
 
+<a id="support.customer_data.pii_handling.full-card-numbers-ssns-passwords"></a>
 **1.1.2** Full card numbers, SSNs, and passwords must never appear in a support ticket, chat transcript, or agent note.
 
+<a id="support.customer_data.pii_handling.access-customers-account-logged-reason"></a>
 **1.1.3** Access to a customer's account must be logged with the reason for access, not just the fact of access.
 
 #### 1.2 Retention
@@ -374,10 +471,13 @@ Rules for keeping personal information out of places it shouldn't end up.
 Rules for how long customer data is kept and how it is deleted on
 request.
 
+<a id="support.customer_data.retention.closed-ticket-containing-pii-redacted"></a>
 **1.2.1** A closed ticket containing PII must be redacted or deleted according to the retention schedule, not kept indefinitely by default.
 
+<a id="support.customer_data.retention.customers-data-deletion-request-honored"></a>
 **1.2.2** A customer's data deletion request must be honored within the legally required window, tracked to completion.
 
+<a id="support.customer_data.retention.agents-export-customer-data-personal"></a>
 **1.2.3** Agents must not export customer data to a personal device or unapproved tool for any reason.
 
 ### 2 Escalation
@@ -391,24 +491,35 @@ Triage and Handoff below; this chapter itself states no laws directly.
 
 `support.escalation.severity_triage`
 
-Rules for assigning and revising a ticket's severity.
+Rules for assigning and revising a ticket's severity. Severity drives
+[handoff behavior](#support.escalation.handoff.hands-off-ticket-human-handoff) and determines which
+[communication requirements](#support.escalation.handoff.ticket-handed-off-silently-customer) apply when escalating to a human.
 
+<a id="support.escalation.severity_triage.ticket-triaged-within-sla-window"></a>
 **2.1.1** Ticket {{ticket_id}} must be triaged within the SLA window appropriate to its stated severity, not first-in-first-out regardless of severity.
 
+<a id="support.escalation.severity_triage.ticket-reporting-potential-account-takeover"></a>
 **2.1.2** A ticket reporting potential account takeover must be escalated immediately, bypassing the normal queue.
 
+<a id="support.escalation.severity_triage.agents-downgrade-customer-reported-severity-without"></a>
 **2.1.3** Agents must not downgrade a customer-reported severity without documenting why.
 
 #### 2.2 Handoff
 
 `support.escalation.handoff`
 
-Rules for what a handoff from an agent to a human must include.
+Rules for what a handoff from an agent to a human must include. The
+[severity triage](#support.escalation.severity_triage.ticket-triaged-within-sla-window) determines urgency, and the original
+[severity classification](#support.escalation.severity_triage.agents-downgrade-customer-reported-severity-without) must be preserved through the handoff
+unless a human explicitly re-triages.
 
+<a id="support.escalation.handoff.hands-off-ticket-human-handoff"></a>
 **2.2.1** When {{agent_name}} hands off ticket {{ticket_id}} to a human, the handoff note must include what was tried and why it wasn't sufficient.
 
+<a id="support.escalation.handoff.ticket-handed-off-silently-customer"></a>
 **2.2.2** A ticket must not be handed off silently; the customer must be told a human is taking over.
 
+<a id="support.escalation.handoff.escalated-ticket-retain-original-severity"></a>
 **2.2.3** An escalated ticket must retain its original severity unless a human explicitly re-triages it.
 
 ### 3 Agent Integration
@@ -435,10 +546,13 @@ explanation is not. The required shape:
 }
 ```
 
+<a id="support.integration.response_format.agent-triages-closes-ticket-respond"></a>
 **3.1.1** When an agent triages or closes a ticket, it must respond with structured JSON matching the schema in this section's commentary, not prose.
 
+<a id="support.integration.response_format.every-citation-laws-field-one"></a>
 **3.1.2** Every citation in the `laws` field must be one of the laws actually supplied to the agent for that decision.
 
+<a id="support.integration.response_format.escalate-decision-cite-least-one"></a>
 **3.1.3** An "escalate" decision must cite at least one law that justifies it.
 
 #### 3.2 Variables
@@ -453,5 +567,10 @@ uses them:
 * `ticket_id` - the support ticket being handled.
 * `agent_name` - the identity of the acting agent.
 
+<a id="support.integration.variables.applications-rendering-lawbooks-laws-prompt"></a>
 **3.2.1** Applications rendering this lawbook's laws for a prompt must supply a value for every variable referenced by the laws selected, or the render must fail rather than substitute a placeholder silently.
+
+---
+
+*revision `08cb50cdac66 (dirty)` · compiled 2026-08-19T19:29:05Z · by Shrijith Venkatramana · alaws v0.1.0-30-g08cb50c-dirty (built 2026-08-19T19:18:11Z)*
 

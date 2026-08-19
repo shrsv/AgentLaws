@@ -33,41 +33,44 @@
       "Source": {
         "Path": "examples/engineering/principles.md",
         "LineStart": 1,
-        "LineEnd": 20
+        "LineEnd": 25
       },
-      "Commentary": "These are the general principles that govern every agent working in this\ncodebase, regardless of task. More specific chapters (Security, Coding,\nOperations, Incident Response) refine or add to these; none of them\noverride a principle stated here.",
+      "Commentary": "These are the general principles that govern every agent working in this\ncodebase, regardless of task. More specific chapters (Security, Coding,\nOperations, Incident Response) refine or add to these; none of them\noverride a principle stated here.\n\nFor example, the principle of small reviewable changes is complemented by\n[review requirements](alaws:engineering.coding.review.every-change-reviewed-least-one)\nand [testing obligations](alaws:engineering.coding.testing.change-modifies-behavior-include-update).\nAgents must also follow [secrets handling](alaws:engineering.security.secrets.credentials-never-committed-source-control) when working with credentials.",
       "Laws": [
         {
           "Number": "1.1",
           "Index": 1,
           "Text": "Agents must prefer small, reviewable changes over large, sweeping rewrites.",
+          "Slug": "agents-prefer-small-reviewable-changes",
           "SectionID": "engineering.principles",
           "Source": {
             "Path": "examples/engineering/principles.md",
-            "LineStart": 15,
-            "LineEnd": 16
+            "LineStart": 20,
+            "LineEnd": 21
           }
         },
         {
           "Number": "1.2",
           "Index": 2,
           "Text": "Agents must not merge code without human review unless the change is explicitly pre-authorized for autonomous merge.",
+          "Slug": "agents-merge-code-without-human",
           "SectionID": "engineering.principles",
           "Source": {
             "Path": "examples/engineering/principles.md",
-            "LineStart": 17,
-            "LineEnd": 18
+            "LineStart": 22,
+            "LineEnd": 23
           }
         },
         {
           "Number": "1.3",
           "Index": 3,
           "Text": "Agents must explain their reasoning when a decision is not obvious from the diff alone.",
+          "Slug": "agents-explain-their-reasoning-decision",
           "SectionID": "engineering.principles",
           "Source": {
             "Path": "examples/engineering/principles.md",
-            "LineStart": 19,
-            "LineEnd": 20
+            "LineStart": 24,
+            "LineEnd": 25
           }
         }
       ]
@@ -81,9 +84,9 @@
       "Source": {
         "Path": "examples/engineering/security.md",
         "LineStart": 1,
-        "LineEnd": 14
+        "LineEnd": 16
       },
-      "Commentary": "This chapter covers how agents authenticate to systems, handle secrets, and\nvet dependencies. It is organized into three subsections; this chapter\nitself states no laws directly - see Authentication, Secrets, and\nDependencies below.",
+      "Commentary": "This chapter covers how agents authenticate to systems, handle secrets, and\nvet dependencies. It is organized into three subsections; this chapter\nitself states no laws directly - see\n[Authentication](alaws:engineering.security.authentication),\n[Secrets](alaws:engineering.security.secrets), and\n[Dependencies](alaws:engineering.security.dependencies) below.",
       "Laws": null
     },
     {
@@ -103,6 +106,7 @@
           "Number": "2.1.1",
           "Index": 1,
           "Text": "Agent {{agent_name}} must authenticate using short-lived, scoped credentials rather than long-lived API keys wherever the target system supports it.",
+          "Slug": "agent-authenticate-using-short-lived-scoped",
           "SectionID": "engineering.security.authentication",
           "Source": {
             "Path": "examples/engineering/security/authentication.md",
@@ -114,6 +118,7 @@
           "Number": "2.1.2",
           "Index": 2,
           "Text": "Agents must not share authentication tokens between unrelated tasks or sessions.",
+          "Slug": "agents-share-authentication-tokens-between",
           "SectionID": "engineering.security.authentication",
           "Source": {
             "Path": "examples/engineering/security/authentication.md",
@@ -125,6 +130,7 @@
           "Number": "2.1.3",
           "Index": 3,
           "Text": "A failed authentication attempt must be logged with the agent's identity and the resource it attempted to access.",
+          "Slug": "failed-authentication-attempt-logged-agents",
           "SectionID": "engineering.security.authentication",
           "Source": {
             "Path": "examples/engineering/security/authentication.md",
@@ -143,25 +149,15 @@
       "Source": {
         "Path": "examples/engineering/security/secrets.md",
         "LineStart": 1,
-        "LineEnd": 20
+        "LineEnd": 22
       },
-      "Commentary": "Rules for how agents handle credentials discovered in, or introduced into,\nthe repository.",
+      "Commentary": "Rules for how agents handle credentials discovered in, or introduced into,\nthe repository. These rules work alongside\n[authentication requirements](alaws:engineering.security.authentication.agent-authenticate-using-short-lived-scoped) -\na leaked credential is useless if auth is short-lived and scoped.",
       "Laws": [
         {
           "Number": "2.2.1",
           "Index": 1,
           "Text": "Credentials must never be committed to source control, including in commit messages or code comments.",
-          "SectionID": "engineering.security.secrets",
-          "Source": {
-            "Path": "examples/engineering/security/secrets.md",
-            "LineStart": 13,
-            "LineEnd": 14
-          }
-        },
-        {
-          "Number": "2.2.2",
-          "Index": 2,
-          "Text": "Agents must not print credentials into logs, error messages, or any output that may be persisted.",
+          "Slug": "credentials-never-committed-source-control",
           "SectionID": "engineering.security.secrets",
           "Source": {
             "Path": "examples/engineering/security/secrets.md",
@@ -170,9 +166,10 @@
           }
         },
         {
-          "Number": "2.2.3",
-          "Index": 3,
-          "Text": "Credentials discovered in source must be treated as compromised and rotated, not merely removed.",
+          "Number": "2.2.2",
+          "Index": 2,
+          "Text": "Agents must not print credentials into logs, error messages, or any output that may be persisted.",
+          "Slug": "agents-print-credentials-into-logs",
           "SectionID": "engineering.security.secrets",
           "Source": {
             "Path": "examples/engineering/security/secrets.md",
@@ -181,14 +178,27 @@
           }
         },
         {
-          "Number": "2.2.4",
-          "Index": 4,
-          "Text": "Secrets required at runtime must be retrieved from the approved secret store, never hardcoded.",
+          "Number": "2.2.3",
+          "Index": 3,
+          "Text": "Credentials discovered in source must be treated as compromised and rotated, not merely removed.",
+          "Slug": "credentials-discovered-source-treated-compromised",
           "SectionID": "engineering.security.secrets",
           "Source": {
             "Path": "examples/engineering/security/secrets.md",
             "LineStart": 19,
             "LineEnd": 20
+          }
+        },
+        {
+          "Number": "2.2.4",
+          "Index": 4,
+          "Text": "Secrets required at runtime must be retrieved from the approved secret store, never hardcoded.",
+          "Slug": "secrets-required-runtime-retrieved-approved",
+          "SectionID": "engineering.security.secrets",
+          "Source": {
+            "Path": "examples/engineering/security/secrets.md",
+            "LineStart": 21,
+            "LineEnd": 22
           }
         }
       ]
@@ -210,6 +220,7 @@
           "Number": "2.3.1",
           "Index": 1,
           "Text": "Before adding a new dependency to {{repo}}, an agent must check it for known vulnerabilities using the approved scanner.",
+          "Slug": "before-adding-new-dependency-agent",
           "SectionID": "engineering.security.dependencies",
           "Source": {
             "Path": "examples/engineering/security/dependencies.md",
@@ -221,6 +232,7 @@
           "Number": "2.3.2",
           "Index": 2,
           "Text": "Agents must not upgrade a dependency across a major version without flagging the change for human review.",
+          "Slug": "agents-upgrade-dependency-across-major",
           "SectionID": "engineering.security.dependencies",
           "Source": {
             "Path": "examples/engineering/security/dependencies.md",
@@ -232,6 +244,7 @@
           "Number": "2.3.3",
           "Index": 3,
           "Text": "Dependencies with no maintenance activity in the last two years must be flagged as a risk, not silently relied upon.",
+          "Slug": "dependencies-maintenance-activity-last-two",
           "SectionID": "engineering.security.dependencies",
           "Source": {
             "Path": "examples/engineering/security/dependencies.md",
@@ -264,25 +277,15 @@
       "Source": {
         "Path": "examples/engineering/coding/review.md",
         "LineStart": 1,
-        "LineEnd": 17
+        "LineEnd": 19
       },
-      "Commentary": "Rules for how a code change gets reviewed before it merges.",
+      "Commentary": "Rules for how a code change gets reviewed before it merges. A reviewer\nshould verify that [testing obligations](alaws:engineering.coding.testing.change-modifies-behavior-include-update) have been met and that\n[secrets are not introduced](alaws:engineering.security.secrets.credentials-never-committed-source-control) into the change.",
       "Laws": [
         {
           "Number": "3.1.1",
           "Index": 1,
           "Text": "Every change to {{repo}} must be reviewed by at least one human, {{reviewer}} or another qualified reviewer, before merging.",
-          "SectionID": "engineering.coding.review",
-          "Source": {
-            "Path": "examples/engineering/coding/review.md",
-            "LineStart": 12,
-            "LineEnd": 13
-          }
-        },
-        {
-          "Number": "3.1.2",
-          "Index": 2,
-          "Text": "An agent must not approve its own pull request.",
+          "Slug": "every-change-reviewed-least-one",
           "SectionID": "engineering.coding.review",
           "Source": {
             "Path": "examples/engineering/coding/review.md",
@@ -291,14 +294,27 @@
           }
         },
         {
-          "Number": "3.1.3",
-          "Index": 3,
-          "Text": "Review comments that request a change must be resolved or explicitly declined with a rationale before merge.",
+          "Number": "3.1.2",
+          "Index": 2,
+          "Text": "An agent must not approve its own pull request.",
+          "Slug": "agent-approve-own-pull-request",
           "SectionID": "engineering.coding.review",
           "Source": {
             "Path": "examples/engineering/coding/review.md",
             "LineStart": 16,
             "LineEnd": 17
+          }
+        },
+        {
+          "Number": "3.1.3",
+          "Index": 3,
+          "Text": "Review comments that request a change must be resolved or explicitly declined with a rationale before merge.",
+          "Slug": "review-comments-request-change-resolved",
+          "SectionID": "engineering.coding.review",
+          "Source": {
+            "Path": "examples/engineering/coding/review.md",
+            "LineStart": 18,
+            "LineEnd": 19
           }
         }
       ]
@@ -312,25 +328,15 @@
       "Source": {
         "Path": "examples/engineering/coding/testing.md",
         "LineStart": 1,
-        "LineEnd": 17
+        "LineEnd": 19
       },
-      "Commentary": "Rules for what test coverage a change needs before it can be proposed.",
+      "Commentary": "Rules for what test coverage a change needs before it can be proposed.\nTests are validated during [code review](alaws:engineering.coding.review.every-change-reviewed-least-one), and failing tests must not be hidden\nto circumvent the [review process](alaws:engineering.coding.review.review-comments-request-change-resolved).",
       "Laws": [
         {
           "Number": "3.2.1",
           "Index": 1,
           "Text": "A change that modifies behavior must include or update an automated test that would fail without the change.",
-          "SectionID": "engineering.coding.testing",
-          "Source": {
-            "Path": "examples/engineering/coding/testing.md",
-            "LineStart": 12,
-            "LineEnd": 13
-          }
-        },
-        {
-          "Number": "3.2.2",
-          "Index": 2,
-          "Text": "Agents must not disable or skip a failing test to make a build pass without flagging it to a human.",
+          "Slug": "change-modifies-behavior-include-update",
           "SectionID": "engineering.coding.testing",
           "Source": {
             "Path": "examples/engineering/coding/testing.md",
@@ -339,14 +345,27 @@
           }
         },
         {
-          "Number": "3.2.3",
-          "Index": 3,
-          "Text": "Test suites must be run locally or in CI before a change is proposed for review.",
+          "Number": "3.2.2",
+          "Index": 2,
+          "Text": "Agents must not disable or skip a failing test to make a build pass without flagging it to a human.",
+          "Slug": "agents-disable-skip-failing-test",
           "SectionID": "engineering.coding.testing",
           "Source": {
             "Path": "examples/engineering/coding/testing.md",
             "LineStart": 16,
             "LineEnd": 17
+          }
+        },
+        {
+          "Number": "3.2.3",
+          "Index": 3,
+          "Text": "Test suites must be run locally or in CI before a change is proposed for review.",
+          "Slug": "test-suites-run-locally-ci",
+          "SectionID": "engineering.coding.testing",
+          "Source": {
+            "Path": "examples/engineering/coding/testing.md",
+            "LineStart": 18,
+            "LineEnd": 19
           }
         }
       ]
@@ -374,25 +393,15 @@
       "Source": {
         "Path": "examples/engineering/operations/deployment.md",
         "LineStart": 1,
-        "LineEnd": 17
+        "LineEnd": 19
       },
-      "Commentary": "Rules for pushing a change to a running environment.",
+      "Commentary": "Rules for pushing a change to a running environment. Every deployment\nmust have a rollback plan (see [Rollback](alaws:engineering.operations.rollback)) before it proceeds, and\n[monitoring](alaws:engineering.operations.monitoring) must be in place to detect failures quickly.",
       "Laws": [
         {
           "Number": "4.1.1",
           "Index": 1,
           "Text": "Agent {{agent_name}} must not deploy directly to the {{environment}} environment without an approved change record.",
-          "SectionID": "engineering.operations.deployment",
-          "Source": {
-            "Path": "examples/engineering/operations/deployment.md",
-            "LineStart": 12,
-            "LineEnd": 13
-          }
-        },
-        {
-          "Number": "4.1.2",
-          "Index": 2,
-          "Text": "Deployments to production must be preceded by a successful deployment to staging with the same artifact.",
+          "Slug": "agent-deploy-directly-environment-without",
           "SectionID": "engineering.operations.deployment",
           "Source": {
             "Path": "examples/engineering/operations/deployment.md",
@@ -401,14 +410,27 @@
           }
         },
         {
-          "Number": "4.1.3",
-          "Index": 3,
-          "Text": "A deployment must be reversible within one command or one documented procedure.",
+          "Number": "4.1.2",
+          "Index": 2,
+          "Text": "Deployments to production must be preceded by a successful deployment to staging with the same artifact.",
+          "Slug": "deployments-production-preceded-successful-deployment",
           "SectionID": "engineering.operations.deployment",
           "Source": {
             "Path": "examples/engineering/operations/deployment.md",
             "LineStart": 16,
             "LineEnd": 17
+          }
+        },
+        {
+          "Number": "4.1.3",
+          "Index": 3,
+          "Text": "A deployment must be reversible within one command or one documented procedure.",
+          "Slug": "deployment-reversible-within-one-command",
+          "SectionID": "engineering.operations.deployment",
+          "Source": {
+            "Path": "examples/engineering/operations/deployment.md",
+            "LineStart": 18,
+            "LineEnd": 19
           }
         }
       ]
@@ -430,6 +452,7 @@
           "Number": "4.2.1",
           "Index": 1,
           "Text": "A new production service must have baseline alerting configured before it receives real traffic.",
+          "Slug": "new-production-service-baseline-alerting",
           "SectionID": "engineering.operations.monitoring",
           "Source": {
             "Path": "examples/engineering/operations/monitoring.md",
@@ -441,6 +464,7 @@
           "Number": "4.2.2",
           "Index": 2,
           "Text": "Agents must not silence an alert without recording the reason and an expiry for the silence.",
+          "Slug": "agents-silence-alert-without-recording",
           "SectionID": "engineering.operations.monitoring",
           "Source": {
             "Path": "examples/engineering/operations/monitoring.md",
@@ -452,6 +476,7 @@
           "Number": "4.2.3",
           "Index": 3,
           "Text": "Anomalies detected by an agent must be reported even if the agent itself is not the cause.",
+          "Slug": "anomalies-detected-agent-reported-even",
           "SectionID": "engineering.operations.monitoring",
           "Source": {
             "Path": "examples/engineering/operations/monitoring.md",
@@ -470,9 +495,9 @@
       "Source": {
         "Path": "examples/engineering/operations/rollback.md",
         "LineStart": 1,
-        "LineEnd": 14
+        "LineEnd": 15
       },
-      "Commentary": "General rollback procedure: a deployment that causes an outage should be\nrolled back to the last known-good artifact rather than fixed forward\nunder pressure. Emergency Procedures below covers the case where there is\nno time to wait for normal review.",
+      "Commentary": "General rollback procedure: a deployment that causes an outage should be\nrolled back to the last known-good artifact rather than fixed forward\nunder pressure. Rollback applies after a\n[staging-to-production deployment](alaws:engineering.operations.deployment.deployments-production-preceded-successful-deployment) fails, and the\n[incident severity](alaws:engineering.incident_response.severity_levels.incident-causes-customer-visible-data-loss) determines how quickly a rollback must execute.",
       "Laws": null
     },
     {
@@ -492,6 +517,7 @@
           "Number": "4.3.1.1",
           "Index": 1,
           "Text": "During incident {{incident_id}}, agent {{agent_name}} may roll back a production deployment without waiting for review, and must file the change record within one hour after the fact.",
+          "Slug": "during-incident-agent-roll-back",
           "SectionID": "engineering.operations.rollback.emergency",
           "Source": {
             "Path": "examples/engineering/operations/rollback/emergency.md",
@@ -503,6 +529,7 @@
           "Number": "4.3.1.2",
           "Index": 2,
           "Text": "An emergency rollback must be announced in the incident channel before it is executed, not only after.",
+          "Slug": "emergency-rollback-announced-incident-channel",
           "SectionID": "engineering.operations.rollback.emergency",
           "Source": {
             "Path": "examples/engineering/operations/rollback/emergency.md",
@@ -514,6 +541,7 @@
           "Number": "4.3.1.3",
           "Index": 3,
           "Text": "Emergency authority granted during an incident expires when the incident is closed and does not carry over to unrelated changes.",
+          "Slug": "emergency-authority-granted-during-incident",
           "SectionID": "engineering.operations.rollback.emergency",
           "Source": {
             "Path": "examples/engineering/operations/rollback/emergency.md",
@@ -546,25 +574,15 @@
       "Source": {
         "Path": "examples/engineering/incident-response/severity-levels.md",
         "LineStart": 1,
-        "LineEnd": 17
+        "LineEnd": 19
       },
-      "Commentary": "How an incident's severity is assigned and revised.",
+      "Commentary": "How an incident's severity is assigned and revised. Severity directly\ngoverns [communication cadence](alaws:engineering.incident_response.communication.incident-severity-status-update-posted) and determines whether\nautomated [rollback](alaws:engineering.operations.rollback) should be triggered.",
       "Laws": [
         {
           "Number": "5.1.1",
           "Index": 1,
           "Text": "An incident that causes customer-visible data loss must be classified Severity 1 regardless of the number of customers affected.",
-          "SectionID": "engineering.incident_response.severity_levels",
-          "Source": {
-            "Path": "examples/engineering/incident-response/severity-levels.md",
-            "LineStart": 12,
-            "LineEnd": 13
-          }
-        },
-        {
-          "Number": "5.1.2",
-          "Index": 2,
-          "Text": "Severity classification must be reassessed if new information changes the blast radius, not fixed at first report.",
+          "Slug": "incident-causes-customer-visible-data-loss",
           "SectionID": "engineering.incident_response.severity_levels",
           "Source": {
             "Path": "examples/engineering/incident-response/severity-levels.md",
@@ -573,14 +591,27 @@
           }
         },
         {
-          "Number": "5.1.3",
-          "Index": 3,
-          "Text": "Agents must not downgrade a severity level without a human confirming the downgrade.",
+          "Number": "5.1.2",
+          "Index": 2,
+          "Text": "Severity classification must be reassessed if new information changes the blast radius, not fixed at first report.",
+          "Slug": "severity-classification-reassessed-new-information",
           "SectionID": "engineering.incident_response.severity_levels",
           "Source": {
             "Path": "examples/engineering/incident-response/severity-levels.md",
             "LineStart": 16,
             "LineEnd": 17
+          }
+        },
+        {
+          "Number": "5.1.3",
+          "Index": 3,
+          "Text": "Agents must not downgrade a severity level without a human confirming the downgrade.",
+          "Slug": "agents-downgrade-severity-level-without",
+          "SectionID": "engineering.incident_response.severity_levels",
+          "Source": {
+            "Path": "examples/engineering/incident-response/severity-levels.md",
+            "LineStart": 18,
+            "LineEnd": 19
           }
         }
       ]
@@ -594,25 +625,15 @@
       "Source": {
         "Path": "examples/engineering/incident-response/communication.md",
         "LineStart": 1,
-        "LineEnd": 18
+        "LineEnd": 20
       },
-      "Commentary": "Rules for status updates and customer-facing messaging during and after an\nincident.",
+      "Commentary": "Rules for status updates and customer-facing messaging during and after an\nincident. Communication frequency is driven by\n[severity level](alaws:engineering.incident_response.severity_levels.incident-causes-customer-visible-data-loss), and post-incident reviews must reference the\noriginal [severity classification](alaws:engineering.incident_response.severity_levels.severity-classification-reassessed-new-information).",
       "Laws": [
         {
           "Number": "5.2.1",
           "Index": 1,
           "Text": "Incident {{incident_id}} at severity {{severity}} must have a status update posted at least once per hour until resolved.",
-          "SectionID": "engineering.incident_response.communication",
-          "Source": {
-            "Path": "examples/engineering/incident-response/communication.md",
-            "LineStart": 13,
-            "LineEnd": 14
-          }
-        },
-        {
-          "Number": "5.2.2",
-          "Index": 2,
-          "Text": "Customer-facing communication about an incident must be reviewed by a human before it is sent.",
+          "Slug": "incident-severity-status-update-posted",
           "SectionID": "engineering.incident_response.communication",
           "Source": {
             "Path": "examples/engineering/incident-response/communication.md",
@@ -621,14 +642,27 @@
           }
         },
         {
-          "Number": "5.2.3",
-          "Index": 3,
-          "Text": "Post-incident reviews must be published within five business days of resolution.",
+          "Number": "5.2.2",
+          "Index": 2,
+          "Text": "Customer-facing communication about an incident must be reviewed by a human before it is sent.",
+          "Slug": "customer-facing-communication-about-incident-reviewed",
           "SectionID": "engineering.incident_response.communication",
           "Source": {
             "Path": "examples/engineering/incident-response/communication.md",
             "LineStart": 17,
             "LineEnd": 18
+          }
+        },
+        {
+          "Number": "5.2.3",
+          "Index": 3,
+          "Text": "Post-incident reviews must be published within five business days of resolution.",
+          "Slug": "post-incident-reviews-published-within-five",
+          "SectionID": "engineering.incident_response.communication",
+          "Source": {
+            "Path": "examples/engineering/incident-response/communication.md",
+            "LineStart": 19,
+            "LineEnd": 20
           }
         }
       ]
@@ -656,41 +690,44 @@
       "Source": {
         "Path": "examples/engineering/integration/response-format.md",
         "LineStart": 1,
-        "LineEnd": 28
+        "LineEnd": 37
       },
       "Commentary": "Rules for how an agent must respond when it makes a decision governed by\nthis lawbook - approving or rejecting a deployment, a pull request, or an\nemergency rollback. A structured response is what makes a decision\nauditable; a prose explanation is not. The required shape:\n\n```json\n{\n  \"decision\": \"approve\" | \"reject\",\n  \"laws\": [\"\u003ccitation\u003e\", \"...\"],\n  \"reasoning\": \"\u003cstring\u003e\"\n}\n```",
       "Laws": [
         {
           "Number": "6.1.1",
           "Index": 1,
-          "Text": "When an agent makes a decision governed by this lawbook, it must respond with structured JSON matching the schema in this section's commentary, not prose.",
+          "Text": "When an agent makes a decision governed by this lawbook, it must respond with structured JSON matching the schema in this section's commentary, not prose.\n   ```json\n   {\n     \"decision\": \"approve\",\n     \"laws\": [\"4.1.2\", \"4.1.3\"],\n     \"reasoning\": \"The deployment passes all checks and the rollback path is ready.\"\n   }\n   ```",
+          "Slug": "agent-makes-decision-governed-lawbook",
           "SectionID": "engineering.integration.response_format",
           "Source": {
             "Path": "examples/engineering/integration/response-format.md",
             "LineStart": 23,
-            "LineEnd": 24
+            "LineEnd": 33
           }
         },
         {
           "Number": "6.1.2",
           "Index": 2,
           "Text": "Every citation in the `laws` field must be one of the laws actually supplied to the agent for that decision; citing a law it was never given is itself a violation of this section.",
+          "Slug": "every-citation-laws-field-one",
           "SectionID": "engineering.integration.response_format",
           "Source": {
             "Path": "examples/engineering/integration/response-format.md",
-            "LineStart": 25,
-            "LineEnd": 26
+            "LineStart": 34,
+            "LineEnd": 35
           }
         },
         {
           "Number": "6.1.3",
           "Index": 3,
           "Text": "An \"approve\" or \"reject\" decision must cite at least one law, unless no law in this book applied to the task at hand.",
+          "Slug": "approve-reject-decision-cite-least",
           "SectionID": "engineering.integration.response_format",
           "Source": {
             "Path": "examples/engineering/integration/response-format.md",
-            "LineStart": 27,
-            "LineEnd": 28
+            "LineStart": 36,
+            "LineEnd": 37
           }
         }
       ]
@@ -712,6 +749,7 @@
           "Number": "6.2.1",
           "Index": 1,
           "Text": "Applications rendering this lawbook's laws for a prompt must supply a value for every variable referenced by the laws selected, or the render must fail rather than substitute a placeholder silently.",
+          "Slug": "applications-rendering-lawbooks-laws-prompt",
           "SectionID": "engineering.integration.variables",
           "Source": {
             "Path": "examples/engineering/integration/variables.md",
@@ -723,11 +761,15 @@
     }
   ],
   "Provenance": {
-    "Revision": "",
-    "CompiledAt": "",
-    "AgentLawsVersion": "",
-    "CompilerName": "",
-    "CompilerEmail": "",
-    "Signature": ""
+    "Revision": "08cb50cdac66bba02a40947ed398ea1f6679b9f9",
+    "Dirty": true,
+    "WorkingTreeHash": "8842fa042edd8febce74c41a4fa5676fde2fb59b3577acca076ad0eccfca22c3",
+    "CompiledAt": "2026-08-19T19:29:04Z",
+    "CompilerName": "Shrijith Venkatramana",
+    "CompilerEmail": "shrijith@hexmos.com",
+    "HeadCommitAuthor": "Shrijith Venkatramana \u003cshrijith@hexmos.com\u003e",
+    "HeadCommitDate": "2026-08-19T16:14:15+00:00",
+    "AgentLawsVersion": "v0.1.0-30-g08cb50c-dirty",
+    "AgentLawsBuildTime": "2026-08-19T19:18:11Z"
   }
 }

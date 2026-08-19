@@ -643,6 +643,21 @@ input::placeholder {
   opacity: 1;
 }
 
+/* Flash highlight when navigating to a law via alaws: link */
+@keyframes law-flash {
+  0% { background-color: rgba(255, 220, 100, 0); }
+  15% { background-color: rgba(255, 220, 100, 0.35); }
+  30% { background-color: rgba(255, 220, 100, 0.08); }
+  45% { background-color: rgba(255, 220, 100, 0.28); }
+  60% { background-color: rgba(255, 220, 100, 0.06); }
+  75% { background-color: rgba(255, 220, 100, 0.2); }
+  100% { background-color: rgba(255, 220, 100, 0); }
+}
+.law-flash {
+  animation: law-flash 2s ease-in-out;
+  border-radius: 4px;
+}
+
 /* --- Playground --- */
 
 .playground-workbench {

@@ -1,5 +1,6 @@
 // Package validator checks a compiled, numbered lawbook for structural
-// problems and produces diagnostics. See docs/PLAN1.md §11, §19-§21.
+// problems and produces diagnostics. See docs/PLAN1.md §11, §19-§21 and
+// docs/linking.md §5.
 package validator
 
 import (
@@ -8,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/shrsv/AgentLaws/internal/model"
+	"github.com/shrsv/AgentLaws/internal/resolver"
 	"github.com/shrsv/AgentLaws/internal/template"
 )
 
@@ -32,7 +34,8 @@ func (s Severity) String() string {
 // Code is one of: missing-config, missing-file, unused-file, missing-title,
 // missing-id, duplicate-id, missing-commentary, missing-laws, invalid-laws,
 // invalid-ordering, invalid-metadata, invalid-template, ambiguous-numbering,
-// unfenced-json.
+// unfenced-json, missing-slug, invalid-slug, duplicate-slug,
+// ambiguous-identity, dangling-reference.
 type Diagnostic struct {
 	Severity Severity
 	Code     string
@@ -61,12 +64,20 @@ func CountErrors(diags []Diagnostic) int {
 	return n
 }
 
+// slugRe is the canonical slug charset: lowercase letter, then
+// lowercase-alphanumerics and hyphens.
+var slugRe = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
+
+// alawsLinkRe matches alaws: link destinations in Markdown.
+var alawsLinkRe = regexp.MustCompile(`\(alaws:([^)]+)\)`)
+
 // Validate checks already-numbered sections for duplicate IDs, ambiguous
-// numbering, empty laws regions, and malformed {{template}} placeholders
-// (PLAN1 §17a). Checks that depend on the raw ordering/filesystem
-// (missing-file, unused-file) are performed by the compiler, which has
-// that context.
-func Validate(sections []model.Section) []Diagnostic {
+// numbering, empty laws regions, malformed {{template}} placeholders
+// (PLAN1 §17a), and linking diagnostics (docs/linking.md §5). Checks that
+// depend on the raw ordering/filesystem (missing-file, unused-file) are
+// performed by the compiler, which has that context.
+func Validate(book model.Lawbook) []Diagnostic {
+	sections := book.Sections
 	var diags []Diagnostic
 	seen := map[string]string{}
 
@@ -80,6 +91,12 @@ func Validate(sections []model.Section) []Diagnostic {
 		if s.ParentID != "" {
 			hasChildren[s.ParentID] = true
 		}
+	}
+
+	// Collect all section IDs for ambiguous-identity check.
+	sectionIDs := map[string]bool{}
+	for _, s := range sections {
+		sectionIDs[s.ID] = true
 	}
 
 	for _, s := range sections {
@@ -130,6 +147,10 @@ func Validate(sections []model.Section) []Diagnostic {
 				Source: &s.Source,
 			})
 		}
+
+		// Per-section slug uniqueness tracking.
+		sectionSlugs := map[string]*model.SourceRef{}
+
 		for _, law := range s.Laws {
 			if err := template.ValidateSyntax(law.Text); err != nil {
 				src := law.Source
@@ -151,9 +172,85 @@ func Validate(sections []model.Section) []Diagnostic {
 					Source: &src,
 				})
 			}
+
+			// missing-slug
+			if law.Slug == "" {
+				src := law.Source
+				diags = append(diags, Diagnostic{
+					Severity: SeverityError,
+					Code:     "missing-slug",
+					Message:  fmt.Sprintf("%s: law %s: has no {#slug}", s.ID, law.Number),
+					Source:   &src,
+				})
+			}
+
+			// invalid-slug
+			if law.Slug != "" && !slugRe.MatchString(law.Slug) {
+				src := law.Source
+				diags = append(diags, Diagnostic{
+					Severity: SeverityError,
+					Code:     "invalid-slug",
+					Message:  fmt.Sprintf("%s: law %s: slug %q does not match [a-z][a-z0-9-]*", s.ID, law.Number, law.Slug),
+					Source:   &src,
+				})
+			}
+
+			// duplicate-slug (within same section)
+			if law.Slug != "" {
+				if prev, ok := sectionSlugs[law.Slug]; ok {
+					src := law.Source
+					diags = append(diags, Diagnostic{
+						Severity: SeverityError,
+						Code:     "duplicate-slug",
+						Message:  fmt.Sprintf("%s: law %s: slug %q is already used by another law in this section (at %s:%d)", s.ID, law.Number, law.Slug, prev.Path, prev.LineStart),
+						Source:   &src,
+					})
+				} else {
+					src := law.Source
+					sectionSlugs[law.Slug] = &src
+				}
+			}
+
+			// ambiguous-identity: law's FQ identity matches another section's ID
+			if law.Slug != "" {
+				fqID := s.ID + "." + law.Slug
+				if sectionIDs[fqID] {
+					src := law.Source
+					diags = append(diags, Diagnostic{
+						Severity: SeverityWarning,
+						Code:     "ambiguous-identity",
+						Message:  fmt.Sprintf("%s: law %s: fully-qualified identity %q shadows section ID %q", s.ID, law.Number, fqID, fqID),
+						Source:   &src,
+					})
+				}
+			}
+		}
+
+		// dangling-reference: scan commentary and law text for alaws: links
+		diags = append(diags, checkDanglingRefs(book, s.ID, s.Commentary, &s.Source)...)
+		for _, law := range s.Laws {
+			diags = append(diags, checkDanglingRefs(book, s.ID, law.Text, &law.Source)...)
 		}
 	}
 
+	return diags
+}
+
+// checkDanglingRefs scans text for alaws: link destinations and reports
+// any that fail to resolve.
+func checkDanglingRefs(book model.Lawbook, sectionID, text string, src *model.SourceRef) []Diagnostic {
+	var diags []Diagnostic
+	for _, m := range alawsLinkRe.FindAllStringSubmatch(text, -1) {
+		token := m[1]
+		if _, err := resolver.Resolve(book, token); err != nil {
+			diags = append(diags, Diagnostic{
+				Severity: SeverityWarning,
+				Code:     "dangling-reference",
+				Message:  fmt.Sprintf("%s: alaws:%s does not resolve: %v", sectionID, token, err),
+				Source:   src,
+			})
+		}
+	}
 	return diags
 }
 

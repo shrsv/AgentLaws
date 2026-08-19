@@ -29,7 +29,8 @@ auditable; a prose explanation is not. The required shape:
      "reasoning": "The deployment passes all checks and the rollback path is ready."
    }
    ```
+   {#agent-makes-decision-governed-lawbook}
 
-2. Every citation in the `laws` field must be one of the laws actually supplied to the agent for that decision; citing a law it was never given is itself a violation of this section.
+2. Every citation in the `laws` field must be one of the laws actually supplied to the agent for that decision; citing a law it was never given is itself a violation of this section. {#every-citation-laws-field-one}
 
-3. An "approve" or "reject" decision must cite at least one law, unless no law in this book applied to the task at hand.
+3. An "approve" or "reject" decision must cite at least one law, unless no law in this book applied to the task at hand. {#approve-reject-decision-cite-least}

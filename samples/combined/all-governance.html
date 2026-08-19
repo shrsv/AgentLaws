@@ -1,5 +1,5 @@
 <!doctype html>
-<html><head><meta charset="utf-8"><title>All Governance</title><style>
+<html><head><meta charset="utf-8"><title>Combined Governance</title><style>
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:860px;margin:2rem auto;padding:0 1rem;color:#1e1e1e;line-height:1.55}
 h1{border-bottom:1px solid #ddd;padding-bottom:.5rem}
 h2.book-title{margin-top:3rem;border-bottom:2px solid #333;padding-bottom:.4rem}
@@ -11,8 +11,13 @@ ol.laws>li p{display:inline;margin:0}
 code{font-family:ui-monospace,Menlo,monospace;background:#f0f0f0;padding:.1em .3em;border-radius:3px;font-size:.92em}
 pre{overflow-x:auto;border:1px solid #ddd;border-radius:6px;padding:.85rem 1rem;font-size:.85rem;line-height:1.5;background:#272822}
 pre code{background:none;padding:0;border-radius:0;font-size:1em;color:#f8f8f2}
+footer.provenance{margin-top:1.5rem;padding-top:.6rem;border-top:1px solid #ddd;color:#767676;font-size:.8rem}
+table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.92em}
+th,td{border:1px solid #ddd;padding:.5rem .75rem;text-align:left}
+th{background:#f5f5f5;font-weight:600}
+tr:nth-child(even){background:#fafafa}
 </style></head><body>
-<h1>All Governance</h1>
+<h1>Combined Governance</h1>
 <h2 class="book-title">Engineering Governance</h2>
 <h3 id="book0-engineering.principles">1 Principles</h3>
 <p class="section-id">engineering.principles</p>
@@ -20,55 +25,63 @@ pre code{background:none;padding:0;border-radius:0;font-size:1em;color:#f8f8f2}
 codebase, regardless of task. More specific chapters (Security, Coding,
 Operations, Incident Response) refine or add to these; none of them
 override a principle stated here.</p>
+<p>For example, the principle of small reviewable changes is complemented by
+<a href="#book0-engineering.coding.review.every-change-reviewed-least-one">review requirements</a>
+and <a href="#book0-engineering.coding.testing.change-modifies-behavior-include-update">testing obligations</a>.
+Agents must also follow <a href="#book0-engineering.security.secrets.credentials-never-committed-source-control">secrets handling</a> when working with credentials.</p>
 <ol class="laws">
-<li id="book0-1.1"><span class="law-number">1.1</span><p>Agents must prefer small, reviewable changes over large, sweeping rewrites.</p>
+<li id="book0-engineering.principles.agents-prefer-small-reviewable-changes"><span class="law-number">1.1</span><p>Agents must prefer small, reviewable changes over large, sweeping rewrites.</p>
 </li>
-<li id="book0-1.2"><span class="law-number">1.2</span><p>Agents must not merge code without human review unless the change is explicitly pre-authorized for autonomous merge.</p>
+<li id="book0-engineering.principles.agents-merge-code-without-human"><span class="law-number">1.2</span><p>Agents must not merge code without human review unless the change is explicitly pre-authorized for autonomous merge.</p>
 </li>
-<li id="book0-1.3"><span class="law-number">1.3</span><p>Agents must explain their reasoning when a decision is not obvious from the diff alone.</p>
+<li id="book0-engineering.principles.agents-explain-their-reasoning-decision"><span class="law-number">1.3</span><p>Agents must explain their reasoning when a decision is not obvious from the diff alone.</p>
 </li>
 </ol>
 <h3 id="book0-engineering.security">2 Security</h3>
 <p class="section-id">engineering.security</p>
 <p>This chapter covers how agents authenticate to systems, handle secrets, and
 vet dependencies. It is organized into three subsections; this chapter
-itself states no laws directly - see Authentication, Secrets, and
-Dependencies below.</p>
+itself states no laws directly - see
+<a href="#book0-engineering.security.authentication">Authentication</a>,
+<a href="#book0-engineering.security.secrets">Secrets</a>, and
+<a href="#book0-engineering.security.dependencies">Dependencies</a> below.</p>
 <h4 id="book0-engineering.security.authentication">2.1 Authentication</h4>
 <p class="section-id">engineering.security.authentication</p>
 <p>Rules governing how an agent authenticates to internal and third-party
 systems while performing a task.</p>
 <ol class="laws">
-<li id="book0-2.1.1"><span class="law-number">2.1.1</span><p>Agent {{agent_name}} must authenticate using short-lived, scoped credentials rather than long-lived API keys wherever the target system supports it.</p>
+<li id="book0-engineering.security.authentication.agent-authenticate-using-short-lived-scoped"><span class="law-number">2.1.1</span><p>Agent {{agent_name}} must authenticate using short-lived, scoped credentials rather than long-lived API keys wherever the target system supports it.</p>
 </li>
-<li id="book0-2.1.2"><span class="law-number">2.1.2</span><p>Agents must not share authentication tokens between unrelated tasks or sessions.</p>
+<li id="book0-engineering.security.authentication.agents-share-authentication-tokens-between"><span class="law-number">2.1.2</span><p>Agents must not share authentication tokens between unrelated tasks or sessions.</p>
 </li>
-<li id="book0-2.1.3"><span class="law-number">2.1.3</span><p>A failed authentication attempt must be logged with the agent's identity and the resource it attempted to access.</p>
+<li id="book0-engineering.security.authentication.failed-authentication-attempt-logged-agents"><span class="law-number">2.1.3</span><p>A failed authentication attempt must be logged with the agent's identity and the resource it attempted to access.</p>
 </li>
 </ol>
 <h4 id="book0-engineering.security.secrets">2.2 Secrets</h4>
 <p class="section-id">engineering.security.secrets</p>
 <p>Rules for how agents handle credentials discovered in, or introduced into,
-the repository.</p>
+the repository. These rules work alongside
+<a href="#book0-engineering.security.authentication.agent-authenticate-using-short-lived-scoped">authentication requirements</a> -
+a leaked credential is useless if auth is short-lived and scoped.</p>
 <ol class="laws">
-<li id="book0-2.2.1"><span class="law-number">2.2.1</span><p>Credentials must never be committed to source control, including in commit messages or code comments.</p>
+<li id="book0-engineering.security.secrets.credentials-never-committed-source-control"><span class="law-number">2.2.1</span><p>Credentials must never be committed to source control, including in commit messages or code comments.</p>
 </li>
-<li id="book0-2.2.2"><span class="law-number">2.2.2</span><p>Agents must not print credentials into logs, error messages, or any output that may be persisted.</p>
+<li id="book0-engineering.security.secrets.agents-print-credentials-into-logs"><span class="law-number">2.2.2</span><p>Agents must not print credentials into logs, error messages, or any output that may be persisted.</p>
 </li>
-<li id="book0-2.2.3"><span class="law-number">2.2.3</span><p>Credentials discovered in source must be treated as compromised and rotated, not merely removed.</p>
+<li id="book0-engineering.security.secrets.credentials-discovered-source-treated-compromised"><span class="law-number">2.2.3</span><p>Credentials discovered in source must be treated as compromised and rotated, not merely removed.</p>
 </li>
-<li id="book0-2.2.4"><span class="law-number">2.2.4</span><p>Secrets required at runtime must be retrieved from the approved secret store, never hardcoded.</p>
+<li id="book0-engineering.security.secrets.secrets-required-runtime-retrieved-approved"><span class="law-number">2.2.4</span><p>Secrets required at runtime must be retrieved from the approved secret store, never hardcoded.</p>
 </li>
 </ol>
 <h4 id="book0-engineering.security.dependencies">2.3 Dependencies</h4>
 <p class="section-id">engineering.security.dependencies</p>
 <p>Rules for adding, upgrading, and evaluating third-party dependencies.</p>
 <ol class="laws">
-<li id="book0-2.3.1"><span class="law-number">2.3.1</span><p>Before adding a new dependency to {{repo}}, an agent must check it for known vulnerabilities using the approved scanner.</p>
+<li id="book0-engineering.security.dependencies.before-adding-new-dependency-agent"><span class="law-number">2.3.1</span><p>Before adding a new dependency to {{repo}}, an agent must check it for known vulnerabilities using the approved scanner.</p>
 </li>
-<li id="book0-2.3.2"><span class="law-number">2.3.2</span><p>Agents must not upgrade a dependency across a major version without flagging the change for human review.</p>
+<li id="book0-engineering.security.dependencies.agents-upgrade-dependency-across-major"><span class="law-number">2.3.2</span><p>Agents must not upgrade a dependency across a major version without flagging the change for human review.</p>
 </li>
-<li id="book0-2.3.3"><span class="law-number">2.3.3</span><p>Dependencies with no maintenance activity in the last two years must be flagged as a risk, not silently relied upon.</p>
+<li id="book0-engineering.security.dependencies.dependencies-maintenance-activity-last-two"><span class="law-number">2.3.3</span><p>Dependencies with no maintenance activity in the last two years must be flagged as a risk, not silently relied upon.</p>
 </li>
 </ol>
 <h3 id="book0-engineering.coding">3 Coding</h3>
@@ -77,24 +90,28 @@ the repository.</p>
 Testing below; this chapter itself states no laws directly.</p>
 <h4 id="book0-engineering.coding.review">3.1 Code Review</h4>
 <p class="section-id">engineering.coding.review</p>
-<p>Rules for how a code change gets reviewed before it merges.</p>
+<p>Rules for how a code change gets reviewed before it merges. A reviewer
+should verify that <a href="#book0-engineering.coding.testing.change-modifies-behavior-include-update">testing obligations</a> have been met and that
+<a href="#book0-engineering.security.secrets.credentials-never-committed-source-control">secrets are not introduced</a> into the change.</p>
 <ol class="laws">
-<li id="book0-3.1.1"><span class="law-number">3.1.1</span><p>Every change to {{repo}} must be reviewed by at least one human, {{reviewer}} or another qualified reviewer, before merging.</p>
+<li id="book0-engineering.coding.review.every-change-reviewed-least-one"><span class="law-number">3.1.1</span><p>Every change to {{repo}} must be reviewed by at least one human, {{reviewer}} or another qualified reviewer, before merging.</p>
 </li>
-<li id="book0-3.1.2"><span class="law-number">3.1.2</span><p>An agent must not approve its own pull request.</p>
+<li id="book0-engineering.coding.review.agent-approve-own-pull-request"><span class="law-number">3.1.2</span><p>An agent must not approve its own pull request.</p>
 </li>
-<li id="book0-3.1.3"><span class="law-number">3.1.3</span><p>Review comments that request a change must be resolved or explicitly declined with a rationale before merge.</p>
+<li id="book0-engineering.coding.review.review-comments-request-change-resolved"><span class="law-number">3.1.3</span><p>Review comments that request a change must be resolved or explicitly declined with a rationale before merge.</p>
 </li>
 </ol>
 <h4 id="book0-engineering.coding.testing">3.2 Testing</h4>
 <p class="section-id">engineering.coding.testing</p>
-<p>Rules for what test coverage a change needs before it can be proposed.</p>
+<p>Rules for what test coverage a change needs before it can be proposed.
+Tests are validated during <a href="#book0-engineering.coding.review.every-change-reviewed-least-one">code review</a>, and failing tests must not be hidden
+to circumvent the <a href="#book0-engineering.coding.review.review-comments-request-change-resolved">review process</a>.</p>
 <ol class="laws">
-<li id="book0-3.2.1"><span class="law-number">3.2.1</span><p>A change that modifies behavior must include or update an automated test that would fail without the change.</p>
+<li id="book0-engineering.coding.testing.change-modifies-behavior-include-update"><span class="law-number">3.2.1</span><p>A change that modifies behavior must include or update an automated test that would fail without the change.</p>
 </li>
-<li id="book0-3.2.2"><span class="law-number">3.2.2</span><p>Agents must not disable or skip a failing test to make a build pass without flagging it to a human.</p>
+<li id="book0-engineering.coding.testing.agents-disable-skip-failing-test"><span class="law-number">3.2.2</span><p>Agents must not disable or skip a failing test to make a build pass without flagging it to a human.</p>
 </li>
-<li id="book0-3.2.3"><span class="law-number">3.2.3</span><p>Test suites must be run locally or in CI before a change is proposed for review.</p>
+<li id="book0-engineering.coding.testing.test-suites-run-locally-ci"><span class="law-number">3.2.3</span><p>Test suites must be run locally or in CI before a change is proposed for review.</p>
 </li>
 </ol>
 <h3 id="book0-engineering.operations">4 Operations</h3>
@@ -104,32 +121,35 @@ Monitoring, and Rollback below; this chapter itself states no laws
 directly.</p>
 <h4 id="book0-engineering.operations.deployment">4.1 Deployment</h4>
 <p class="section-id">engineering.operations.deployment</p>
-<p>Rules for pushing a change to a running environment.</p>
+<p>Rules for pushing a change to a running environment. Every deployment
+must have a rollback plan (see <a href="#book0-engineering.operations.rollback">Rollback</a>) before it proceeds, and
+<a href="#book0-engineering.operations.monitoring">monitoring</a> must be in place to detect failures quickly.</p>
 <ol class="laws">
-<li id="book0-4.1.1"><span class="law-number">4.1.1</span><p>Agent {{agent_name}} must not deploy directly to the {{environment}} environment without an approved change record.</p>
+<li id="book0-engineering.operations.deployment.agent-deploy-directly-environment-without"><span class="law-number">4.1.1</span><p>Agent {{agent_name}} must not deploy directly to the {{environment}} environment without an approved change record.</p>
 </li>
-<li id="book0-4.1.2"><span class="law-number">4.1.2</span><p>Deployments to production must be preceded by a successful deployment to staging with the same artifact.</p>
+<li id="book0-engineering.operations.deployment.deployments-production-preceded-successful-deployment"><span class="law-number">4.1.2</span><p>Deployments to production must be preceded by a successful deployment to staging with the same artifact.</p>
 </li>
-<li id="book0-4.1.3"><span class="law-number">4.1.3</span><p>A deployment must be reversible within one command or one documented procedure.</p>
+<li id="book0-engineering.operations.deployment.deployment-reversible-within-one-command"><span class="law-number">4.1.3</span><p>A deployment must be reversible within one command or one documented procedure.</p>
 </li>
 </ol>
 <h4 id="book0-engineering.operations.monitoring">4.2 Monitoring</h4>
 <p class="section-id">engineering.operations.monitoring</p>
 <p>Rules for alerting and anomaly handling once a service is live.</p>
 <ol class="laws">
-<li id="book0-4.2.1"><span class="law-number">4.2.1</span><p>A new production service must have baseline alerting configured before it receives real traffic.</p>
+<li id="book0-engineering.operations.monitoring.new-production-service-baseline-alerting"><span class="law-number">4.2.1</span><p>A new production service must have baseline alerting configured before it receives real traffic.</p>
 </li>
-<li id="book0-4.2.2"><span class="law-number">4.2.2</span><p>Agents must not silence an alert without recording the reason and an expiry for the silence.</p>
+<li id="book0-engineering.operations.monitoring.agents-silence-alert-without-recording"><span class="law-number">4.2.2</span><p>Agents must not silence an alert without recording the reason and an expiry for the silence.</p>
 </li>
-<li id="book0-4.2.3"><span class="law-number">4.2.3</span><p>Anomalies detected by an agent must be reported even if the agent itself is not the cause.</p>
+<li id="book0-engineering.operations.monitoring.anomalies-detected-agent-reported-even"><span class="law-number">4.2.3</span><p>Anomalies detected by an agent must be reported even if the agent itself is not the cause.</p>
 </li>
 </ol>
 <h4 id="book0-engineering.operations.rollback">4.3 Rollback</h4>
 <p class="section-id">engineering.operations.rollback</p>
 <p>General rollback procedure: a deployment that causes an outage should be
 rolled back to the last known-good artifact rather than fixed forward
-under pressure. Emergency Procedures below covers the case where there is
-no time to wait for normal review.</p>
+under pressure. Rollback applies after a
+<a href="#book0-engineering.operations.deployment.deployments-production-preceded-successful-deployment">staging-to-production deployment</a> fails, and the
+<a href="#book0-engineering.incident_response.severity_levels.incident-causes-customer-visible-data-loss">incident severity</a> determines how quickly a rollback must execute.</p>
 <h5 id="book0-engineering.operations.rollback.emergency">4.3.1 Emergency Procedures</h5>
 <p class="section-id">engineering.operations.rollback.emergency</p>
 <p>This section exists three levels deep in the lawbook (Operations &gt;
@@ -138,11 +158,11 @@ Rollback &gt; Emergency Procedures), and its citations reflect that:
 rollback and deployment rules that applies only during a declared
 incident.</p>
 <ol class="laws">
-<li id="book0-4.3.1.1"><span class="law-number">4.3.1.1</span><p>During incident {{incident_id}}, agent {{agent_name}} may roll back a production deployment without waiting for review, and must file the change record within one hour after the fact.</p>
+<li id="book0-engineering.operations.rollback.emergency.during-incident-agent-roll-back"><span class="law-number">4.3.1.1</span><p>During incident {{incident_id}}, agent {{agent_name}} may roll back a production deployment without waiting for review, and must file the change record within one hour after the fact.</p>
 </li>
-<li id="book0-4.3.1.2"><span class="law-number">4.3.1.2</span><p>An emergency rollback must be announced in the incident channel before it is executed, not only after.</p>
+<li id="book0-engineering.operations.rollback.emergency.emergency-rollback-announced-incident-channel"><span class="law-number">4.3.1.2</span><p>An emergency rollback must be announced in the incident channel before it is executed, not only after.</p>
 </li>
-<li id="book0-4.3.1.3"><span class="law-number">4.3.1.3</span><p>Emergency authority granted during an incident expires when the incident is closed and does not carry over to unrelated changes.</p>
+<li id="book0-engineering.operations.rollback.emergency.emergency-authority-granted-during-incident"><span class="law-number">4.3.1.3</span><p>Emergency authority granted during an incident expires when the incident is closed and does not carry over to unrelated changes.</p>
 </li>
 </ol>
 <h3 id="book0-engineering.incident_response">5 Incident Response</h3>
@@ -152,25 +172,29 @@ Severity Levels and Communication below; this chapter itself states no
 laws directly.</p>
 <h4 id="book0-engineering.incident_response.severity_levels">5.1 Severity Levels</h4>
 <p class="section-id">engineering.incident_response.severity_levels</p>
-<p>How an incident's severity is assigned and revised.</p>
+<p>How an incident's severity is assigned and revised. Severity directly
+governs <a href="#book0-engineering.incident_response.communication.incident-severity-status-update-posted">communication cadence</a> and determines whether
+automated <a href="#book0-engineering.operations.rollback">rollback</a> should be triggered.</p>
 <ol class="laws">
-<li id="book0-5.1.1"><span class="law-number">5.1.1</span><p>An incident that causes customer-visible data loss must be classified Severity 1 regardless of the number of customers affected.</p>
+<li id="book0-engineering.incident_response.severity_levels.incident-causes-customer-visible-data-loss"><span class="law-number">5.1.1</span><p>An incident that causes customer-visible data loss must be classified Severity 1 regardless of the number of customers affected.</p>
 </li>
-<li id="book0-5.1.2"><span class="law-number">5.1.2</span><p>Severity classification must be reassessed if new information changes the blast radius, not fixed at first report.</p>
+<li id="book0-engineering.incident_response.severity_levels.severity-classification-reassessed-new-information"><span class="law-number">5.1.2</span><p>Severity classification must be reassessed if new information changes the blast radius, not fixed at first report.</p>
 </li>
-<li id="book0-5.1.3"><span class="law-number">5.1.3</span><p>Agents must not downgrade a severity level without a human confirming the downgrade.</p>
+<li id="book0-engineering.incident_response.severity_levels.agents-downgrade-severity-level-without"><span class="law-number">5.1.3</span><p>Agents must not downgrade a severity level without a human confirming the downgrade.</p>
 </li>
 </ol>
 <h4 id="book0-engineering.incident_response.communication">5.2 Communication</h4>
 <p class="section-id">engineering.incident_response.communication</p>
 <p>Rules for status updates and customer-facing messaging during and after an
-incident.</p>
+incident. Communication frequency is driven by
+<a href="#book0-engineering.incident_response.severity_levels.incident-causes-customer-visible-data-loss">severity level</a>, and post-incident reviews must reference the
+original <a href="#book0-engineering.incident_response.severity_levels.severity-classification-reassessed-new-information">severity classification</a>.</p>
 <ol class="laws">
-<li id="book0-5.2.1"><span class="law-number">5.2.1</span><p>Incident {{incident_id}} at severity {{severity}} must have a status update posted at least once per hour until resolved.</p>
+<li id="book0-engineering.incident_response.communication.incident-severity-status-update-posted"><span class="law-number">5.2.1</span><p>Incident {{incident_id}} at severity {{severity}} must have a status update posted at least once per hour until resolved.</p>
 </li>
-<li id="book0-5.2.2"><span class="law-number">5.2.2</span><p>Customer-facing communication about an incident must be reviewed by a human before it is sent.</p>
+<li id="book0-engineering.incident_response.communication.customer-facing-communication-about-incident-reviewed"><span class="law-number">5.2.2</span><p>Customer-facing communication about an incident must be reviewed by a human before it is sent.</p>
 </li>
-<li id="book0-5.2.3"><span class="law-number">5.2.3</span><p>Post-incident reviews must be published within five business days of resolution.</p>
+<li id="book0-engineering.incident_response.communication.post-incident-reviews-published-within-five"><span class="law-number">5.2.3</span><p>Post-incident reviews must be published within five business days of resolution.</p>
 </li>
 </ol>
 <h3 id="book0-engineering.integration">6 Agent Integration</h3>
@@ -184,17 +208,22 @@ Variables below; this chapter itself states no laws directly.</p>
 this lawbook - approving or rejecting a deployment, a pull request, or an
 emergency rollback. A structured response is what makes a decision
 auditable; a prose explanation is not. The required shape:</p>
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;"><code><span style="display:flex;"><span>{
+<pre style="color:#f8f8f2;background-color:#272822;"><code><span style="display:flex;"><span>{
 </span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;decision&#34;</span>: <span style="color:#e6db74">&#34;approve&#34;</span> <span style="color:#960050;background-color:#1e0010">|</span> <span style="color:#e6db74">&#34;reject&#34;</span>,
 </span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;laws&#34;</span>: [<span style="color:#e6db74">&#34;&lt;citation&gt;&#34;</span>, <span style="color:#e6db74">&#34;...&#34;</span>],
 </span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;reasoning&#34;</span>: <span style="color:#e6db74">&#34;&lt;string&gt;&#34;</span>
 </span></span><span style="display:flex;"><span>}
 </span></span></code></pre><ol class="laws">
-<li id="book0-6.1.1"><span class="law-number">6.1.1</span><p>When an agent makes a decision governed by this lawbook, it must respond with structured JSON matching the schema in this section's commentary, not prose.</p>
+<li id="book0-engineering.integration.response_format.agent-makes-decision-governed-lawbook"><span class="law-number">6.1.1</span><p>When an agent makes a decision governed by this lawbook, it must respond with structured JSON matching the schema in this section's commentary, not prose.</p>
+<pre style="color:#f8f8f2;background-color:#272822;"><code><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;decision&#34;</span>: <span style="color:#e6db74">&#34;approve&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;laws&#34;</span>: [<span style="color:#e6db74">&#34;4.1.2&#34;</span>, <span style="color:#e6db74">&#34;4.1.3&#34;</span>],
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;reasoning&#34;</span>: <span style="color:#e6db74">&#34;The deployment passes all checks and the rollback path is ready.&#34;</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></li>
+<li id="book0-engineering.integration.response_format.every-citation-laws-field-one"><span class="law-number">6.1.2</span><p>Every citation in the <code>laws</code> field must be one of the laws actually supplied to the agent for that decision; citing a law it was never given is itself a violation of this section.</p>
 </li>
-<li id="book0-6.1.2"><span class="law-number">6.1.2</span><p>Every citation in the <code>laws</code> field must be one of the laws actually supplied to the agent for that decision; citing a law it was never given is itself a violation of this section.</p>
-</li>
-<li id="book0-6.1.3"><span class="law-number">6.1.3</span><p>An &quot;approve&quot; or &quot;reject&quot; decision must cite at least one law, unless no law in this book applied to the task at hand.</p>
+<li id="book0-engineering.integration.response_format.approve-reject-decision-cite-least"><span class="law-number">6.1.3</span><p>An &quot;approve&quot; or &quot;reject&quot; decision must cite at least one law, unless no law in this book applied to the task at hand.</p>
 </li>
 </ol>
 <h4 id="book0-engineering.integration.variables">6.2 Variables</h4>
@@ -211,9 +240,12 @@ uses them:</p>
 <li><code>severity</code> - an incident's assigned severity level.</li>
 </ul>
 <ol class="laws">
-<li id="book0-6.2.1"><span class="law-number">6.2.1</span><p>Applications rendering this lawbook's laws for a prompt must supply a value for every variable referenced by the laws selected, or the render must fail rather than substitute a placeholder silently.</p>
+<li id="book0-engineering.integration.variables.applications-rendering-lawbooks-laws-prompt"><span class="law-number">6.2.1</span><p>Applications rendering this lawbook's laws for a prompt must supply a value for every variable referenced by the laws selected, or the render must fail rather than substitute a placeholder silently.</p>
 </li>
 </ol>
+<footer class="provenance">
+<p>revision 08cb50cdac66 (dirty) · compiled 2026-08-19T19:29:05Z · by Shrijith Venkatramana · alaws v0.1.0-30-g08cb50c-dirty (built 2026-08-19T19:18:11Z)</p>
+</footer>
 <h2 class="book-title">Payments Authorization &amp; Refunds</h2>
 <h3 id="book1-payments.authorization">1 Authorization</h3>
 <p class="section-id">payments.authorization</p>
@@ -224,22 +256,24 @@ directly.</p>
 <p class="section-id">payments.authorization.transaction_limits</p>
 <p>Rules for per-transaction and velocity limits.</p>
 <ol class="laws">
-<li id="book1-1.1.1"><span class="law-number">1.1.1</span><p>A transaction above {{amount}} {{currency}} to merchant {{merchant_id}} must pass step-up verification before it is authorized.</p>
+<li id="book1-payments.authorization.transaction_limits.transaction-above-merchant-pass-step-up"><span class="law-number">1.1.1</span><p>A transaction above {{amount}} {{currency}} to merchant {{merchant_id}} must pass step-up verification before it is authorized.</p>
 </li>
-<li id="book1-1.1.2"><span class="law-number">1.1.2</span><p>An agent must not increase a customer's transaction limit without an explicit, logged customer request.</p>
+<li id="book1-payments.authorization.transaction_limits.agent-increase-customers-transaction-limit"><span class="law-number">1.1.2</span><p>An agent must not increase a customer's transaction limit without an explicit, logged customer request.</p>
 </li>
-<li id="book1-1.1.3"><span class="law-number">1.1.3</span><p>Velocity limits (transactions per hour) must be enforced even when each individual transaction is within its own limit.</p>
+<li id="book1-payments.authorization.transaction_limits.velocity-limits-transactions-per-hour"><span class="law-number">1.1.3</span><p>Velocity limits (transactions per hour) must be enforced even when each individual transaction is within its own limit.</p>
 </li>
 </ol>
 <h4 id="book1-payments.authorization.fraud_checks">1.2 Fraud Checks</h4>
 <p class="section-id">payments.authorization.fraud_checks</p>
-<p>Rules for how an agent handles a transaction flagged by the fraud model.</p>
+<p>Rules for how an agent handles a transaction flagged by the fraud model.
+Fraud checks run in addition to <a href="#book1-payments.authorization.transaction_limits.transaction-above-merchant-pass-step-up">transaction limit verification</a> - a
+transaction must pass both before it is processed.</p>
 <ol class="laws">
-<li id="book1-1.2.1"><span class="law-number">1.2.1</span><p>A transaction flagged by the fraud model must not be auto-approved by an agent, regardless of confidence score.</p>
+<li id="book1-payments.authorization.fraud_checks.transaction-flagged-fraud-model-auto-approved"><span class="law-number">1.2.1</span><p>A transaction flagged by the fraud model must not be auto-approved by an agent, regardless of confidence score.</p>
 </li>
-<li id="book1-1.2.2"><span class="law-number">1.2.2</span><p>Agents must not disclose to a customer which specific fraud signal triggered a hold.</p>
+<li id="book1-payments.authorization.fraud_checks.agents-disclose-customer-which-specific"><span class="law-number">1.2.2</span><p>Agents must not disclose to a customer which specific fraud signal triggered a hold.</p>
 </li>
-<li id="book1-1.2.3"><span class="law-number">1.2.3</span><p>A false positive must be logged with enough detail to retrain the fraud model, not simply overridden and forgotten.</p>
+<li id="book1-payments.authorization.fraud_checks.false-positive-logged-enough-detail"><span class="law-number">1.2.3</span><p>A false positive must be logged with enough detail to retrain the fraud model, not simply overridden and forgotten.</p>
 </li>
 </ol>
 <h3 id="book1-payments.refunds">2 Refunds</h3>
@@ -248,24 +282,27 @@ directly.</p>
 Customer Communication below; this chapter itself states no laws directly.</p>
 <h4 id="book1-payments.refunds.approval_thresholds">2.1 Approval Thresholds</h4>
 <p class="section-id">payments.refunds.approval_thresholds</p>
-<p>Rules for how much of a refund an agent can approve on its own authority.</p>
+<p>Rules for how much of a refund an agent can approve on its own authority.
+Large refunds may trigger additional <a href="#book1-payments.authorization.fraud_checks.transaction-flagged-fraud-model-auto-approved">fraud screening</a> to prevent
+refund abuse, and agents must follow the standard
+<a href="#book1-payments.integration.response_format.agent-authorizes-denies-refunds-transaction">response format</a> when reporting approval decisions.</p>
 <ol class="laws">
-<li id="book1-2.1.1"><span class="law-number">2.1.1</span><p>Agent {{agent_name}} may approve a refund up to {{amount}} {{currency}} without additional sign-off.</p>
+<li id="book1-payments.refunds.approval_thresholds.agent-approve-refund-up-without"><span class="law-number">2.1.1</span><p>Agent {{agent_name}} may approve a refund up to {{amount}} {{currency}} without additional sign-off.</p>
 </li>
-<li id="book1-2.1.2"><span class="law-number">2.1.2</span><p>A refund above the agent's approval threshold must be routed to a human approver with the original transaction attached.</p>
+<li id="book1-payments.refunds.approval_thresholds.refund-above-agents-approval-threshold"><span class="law-number">2.1.2</span><p>A refund above the agent's approval threshold must be routed to a human approver with the original transaction attached.</p>
 </li>
-<li id="book1-2.1.3"><span class="law-number">2.1.3</span><p>Refunds must not be split into smaller amounts to stay under an approval threshold.</p>
+<li id="book1-payments.refunds.approval_thresholds.refunds-split-into-smaller-amounts"><span class="law-number">2.1.3</span><p>Refunds must not be split into smaller amounts to stay under an approval threshold.</p>
 </li>
 </ol>
 <h4 id="book1-payments.refunds.customer_communication">2.2 Customer Communication</h4>
 <p class="section-id">payments.refunds.customer_communication</p>
 <p>Rules for what a customer must be told about a refund.</p>
 <ol class="laws">
-<li id="book1-2.2.1"><span class="law-number">2.2.1</span><p>A customer must be notified when their refund is approved and again when funds are received, not only once.</p>
+<li id="book1-payments.refunds.customer_communication.customer-notified-their-refund-approved"><span class="law-number">2.2.1</span><p>A customer must be notified when their refund is approved and again when funds are received, not only once.</p>
 </li>
-<li id="book1-2.2.2"><span class="law-number">2.2.2</span><p>Agents must not promise a specific refund timeline that the payment processor cannot guarantee.</p>
+<li id="book1-payments.refunds.customer_communication.agents-promise-specific-refund-timeline"><span class="law-number">2.2.2</span><p>Agents must not promise a specific refund timeline that the payment processor cannot guarantee.</p>
 </li>
-<li id="book1-2.2.3"><span class="law-number">2.2.3</span><p>Refund denials must include the specific reason, not a generic rejection message.</p>
+<li id="book1-payments.refunds.customer_communication.refund-denials-include-specific-reason"><span class="law-number">2.2.3</span><p>Refund denials must include the specific reason, not a generic rejection message.</p>
 </li>
 </ol>
 <h3 id="book1-payments.integration">3 Agent Integration</h3>
@@ -278,17 +315,17 @@ Format and Variables below; this chapter itself states no laws directly.</p>
 <p>Rules for how an agent must respond when it authorizes a transaction or
 decides a refund. A structured response is what makes a decision
 auditable; a prose explanation is not. The required shape:</p>
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;"><code><span style="display:flex;"><span>{
+<pre style="color:#f8f8f2;background-color:#272822;"><code><span style="display:flex;"><span>{
 </span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;decision&#34;</span>: <span style="color:#e6db74">&#34;approve&#34;</span> <span style="color:#960050;background-color:#1e0010">|</span> <span style="color:#e6db74">&#34;deny&#34;</span>,
 </span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;laws&#34;</span>: [<span style="color:#e6db74">&#34;&lt;citation&gt;&#34;</span>, <span style="color:#e6db74">&#34;...&#34;</span>],
 </span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;reasoning&#34;</span>: <span style="color:#e6db74">&#34;&lt;string&gt;&#34;</span>
 </span></span><span style="display:flex;"><span>}
 </span></span></code></pre><ol class="laws">
-<li id="book1-3.1.1"><span class="law-number">3.1.1</span><p>When an agent authorizes, denies, or refunds a transaction, it must respond with structured JSON matching the schema in this section's commentary, not prose.</p>
+<li id="book1-payments.integration.response_format.agent-authorizes-denies-refunds-transaction"><span class="law-number">3.1.1</span><p>When an agent authorizes, denies, or refunds a transaction, it must respond with structured JSON matching the schema in this section's commentary, not prose.</p>
 </li>
-<li id="book1-3.1.2"><span class="law-number">3.1.2</span><p>Every citation in the <code>laws</code> field must be one of the laws actually supplied to the agent for that decision.</p>
+<li id="book1-payments.integration.response_format.every-citation-laws-field-one"><span class="law-number">3.1.2</span><p>Every citation in the <code>laws</code> field must be one of the laws actually supplied to the agent for that decision.</p>
 </li>
-<li id="book1-3.1.3"><span class="law-number">3.1.3</span><p>A &quot;deny&quot; decision must cite at least one law that justifies it.</p>
+<li id="book1-payments.integration.response_format.deny-decision-cite-least-one"><span class="law-number">3.1.3</span><p>A &quot;deny&quot; decision must cite at least one law that justifies it.</p>
 </li>
 </ol>
 <h4 id="book1-payments.integration.variables">3.2 Variables</h4>
@@ -303,9 +340,12 @@ uses them:</p>
 <li><code>agent_name</code> - the identity of the acting agent.</li>
 </ul>
 <ol class="laws">
-<li id="book1-3.2.1"><span class="law-number">3.2.1</span><p>Applications rendering this lawbook's laws for a prompt must supply a value for every variable referenced by the laws selected, or the render must fail rather than substitute a placeholder silently.</p>
+<li id="book1-payments.integration.variables.applications-rendering-lawbooks-laws-prompt"><span class="law-number">3.2.1</span><p>Applications rendering this lawbook's laws for a prompt must supply a value for every variable referenced by the laws selected, or the render must fail rather than substitute a placeholder silently.</p>
 </li>
 </ol>
+<footer class="provenance">
+<p>revision 08cb50cdac66 (dirty) · compiled 2026-08-19T19:29:05Z · by Shrijith Venkatramana · alaws v0.1.0-30-g08cb50c-dirty (built 2026-08-19T19:18:11Z)</p>
+</footer>
 <h2 class="book-title">Customer Support Governance</h2>
 <h3 id="book2-support.customer_data">1 Customer Data</h3>
 <p class="section-id">support.customer_data</p>
@@ -316,11 +356,11 @@ directly.</p>
 <p class="section-id">support.customer_data.pii_handling</p>
 <p>Rules for keeping personal information out of places it shouldn't end up.</p>
 <ol class="laws">
-<li id="book2-1.1.1"><span class="law-number">1.1.1</span><p>Agent {{agent_name}} must not paste customer {{customer_id}}'s personal information into a ticket visible outside the support system.</p>
+<li id="book2-support.customer_data.pii_handling.agent-paste-customer-personal-information"><span class="law-number">1.1.1</span><p>Agent {{agent_name}} must not paste customer {{customer_id}}'s personal information into a ticket visible outside the support system.</p>
 </li>
-<li id="book2-1.1.2"><span class="law-number">1.1.2</span><p>Full card numbers, SSNs, and passwords must never appear in a support ticket, chat transcript, or agent note.</p>
+<li id="book2-support.customer_data.pii_handling.full-card-numbers-ssns-passwords"><span class="law-number">1.1.2</span><p>Full card numbers, SSNs, and passwords must never appear in a support ticket, chat transcript, or agent note.</p>
 </li>
-<li id="book2-1.1.3"><span class="law-number">1.1.3</span><p>Access to a customer's account must be logged with the reason for access, not just the fact of access.</p>
+<li id="book2-support.customer_data.pii_handling.access-customers-account-logged-reason"><span class="law-number">1.1.3</span><p>Access to a customer's account must be logged with the reason for access, not just the fact of access.</p>
 </li>
 </ol>
 <h4 id="book2-support.customer_data.retention">1.2 Retention</h4>
@@ -328,11 +368,11 @@ directly.</p>
 <p>Rules for how long customer data is kept and how it is deleted on
 request.</p>
 <ol class="laws">
-<li id="book2-1.2.1"><span class="law-number">1.2.1</span><p>A closed ticket containing PII must be redacted or deleted according to the retention schedule, not kept indefinitely by default.</p>
+<li id="book2-support.customer_data.retention.closed-ticket-containing-pii-redacted"><span class="law-number">1.2.1</span><p>A closed ticket containing PII must be redacted or deleted according to the retention schedule, not kept indefinitely by default.</p>
 </li>
-<li id="book2-1.2.2"><span class="law-number">1.2.2</span><p>A customer's data deletion request must be honored within the legally required window, tracked to completion.</p>
+<li id="book2-support.customer_data.retention.customers-data-deletion-request-honored"><span class="law-number">1.2.2</span><p>A customer's data deletion request must be honored within the legally required window, tracked to completion.</p>
 </li>
-<li id="book2-1.2.3"><span class="law-number">1.2.3</span><p>Agents must not export customer data to a personal device or unapproved tool for any reason.</p>
+<li id="book2-support.customer_data.retention.agents-export-customer-data-personal"><span class="law-number">1.2.3</span><p>Agents must not export customer data to a personal device or unapproved tool for any reason.</p>
 </li>
 </ol>
 <h3 id="book2-support.escalation">2 Escalation</h3>
@@ -341,24 +381,29 @@ request.</p>
 Triage and Handoff below; this chapter itself states no laws directly.</p>
 <h4 id="book2-support.escalation.severity_triage">2.1 Severity Triage</h4>
 <p class="section-id">support.escalation.severity_triage</p>
-<p>Rules for assigning and revising a ticket's severity.</p>
+<p>Rules for assigning and revising a ticket's severity. Severity drives
+<a href="#book2-support.escalation.handoff.hands-off-ticket-human-handoff">handoff behavior</a> and determines which
+<a href="#book2-support.escalation.handoff.ticket-handed-off-silently-customer">communication requirements</a> apply when escalating to a human.</p>
 <ol class="laws">
-<li id="book2-2.1.1"><span class="law-number">2.1.1</span><p>Ticket {{ticket_id}} must be triaged within the SLA window appropriate to its stated severity, not first-in-first-out regardless of severity.</p>
+<li id="book2-support.escalation.severity_triage.ticket-triaged-within-sla-window"><span class="law-number">2.1.1</span><p>Ticket {{ticket_id}} must be triaged within the SLA window appropriate to its stated severity, not first-in-first-out regardless of severity.</p>
 </li>
-<li id="book2-2.1.2"><span class="law-number">2.1.2</span><p>A ticket reporting potential account takeover must be escalated immediately, bypassing the normal queue.</p>
+<li id="book2-support.escalation.severity_triage.ticket-reporting-potential-account-takeover"><span class="law-number">2.1.2</span><p>A ticket reporting potential account takeover must be escalated immediately, bypassing the normal queue.</p>
 </li>
-<li id="book2-2.1.3"><span class="law-number">2.1.3</span><p>Agents must not downgrade a customer-reported severity without documenting why.</p>
+<li id="book2-support.escalation.severity_triage.agents-downgrade-customer-reported-severity-without"><span class="law-number">2.1.3</span><p>Agents must not downgrade a customer-reported severity without documenting why.</p>
 </li>
 </ol>
 <h4 id="book2-support.escalation.handoff">2.2 Handoff</h4>
 <p class="section-id">support.escalation.handoff</p>
-<p>Rules for what a handoff from an agent to a human must include.</p>
+<p>Rules for what a handoff from an agent to a human must include. The
+<a href="#book2-support.escalation.severity_triage.ticket-triaged-within-sla-window">severity triage</a> determines urgency, and the original
+<a href="#book2-support.escalation.severity_triage.agents-downgrade-customer-reported-severity-without">severity classification</a> must be preserved through the handoff
+unless a human explicitly re-triages.</p>
 <ol class="laws">
-<li id="book2-2.2.1"><span class="law-number">2.2.1</span><p>When {{agent_name}} hands off ticket {{ticket_id}} to a human, the handoff note must include what was tried and why it wasn't sufficient.</p>
+<li id="book2-support.escalation.handoff.hands-off-ticket-human-handoff"><span class="law-number">2.2.1</span><p>When {{agent_name}} hands off ticket {{ticket_id}} to a human, the handoff note must include what was tried and why it wasn't sufficient.</p>
 </li>
-<li id="book2-2.2.2"><span class="law-number">2.2.2</span><p>A ticket must not be handed off silently; the customer must be told a human is taking over.</p>
+<li id="book2-support.escalation.handoff.ticket-handed-off-silently-customer"><span class="law-number">2.2.2</span><p>A ticket must not be handed off silently; the customer must be told a human is taking over.</p>
 </li>
-<li id="book2-2.2.3"><span class="law-number">2.2.3</span><p>An escalated ticket must retain its original severity unless a human explicitly re-triages it.</p>
+<li id="book2-support.escalation.handoff.escalated-ticket-retain-original-severity"><span class="law-number">2.2.3</span><p>An escalated ticket must retain its original severity unless a human explicitly re-triages it.</p>
 </li>
 </ol>
 <h3 id="book2-support.integration">3 Agent Integration</h3>
@@ -371,17 +416,17 @@ Variables below; this chapter itself states no laws directly.</p>
 <p>Rules for how an agent must respond when it triages or resolves a ticket.
 A structured response is what makes a decision auditable; a prose
 explanation is not. The required shape:</p>
-<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;"><code><span style="display:flex;"><span>{
+<pre style="color:#f8f8f2;background-color:#272822;"><code><span style="display:flex;"><span>{
 </span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;decision&#34;</span>: <span style="color:#e6db74">&#34;resolve&#34;</span> <span style="color:#960050;background-color:#1e0010">|</span> <span style="color:#e6db74">&#34;escalate&#34;</span>,
 </span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;laws&#34;</span>: [<span style="color:#e6db74">&#34;&lt;citation&gt;&#34;</span>, <span style="color:#e6db74">&#34;...&#34;</span>],
 </span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;reasoning&#34;</span>: <span style="color:#e6db74">&#34;&lt;string&gt;&#34;</span>
 </span></span><span style="display:flex;"><span>}
 </span></span></code></pre><ol class="laws">
-<li id="book2-3.1.1"><span class="law-number">3.1.1</span><p>When an agent triages or closes a ticket, it must respond with structured JSON matching the schema in this section's commentary, not prose.</p>
+<li id="book2-support.integration.response_format.agent-triages-closes-ticket-respond"><span class="law-number">3.1.1</span><p>When an agent triages or closes a ticket, it must respond with structured JSON matching the schema in this section's commentary, not prose.</p>
 </li>
-<li id="book2-3.1.2"><span class="law-number">3.1.2</span><p>Every citation in the <code>laws</code> field must be one of the laws actually supplied to the agent for that decision.</p>
+<li id="book2-support.integration.response_format.every-citation-laws-field-one"><span class="law-number">3.1.2</span><p>Every citation in the <code>laws</code> field must be one of the laws actually supplied to the agent for that decision.</p>
 </li>
-<li id="book2-3.1.3"><span class="law-number">3.1.3</span><p>An &quot;escalate&quot; decision must cite at least one law that justifies it.</p>
+<li id="book2-support.integration.response_format.escalate-decision-cite-least-one"><span class="law-number">3.1.3</span><p>An &quot;escalate&quot; decision must cite at least one law that justifies it.</p>
 </li>
 </ol>
 <h4 id="book2-support.integration.variables">3.2 Variables</h4>
@@ -395,7 +440,10 @@ uses them:</p>
 <li><code>agent_name</code> - the identity of the acting agent.</li>
 </ul>
 <ol class="laws">
-<li id="book2-3.2.1"><span class="law-number">3.2.1</span><p>Applications rendering this lawbook's laws for a prompt must supply a value for every variable referenced by the laws selected, or the render must fail rather than substitute a placeholder silently.</p>
+<li id="book2-support.integration.variables.applications-rendering-lawbooks-laws-prompt"><span class="law-number">3.2.1</span><p>Applications rendering this lawbook's laws for a prompt must supply a value for every variable referenced by the laws selected, or the render must fail rather than substitute a placeholder silently.</p>
 </li>
 </ol>
+<footer class="provenance">
+<p>revision 08cb50cdac66 (dirty) · compiled 2026-08-19T19:29:05Z · by Shrijith Venkatramana · alaws v0.1.0-30-g08cb50c-dirty (built 2026-08-19T19:18:11Z)</p>
+</footer>
 </body></html>

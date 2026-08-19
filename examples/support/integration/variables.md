@@ -15,4 +15,4 @@ uses them:
 
 <!-- alaws:laws -->
 
-1. Applications rendering this lawbook's laws for a prompt must supply a value for every variable referenced by the laws selected, or the render must fail rather than substitute a placeholder silently.
+1. Applications rendering this lawbook's laws for a prompt must supply a value for every variable referenced by the laws selected, or the render must fail rather than substitute a placeholder silently. {#applications-rendering-lawbooks-laws-prompt}
