@@ -64,6 +64,7 @@ func registerAPI(mux *http.ServeMux) {
 	mux.HandleFunc("/api/book/verify", handleVerify)
 	mux.HandleFunc("/api/book/commit-detail", handleCommitDetail)
 	mux.HandleFunc("/api/book/source", handleSource)
+	mux.HandleFunc("/api/book/search", handleSearch)
 	mux.HandleFunc("/api/meta/operations", handleOperations)
 	mux.HandleFunc("/api/meta/root", handleRoot)
 	mux.HandleFunc("/api/export", handleExportAll)
@@ -653,4 +654,34 @@ func handleSource(w http.ResponseWriter, r *http.Request) {
 		"lineEnd":   end,
 		"content":   snippet,
 	})
+}
+
+// GET /api/book/search?q=&path=&caseSensitive=&wholeWord=&regex=&sectionId=
+func handleSearch(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		methodNotAllowed(w)
+		return
+	}
+	q := r.URL.Query()
+	book := q.Get("path")
+	query := q.Get("q")
+	if book == "" || query == "" {
+		writeError(w, errors.New("path and q are required"))
+		return
+	}
+	opts := alaws.SearchOpts{
+		CaseSensitive: q.Get("caseSensitive") == "1" || q.Get("caseSensitive") == "true",
+		WholeWord:     q.Get("wholeWord") == "1" || q.Get("wholeWord") == "true",
+		Regex:         q.Get("regex") == "1" || q.Get("regex") == "true",
+		SectionIDs:    q["sectionId"],
+	}
+	matches, err := alaws.Search(book, query, opts)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	if matches == nil {
+		matches = []alaws.SearchMatch{}
+	}
+	writeJSON(w, http.StatusOK, matches)
 }

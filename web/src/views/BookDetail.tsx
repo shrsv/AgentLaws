@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState, useRef } from "preact/hooks";
 import type { VNode } from "preact";
-import { History, Plus, X, Clock, User, ArrowLeft, FileText, Download, FlaskConical, CircleAlert, TriangleAlert, List, MousePointer, ChevronLeft, ChevronRight, Copy, Code, Check, HelpCircle } from "lucide-preact";
+import { History, Plus, X, Clock, User, ArrowLeft, FileText, Download, FlaskConical, CircleAlert, TriangleAlert, List, MousePointer, ChevronLeft, ChevronRight, Copy, Code, Check, HelpCircle, Search, ChevronDown } from "lucide-preact";
 import { api, type Section, type Diagnostic, type RenderedSection } from "../api";
 import type { Route } from "../router";
 import { HistorySidebar } from "../components/HistorySidebar";
 import { HotkeyHelp } from "../components/HotkeyHelp";
+import { SearchPanel } from "../components/SearchPanel";
 import { useShortcuts, useEscape, getRegisteredShortcuts } from "../hooks/useKeyboardShortcuts";
 
 interface Props {
@@ -53,6 +54,10 @@ export function BookDetail({ path, section, navigate }: Props) {
   const [sourceContent, setSourceContent] = useState<{ path: string; lineStart: number; lineEnd: number; content: string } | null>(null);
   const [copiedPath, setCopiedPath] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [highlightQuery, setHighlightQuery] = useState<string | null>(null);
+  const [showExportMenu, setShowExportMenu] = useState(false);
   const fetchingAuthors = useRef<Set<string>>(new Set());
 
   const reload = () => {
@@ -83,6 +88,27 @@ export function BookDetail({ path, section, navigate }: Props) {
     if (section) setSelectedID(section);
   }, [section]);
 
+  // Close export menu when clicking outside
+  useEffect(() => {
+    if (!showExportMenu) return;
+    const close = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".export-menu-container")) setShowExportMenu(false);
+    };
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [showExportMenu]);
+
+  // Auto-scroll to first search highlight when navigating from search
+  useEffect(() => {
+    if (highlightQuery && selectedID) {
+      requestAnimationFrame(() => {
+        const firstMark = document.querySelector(".search-highlight");
+        if (firstMark) firstMark.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    }
+  }, [highlightQuery, selectedID]);
+
   const select = (id: string) => {
     setSelectedID(id);
     navigate({ name: "book", path, section: id });
@@ -97,10 +123,12 @@ export function BookDetail({ path, section, navigate }: Props) {
 
   const toggleHistory = () => { setShowHistory((v) => !v); if (showHistory) setHistoryFilter(null); };
   const toggleHelp = () => { setShowHelp((v) => !v); };
+  const toggleSearch = () => { setShowSearch((v) => { if (v) setHighlightQuery(null); return !v; }); };
 
   useEscape(() => {
     if (showHelp) { setShowHelp(false); return true; }
     if (sourceContent) { setSourceContent(null); return true; }
+    if (showSearch) { setShowSearch(false); setHighlightQuery(null); return true; }
     if (showHistory) { setShowHistory(false); setHistoryFilter(null); return true; }
     return false;
   });
@@ -114,6 +142,7 @@ export function BookDetail({ path, section, navigate }: Props) {
     { key: "s", description: "View section source", action: () => { if (selected) loadSource(selected.Source.Path, selected.Source.LineStart, selected.Source.LineEnd); } },
     { key: "c", description: "Copy section file path", action: () => { if (selected) copyPath(selected.Source.Path); } },
     { key: "?", description: "Show keyboard shortcuts", action: toggleHelp },
+    { key: "/", description: "Search in book", action: toggleSearch },
   ]);
 
   const relativePath = (srcPath: string) => {
@@ -286,22 +315,35 @@ export function BookDetail({ path, section, navigate }: Props) {
         </button>
         <span class="book-title">{title || path}</span>
         <span class="path">{path}</span>
-        <div class="spacer" />
-        <div class="export-group">
-          <span class="export-group-label">Export this book:</span>
-          <a class="link-button" href={api.exportURL(path, "html")} target="_blank" rel="noreferrer">
-            <FileText size={12} /> HTML
-          </a>
-          <a class="link-button" href={api.exportURL(path, "pdf")} target="_blank" rel="noreferrer">
-            <FileText size={12} /> PDF
-          </a>
-          <a class="link-button" href={api.exportURL(path, "md")} target="_blank" rel="noreferrer">
-            <FileText size={12} /> Markdown
-          </a>
-        </div>
-        <button class="link-button" onClick={() => navigate({ name: "books" })} title="Export every book, from the home view">
-          <Download size={12} /> Export all books…
+        <button class="link-button titlebar-search" onClick={toggleSearch} title="Search (/)">
+          <Search size={12} /> Search
         </button>
+        <div class="spacer" />
+        <div class="export-menu-container">
+          <button class="link-button" onClick={() => setShowExportMenu((v) => !v)} title="Export">
+            <Download size={12} /> Export <ChevronDown size={10} />
+          </button>
+          {showExportMenu && (
+            <div class="export-dropdown">
+              <div class="export-dropdown-section">
+                <span class="export-dropdown-label">This book</span>
+                <a class="export-dropdown-item" href={api.exportURL(path, "html")} target="_blank" rel="noreferrer" onClick={() => setShowExportMenu(false)}>
+                  <FileText size={12} /> HTML
+                </a>
+                <a class="export-dropdown-item" href={api.exportURL(path, "pdf")} target="_blank" rel="noreferrer" onClick={() => setShowExportMenu(false)}>
+                  <FileText size={12} /> PDF
+                </a>
+                <a class="export-dropdown-item" href={api.exportURL(path, "md")} target="_blank" rel="noreferrer" onClick={() => setShowExportMenu(false)}>
+                  <FileText size={12} /> Markdown
+                </a>
+              </div>
+              <div class="export-dropdown-divider" />
+              <button class="export-dropdown-item" onClick={() => { setShowExportMenu(false); navigate({ name: "books" }); }}>
+                <Download size={12} /> Export all books…
+              </button>
+            </div>
+          )}
+        </div>
         <button class="link-button" onClick={() => navigate({ name: "playground", path })}>
           <FlaskConical size={12} /> Playground
         </button>
@@ -321,26 +363,40 @@ export function BookDetail({ path, section, navigate }: Props) {
 
       <div class="workbench">
         <nav class="sidebar" aria-label="Lawbook sections">
-          <div class="sidebar-title">
-            Lawbook
-            <button class="icon-button" title="New chapter" onClick={() => setNewChapter((v) => !v)}>
-              <Plus size={12} />
-            </button>
-          </div>
-
-          {newChapter && <NewNodeForm onSubmit={async (file, t, id) => { await api.createChapter(path, file, t, id); setNewChapter(false); reload(); }} onCancel={() => setNewChapter(false)} />}
-
-          <ul class="tree">{renderTree(tree)}</ul>
-          {newSectionUnder && (
-            <NewNodeForm
-              parent={newSectionUnder}
-              onSubmit={async (file, t, id) => {
-                await api.createSection(path, file, t, id, newSectionUnder);
-                setNewSectionUnder(null);
-                reload();
-              }}
-              onCancel={() => setNewSectionUnder(null)}
+          {showSearch ? (
+            <SearchPanel
+              bookPath={path}
+              sections={sections}
+              activeSectionID={selectedID}
+              initialQuery={searchQuery}
+              onQueryChange={setSearchQuery}
+              onClose={() => setShowSearch(false)}
+              onNavigate={(id) => { setHighlightQuery(searchQuery); select(id); }}
             />
+          ) : (
+            <>
+              <div class="sidebar-title">
+                Lawbook
+                <button class="icon-button" title="New chapter" onClick={() => setNewChapter((v) => !v)}>
+                  <Plus size={12} />
+                </button>
+              </div>
+
+              {newChapter && <NewNodeForm onSubmit={async (file, t, id) => { await api.createChapter(path, file, t, id); setNewChapter(false); reload(); }} onCancel={() => setNewChapter(false)} />}
+
+              <ul class="tree">{renderTree(tree)}</ul>
+              {newSectionUnder && (
+                <NewNodeForm
+                  parent={newSectionUnder}
+                  onSubmit={async (file, t, id) => {
+                    await api.createSection(path, file, t, id, newSectionUnder);
+                    setNewSectionUnder(null);
+                    reload();
+                  }}
+                  onCancel={() => setNewSectionUnder(null)}
+                />
+              )}
+            </>
           )}
         </nav>
 
@@ -375,7 +431,7 @@ export function BookDetail({ path, section, navigate }: Props) {
                   <Code size={11} /> Source
                 </button>
               </div>
-              <div class="commentary" dangerouslySetInnerHTML={{ __html: rendered[selected.ID]?.CommentaryHTML ?? escapeHTML(selected.Commentary) }} />
+              <div class="commentary" dangerouslySetInnerHTML={{ __html: highlightMatches(rendered[selected.ID]?.CommentaryHTML ?? escapeHTML(selected.Commentary), highlightQuery) }} />
 
               {selected.Laws && selected.Laws.length > 0 ? (
                 <ol class="law-list">
@@ -387,7 +443,7 @@ export function BookDetail({ path, section, navigate }: Props) {
                         <span class="law-number">{law.Number}</span>
                         <span
                           class="law-text"
-                          dangerouslySetInnerHTML={{ __html: rendered[selected.ID]?.LawHTML?.[law.Number] ?? escapeHTML(law.Text) }}
+                          dangerouslySetInnerHTML={{ __html: highlightMatches(rendered[selected.ID]?.LawHTML?.[law.Number] ?? escapeHTML(law.Text), highlightQuery) }}
                         />
                         {author !== undefined && author !== "" && (
                           <span class="law-author">
@@ -508,4 +564,11 @@ function escapeHTML(s: string): string {
   const div = document.createElement("div");
   div.textContent = s;
   return div.innerHTML;
+}
+
+function highlightMatches(html: string, query: string | null): string {
+  if (!query?.trim()) return html;
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(`(${escaped})`, "gi");
+  return html.replace(regex, '<mark class="search-highlight">$1</mark>');
 }

@@ -60,6 +60,19 @@ export interface RenderedSection {
   LawHTML: Record<string, string>; // law citation number -> HTML
 }
 
+export interface SearchMatch {
+  sectionId: string;
+  sectionTitle: string;
+  sectionNumber: string;
+  sourcePath: string;
+  lawIndex: number;
+  lawNumber: string;
+  line: number;
+  before: string;
+  match: string;
+  after: string;
+}
+
 export interface CompileResult {
   ok: boolean;
   error: string;
@@ -289,5 +302,21 @@ export const api = {
   source: (filePath: string, lineStart?: number, lineEnd?: number) =>
     req<{ path: string; lineStart: number; lineEnd: number; content: string }>(
       `/api/book/source${qs({ path: filePath, lineStart, lineEnd })}`,
+    ),
+
+  search: (
+    book: string,
+    q: string,
+    opts?: { caseSensitive?: boolean; wholeWord?: boolean; regex?: boolean; sectionIds?: string[] },
+  ) =>
+    req<SearchMatch[]>(
+      `/api/book/search${qs({
+        path: book,
+        q,
+        caseSensitive: opts?.caseSensitive,
+        wholeWord: opts?.wholeWord,
+        regex: opts?.regex,
+        sectionId: opts?.sectionIds,
+      })}`,
     ),
 };
