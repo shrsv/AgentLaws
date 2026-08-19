@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from "preact/hooks";
 import type { VNode } from "preact";
-import { History, Plus, X, Clock, User, ArrowLeft, FileText, Download, FlaskConical, CircleAlert, TriangleAlert, List, MousePointer, ChevronLeft, ChevronRight, Copy, Code, Check, HelpCircle, Search, ChevronDown } from "lucide-preact";
+import { History, Plus, X, Clock, User, ArrowLeft, FileText, Download, FlaskConical, CircleAlert, TriangleAlert, List, MousePointer, ChevronLeft, ChevronRight, Copy, Code, Check, HelpCircle, Search, ChevronDown, Terminal } from "lucide-preact";
 import { api, type Section, type Diagnostic, type RenderedSection } from "../api";
 import type { Route } from "../router";
 import { HistorySidebar } from "../components/HistorySidebar";
@@ -12,6 +12,8 @@ interface Props {
   path: string;
   section: string | null;
   navigate: (r: Route) => void;
+  onSectionsChange?: (sections: Section[]) => void;
+  onOpenCommandPalette?: () => void;
 }
 
 // TreeNode is a Section plus its child sections, rebuilt from the compiled
@@ -37,7 +39,7 @@ function buildTree(sections: Section[]): TreeNode[] {
   return roots;
 }
 
-export function BookDetail({ path, section, navigate }: Props) {
+export function BookDetail({ path, section, navigate, onSectionsChange, onOpenCommandPalette }: Props) {
   const [title, setTitle] = useState("");
   const [sections, setSections] = useState<Section[]>([]);
   const [rendered, setRendered] = useState<Record<string, RenderedSection>>({});
@@ -67,6 +69,7 @@ export function BookDetail({ path, section, navigate }: Props) {
       .then((r) => {
         setTitle(r.lawbook.Metadata.Title);
         setSections(r.lawbook.Sections);
+        onSectionsChange?.(r.lawbook.Sections);
         setRendered(r.rendered ?? {});
         setDiagnostics(r.diagnostics ?? []);
         // Functional update: read current selection (the URL's section may
@@ -79,6 +82,11 @@ export function BookDetail({ path, section, navigate }: Props) {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(reload, [path]);
+
+  // Clear parent sections on unmount
+  useEffect(() => {
+    return () => onSectionsChange?.([]);
+  }, []);
 
   // The URL carries the selected section (e.g. #/books/<book>/<section>), so
   // a refresh or back/forward restores the same page. Clicking a tree node
@@ -318,6 +326,11 @@ export function BookDetail({ path, section, navigate }: Props) {
         <button class="link-button titlebar-search" onClick={toggleSearch} title="Search (/)">
           <Search size={12} /> Search
         </button>
+        {onOpenCommandPalette && (
+          <button class="link-button titlebar-cmd" onClick={onOpenCommandPalette} title="Quick jump (Ctrl+P)">
+            <Terminal size={12} /> Jump
+          </button>
+        )}
         <div class="spacer" />
         <div class="export-menu-container">
           <button class="link-button" onClick={() => setShowExportMenu((v) => !v)} title="Export">
