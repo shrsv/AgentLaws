@@ -14,6 +14,7 @@ import (
 
 	"github.com/yuin/goldmark"
 	highlighting "github.com/yuin/goldmark-highlighting/v2"
+	"github.com/yuin/goldmark/extension"
 
 	"github.com/shrsv/AgentLaws/internal/model"
 )
@@ -24,6 +25,7 @@ import (
 // export because both go through this same configuration.
 var markdown = goldmark.New(
 	goldmark.WithExtensions(
+		extension.GFM,
 		highlighting.NewHighlighting(
 			highlighting.WithStyle("monokai"),
 		),
@@ -57,6 +59,10 @@ code{font-family:ui-monospace,Menlo,monospace;background:#f0f0f0;padding:.1em .3
 pre{overflow-x:auto;border:1px solid #ddd;border-radius:6px;padding:.85rem 1rem;font-size:.85rem;line-height:1.5;background:#272822}
 pre code{background:none;padding:0;border-radius:0;font-size:1em;color:#f8f8f2}
 footer.provenance{margin-top:1.5rem;padding-top:.6rem;border-top:1px solid #ddd;color:#767676;font-size:.8rem}
+table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.92em}
+th,td{border:1px solid #ddd;padding:.5rem .75rem;text-align:left}
+th{background:#f5f5f5;font-weight:600}
+tr:nth-child(even){background:#fafafa}
 </style>`
 
 // Render writes the HTML representation of book to w.

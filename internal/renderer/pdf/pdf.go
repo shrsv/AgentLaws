@@ -13,12 +13,16 @@ import (
 
 	"github.com/stephenafamo/goldmark-pdf"
 	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/extension"
 
 	"github.com/shrsv/AgentLaws/internal/model"
 )
 
 // markdownPDF is the goldmark instance configured for PDF output.
 var markdownPDF = goldmark.New(
+	goldmark.WithExtensions(
+		extension.GFM,
+	),
 	goldmark.WithRenderer(
 		pdf.New(
 			pdf.WithEscapeHTML(false),
