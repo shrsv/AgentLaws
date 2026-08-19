@@ -39,11 +39,22 @@
   min-height: 0;
 }
 
+.workbench.sidebar-hidden {
+  grid-template-columns: 1fr;
+}
+
 .sidebar {
   background: var(--vscode-sideBar-background);
   color: var(--vscode-sideBar-foreground);
   overflow-y: auto;
+  overflow-x: hidden;
   padding-block: 0.5rem;
+  min-width: 0;
+}
+
+.sidebar-hidden .sidebar,
+.sidebar-hidden .divider {
+  display: none;
 }
 
 .sidebar-title {
@@ -104,6 +115,11 @@
 
 .divider {
   background: var(--vscode-panel-border);
+  cursor: col-resize;
+}
+
+.divider:hover {
+  background: var(--vscode-focusBorder);
 }
 
 .detail {

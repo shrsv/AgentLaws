@@ -61,6 +61,12 @@ export function BookDetail({ path, section, navigate, onSectionsChange, onOpenCo
   const [highlightQuery, setHighlightQuery] = useState<string | null>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const fetchingAuthors = useRef<Set<string>>(new Set());
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const saved = localStorage.getItem("sidebarWidth");
+    return saved ? parseInt(saved, 10) : 280;
+  });
+  const [sidebarVisible, setSidebarVisible] = useState(() => localStorage.getItem("sidebarVisible") !== "false");
+  const sidebarDragRef = useRef<{ startX: number; startWidth: number } | null>(null);
 
   const reload = () => {
     setError(null);
@@ -117,6 +123,36 @@ export function BookDetail({ path, section, navigate, onSectionsChange, onOpenCo
     }
   }, [highlightQuery, selectedID]);
 
+  // Persist sidebar width and visibility
+  useEffect(() => {
+    localStorage.setItem("sidebarWidth", String(sidebarWidth));
+  }, [sidebarWidth]);
+
+  useEffect(() => {
+    localStorage.setItem("sidebarVisible", String(sidebarVisible));
+  }, [sidebarVisible]);
+
+  // Sidebar drag handlers
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      if (!sidebarDragRef.current) return;
+      const delta = e.clientX - sidebarDragRef.current.startX;
+      const newWidth = Math.max(150, Math.min(600, sidebarDragRef.current.startWidth + delta));
+      setSidebarWidth(newWidth);
+    };
+    const onMouseUp = () => {
+      sidebarDragRef.current = null;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+  }, []);
+
   const select = (id: string) => {
     setSelectedID(id);
     navigate({ name: "book", path, section: id });
@@ -132,6 +168,7 @@ export function BookDetail({ path, section, navigate, onSectionsChange, onOpenCo
   const toggleHistory = () => { setShowHistory((v) => !v); if (showHistory) setHistoryFilter(null); };
   const toggleHelp = () => { setShowHelp((v) => !v); };
   const toggleSearch = () => { setShowSearch((v) => { if (v) setHighlightQuery(null); return !v; }); };
+  const toggleSidebar = () => { setSidebarVisible((v) => !v); };
 
   useEscape(() => {
     if (showHelp) { setShowHelp(false); return true; }
@@ -147,6 +184,7 @@ export function BookDetail({ path, section, navigate, onSectionsChange, onOpenCo
     { key: "ArrowRight", description: "Next section", action: goNext },
     { key: "ArrowLeft", description: "Previous section", action: goPrev },
     { key: "h", description: "Toggle history panel", action: toggleHistory },
+    { key: "b", description: "Toggle sidebar", action: toggleSidebar },
     { key: "s", description: "View section source", action: () => { if (selected) loadSource(selected.Source.Path, selected.Source.LineStart, selected.Source.LineEnd); } },
     { key: "c", description: "Copy section file path", action: () => { if (selected) copyPath(selected.Source.Path); } },
     { key: "?", description: "Show keyboard shortcuts", action: toggleHelp },
@@ -324,6 +362,9 @@ export function BookDetail({ path, section, navigate, onSectionsChange, onOpenCo
         </button>
         <span class="book-title">{title || path}</span>
         <span class="path">{path}</span>
+        <button class="link-button" onClick={toggleSidebar} title="Toggle sidebar (b)">
+          <List size={12} />
+        </button>
         <button class="link-button titlebar-search" onClick={toggleSearch} title="Search (/)">
           <Search size={12} /> Search
         </button>
@@ -375,7 +416,7 @@ export function BookDetail({ path, section, navigate, onSectionsChange, onOpenCo
 
       {error && <p class="error-text"><CircleAlert size={12} /> {error}</p>}
 
-      <div class="workbench">
+      <div class={`workbench ${sidebarVisible ? "" : "sidebar-hidden"}`} style={sidebarVisible ? { gridTemplateColumns: `${sidebarWidth}px 1px 1fr` } : undefined}>
         <nav class="sidebar" aria-label="Lawbook sections">
           {showSearch ? (
             <SearchPanel
@@ -414,7 +455,15 @@ export function BookDetail({ path, section, navigate, onSectionsChange, onOpenCo
           )}
         </nav>
 
-        <div class="divider" />
+        <div
+          class="divider"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            sidebarDragRef.current = { startX: e.clientX, startWidth: sidebarWidth };
+            document.body.style.cursor = "col-resize";
+            document.body.style.userSelect = "none";
+          }}
+        />
 
         <main class="detail">
           {selected ? (
