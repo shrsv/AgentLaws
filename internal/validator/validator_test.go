@@ -69,3 +69,29 @@ func TestValidate_UnfencedJSON_UnclosedOpenerLine(t *testing.T) {
 		t.Fatalf("expected unfenced-json warning for unclosed `json opener, got %+v", diags)
 	}
 }
+
+func TestValidate_UnfencedJSON_JsonishObject(t *testing.T) {
+	for _, text := range []string{
+		"Value: `{\"a\": 1}`.",
+		"Value: `{a: 1}`.",
+		"Value: `[{\"a\": 1}]`.",
+	} {
+		diags := Validate([]model.Section{law("a.b", "1.1", text)})
+		if !codes(diags)["unfenced-json"] {
+			t.Errorf("expected unfenced-json for %q, got %+v", text, diags)
+		}
+	}
+}
+
+func TestValidate_NoUnfencedJSON_NotJsonish(t *testing.T) {
+	for _, text := range []string{
+		"See `[foo]: https://example.com`.",
+		"Map `{a}: {b}`.",
+		"Use `key`.",
+	} {
+		diags := Validate([]model.Section{law("a.b", "1.1", text)})
+		if codes(diags)["unfenced-json"] {
+			t.Errorf("must not flag %q, got %+v", text, diags)
+		}
+	}
+}

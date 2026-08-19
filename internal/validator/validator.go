@@ -158,6 +158,9 @@ func Validate(sections []model.Section) []Diagnostic {
 }
 
 // inlineCodeSpan matches a single- or double-backtick inline code span.
+// [^`] is a negated class, so it already matches newlines - a span the
+// author wrapped across lines (one backtick around a whole block) is
+// exactly what we want to catch, and Go's regexp needs no (?s) flag for it.
 var inlineCodeSpan = regexp.MustCompile("`([^`]+)`")
 
 // unfencedJSON reports whether text contains JSON that an author meant as a
@@ -175,8 +178,7 @@ func unfencedJSON(text string) bool {
 		if strings.HasPrefix(lower, "json") && len(content) > len("json") {
 			return true
 		}
-		if (strings.HasPrefix(content, "{") || strings.HasPrefix(content, "[")) &&
-			strings.Contains(content, ":") {
+		if jsonish(content) {
 			return true
 		}
 	}
@@ -190,6 +192,35 @@ func unfencedJSON(text string) bool {
 		}
 	}
 	return false
+}
+
+// jsonish reports whether an inline code span's content looks like a JSON
+// object or array: it begins with { or [, and its first colon follows a
+// quoted or bare key. Constructs that merely resemble JSON are excluded -
+// a Markdown link reference (`[foo]: url`, colon after ]) and a brace
+// label (`{a}: {b}`, colon after }) - so the heuristic stays narrow.
+func jsonish(content string) bool {
+	if !strings.HasPrefix(content, "{") && !strings.HasPrefix(content, "[") {
+		return false
+	}
+	i := strings.Index(content, ":")
+	if i <= 0 {
+		return false
+	}
+	switch content[i-1] {
+	case '"', '\'':
+		return true
+	case ']':
+		return false
+	}
+	return isWordByte(content[i-1])
+}
+
+func isWordByte(b byte) bool {
+	return b == '_' ||
+		(b >= 'a' && b <= 'z') ||
+		(b >= 'A' && b <= 'Z') ||
+		(b >= '0' && b <= '9')
 }
 
 // stripFencedBlocks removes ``` and ~~~ fenced regions so inline-span
