@@ -10,6 +10,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -61,6 +63,7 @@ func registerAPI(mux *http.ServeMux) {
 	mux.HandleFunc("/api/book/log", handleLog)
 	mux.HandleFunc("/api/book/verify", handleVerify)
 	mux.HandleFunc("/api/book/commit-detail", handleCommitDetail)
+	mux.HandleFunc("/api/book/source", handleSource)
 	mux.HandleFunc("/api/meta/operations", handleOperations)
 	mux.HandleFunc("/api/meta/root", handleRoot)
 	mux.HandleFunc("/api/export", handleExportAll)
@@ -594,4 +597,60 @@ func handleCommitDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, detail)
+}
+
+// GET /api/book/source?path=&lineStart=&lineEnd=
+func handleSource(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		methodNotAllowed(w)
+		return
+	}
+	q := r.URL.Query()
+	srcPath := q.Get("path")
+	if srcPath == "" {
+		writeError(w, errors.New("path is required"))
+		return
+	}
+	absPath, err := filepath.Abs(srcPath)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	data, err := os.ReadFile(absPath)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	lines := strings.Split(string(data), "\n")
+	start := 1
+	end := len(lines)
+	if s := q.Get("lineStart"); s != "" {
+		if n, convErr := strconv.Atoi(s); convErr == nil && n > 0 {
+			start = n
+		}
+	}
+	if s := q.Get("lineEnd"); s != "" {
+		if n, convErr := strconv.Atoi(s); convErr == nil && n > 0 {
+			end = n
+		}
+	}
+	if start > len(lines) {
+		start = len(lines)
+	}
+	if end > len(lines) {
+		end = len(lines)
+	}
+	if start < 1 {
+		start = 1
+	}
+	if end < start {
+		end = start
+	}
+	snippet := strings.Join(lines[start-1:end], "\n")
+	writeJSON(w, http.StatusOK, map[string]any{
+		"path":      srcPath,
+		"lineStart": start,
+		"lineEnd":   end,
+		"content":   snippet,
+	})
 }

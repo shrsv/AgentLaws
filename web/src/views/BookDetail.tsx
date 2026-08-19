@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from "preact/hooks";
 import type { VNode } from "preact";
-import { History, Plus, X, Clock, User, ArrowLeft, FileText, Download, FlaskConical, CircleAlert, TriangleAlert, List, MousePointer } from "lucide-preact";
+import { History, Plus, X, Clock, User, ArrowLeft, FileText, Download, FlaskConical, CircleAlert, TriangleAlert, List, MousePointer, ChevronLeft, ChevronRight, Copy, Code, Check } from "lucide-preact";
 import { api, type Section, type Diagnostic, type RenderedSection } from "../api";
 import type { Route } from "../router";
 import { HistorySidebar } from "../components/HistorySidebar";
@@ -48,6 +48,8 @@ export function BookDetail({ path, section, navigate }: Props) {
   const [showHistory, setShowHistory] = useState(false);
   const [historyFilter, setHistoryFilter] = useState<{ type: "section" | "law"; id: string; sectionId?: string } | null>(null);
   const [lawAuthors, setLawAuthors] = useState<Record<string, string>>({});
+  const [sourceContent, setSourceContent] = useState<{ path: string; lineStart: number; lineEnd: number; content: string } | null>(null);
+  const [copiedPath, setCopiedPath] = useState(false);
   const fetchingAuthors = useRef<Set<string>>(new Set());
 
   const reload = () => {
@@ -81,6 +83,30 @@ export function BookDetail({ path, section, navigate }: Props) {
   const select = (id: string) => {
     setSelectedID(id);
     navigate({ name: "book", path, section: id });
+  };
+
+  const currentIndex = selectedID ? sections.findIndex((s) => s.ID === selectedID) : -1;
+  const hasPrev = currentIndex > 0;
+  const hasNext = currentIndex >= 0 && currentIndex < sections.length - 1;
+
+  const goPrev = () => { if (hasPrev) select(sections[currentIndex - 1].ID); };
+  const goNext = () => { if (hasNext) select(sections[currentIndex + 1].ID); };
+
+  const relativePath = (srcPath: string) => {
+    const bookDir = path.includes(".") ? path.replace(/[/\\][^/\\]+$/, "") : path;
+    if (srcPath.startsWith(bookDir)) return srcPath.slice(bookDir.length + 1);
+    return srcPath;
+  };
+
+  const copyPath = (srcPath: string) => {
+    navigator.clipboard.writeText(srcPath).then(() => {
+      setCopiedPath(true);
+      setTimeout(() => setCopiedPath(false), 1500);
+    });
+  };
+
+  const loadSource = (srcPath: string, lineStart: number, lineEnd: number) => {
+    api.source(srcPath, lineStart, lineEnd).then(setSourceContent).catch(() => setSourceContent(null));
   };
 
   // Recursive sidebar renderer: each section is a row (with the same
@@ -296,10 +322,32 @@ export function BookDetail({ path, section, navigate }: Props) {
         <main class="detail">
           {selected ? (
             <>
-              <h1>
-                {selected.Number} {selected.Title}
-              </h1>
-              <div class="section-id">{selected.ID}</div>
+              <div class="detail-header">
+                <div class="detail-nav">
+                  <button class="icon-button nav-arrow" title="Previous section" disabled={!hasPrev} onClick={goPrev}>
+                    <ChevronLeft size={16} />
+                  </button>
+                  <button class="icon-button nav-arrow" title="Next section" disabled={!hasNext} onClick={goNext}>
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+                <h1>
+                  {selected.Number} {selected.Title}
+                </h1>
+              </div>
+              <div class="section-id">
+                {selected.ID}
+              </div>
+              <div class="section-file">
+                <Code size={11} />
+                <span class="section-file-path" title={selected.Source.Path}>{relativePath(selected.Source.Path)}</span>
+                <button class="icon-button" title="Copy path" onClick={() => copyPath(selected.Source.Path)}>
+                  {copiedPath ? <Check size={11} /> : <Copy size={11} />}
+                </button>
+                <button class="icon-button" title="View source" onClick={() => loadSource(selected.Source.Path, selected.Source.LineStart, selected.Source.LineEnd)}>
+                  <Code size={11} /> Source
+                </button>
+              </div>
               <div class="commentary" dangerouslySetInnerHTML={{ __html: rendered[selected.ID]?.CommentaryHTML ?? escapeHTML(selected.Commentary) }} />
 
               {selected.Laws && selected.Laws.length > 0 ? (
@@ -364,6 +412,25 @@ export function BookDetail({ path, section, navigate }: Props) {
         filterEntity={historyFilter}
         sections={sections}
       />
+
+      {sourceContent && (
+        <div class="source-overlay" onClick={() => setSourceContent(null)}>
+          <div class="source-modal" onClick={(e) => e.stopPropagation()}>
+            <div class="source-modal-header">
+              <span class="source-modal-title">{relativePath(sourceContent.path)}:{sourceContent.lineStart}-{sourceContent.lineEnd}</span>
+              <div class="source-modal-actions">
+                <button class="icon-button" title="Copy source" onClick={() => { navigator.clipboard.writeText(sourceContent.content); }}>
+                  <Copy size={11} />
+                </button>
+                <button class="icon-button" title="Close" onClick={() => setSourceContent(null)}>
+                  <X size={11} />
+                </button>
+              </div>
+            </div>
+            <pre class="source-modal-content"><code>{sourceContent.content}</code></pre>
+          </div>
+        </div>
+      )}
 
       <div class="statusbar">
         <span class={`diagnostic-count ${errorCount > 0 ? "error" : ""}`}><CircleAlert size={11} /> {errorCount} errors</span>

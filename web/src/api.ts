@@ -285,4 +285,9 @@ export const api = {
 
   commitDetail: (path: string, commit: string) =>
     req<CommitDetail>(`/api/book/commit-detail${qs({ path, commit })}`),
+
+  source: (filePath: string, lineStart?: number, lineEnd?: number) =>
+    req<{ path: string; lineStart: number; lineEnd: number; content: string }>(
+      `/api/book/source${qs({ path: filePath, lineStart, lineEnd })}`,
+    ),
 };

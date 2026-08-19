@@ -108,6 +108,53 @@
   margin: 0 0 0.25rem;
 }
 
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.detail-header h1 {
+  margin: 0;
+}
+
+.detail-nav {
+  display: flex;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+.nav-arrow {
+  padding: 0.15rem;
+  border-radius: 3px;
+}
+
+.nav-arrow:hover:not(:disabled) {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.nav-arrow:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.section-file {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  margin-bottom: 1.25rem;
+}
+
+.section-file-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .detail .section-id {
   color: var(--vscode-descriptionForeground);
   font-family: var(--vscode-editor-font-family);
@@ -1061,4 +1108,61 @@ input::placeholder {
 .link-button.active {
   color: var(--vscode-textLink-foreground);
   font-weight: 600;
+}
+
+/* --- Source modal --- */
+
+.source-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.source-modal {
+  width: 80vw;
+  max-width: 900px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.source-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  flex-shrink: 0;
+}
+
+.source-modal-title {
+  font-family: var(--vscode-editor-font-family);
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.source-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.source-modal-content {
+  flex: 1;
+  overflow: auto;
+  margin: 0;
+  padding: 0.75rem 1rem;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--vscode-editor-foreground);
+  tab-size: 4;
 }
