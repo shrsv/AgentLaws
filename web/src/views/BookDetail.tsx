@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState, useRef } from "preact/hooks";
 import type { VNode } from "preact";
-import { History, Plus, X, Clock, User, ArrowLeft, FileText, Download, FlaskConical, CircleAlert, TriangleAlert, List, MousePointer, ChevronLeft, ChevronRight, Copy, Code, Check } from "lucide-preact";
+import { History, Plus, X, Clock, User, ArrowLeft, FileText, Download, FlaskConical, CircleAlert, TriangleAlert, List, MousePointer, ChevronLeft, ChevronRight, Copy, Code, Check, HelpCircle } from "lucide-preact";
 import { api, type Section, type Diagnostic, type RenderedSection } from "../api";
 import type { Route } from "../router";
 import { HistorySidebar } from "../components/HistorySidebar";
+import { HotkeyHelp } from "../components/HotkeyHelp";
+import { useShortcuts, useEscape, getRegisteredShortcuts } from "../hooks/useKeyboardShortcuts";
 
 interface Props {
   path: string;
@@ -50,6 +52,7 @@ export function BookDetail({ path, section, navigate }: Props) {
   const [lawAuthors, setLawAuthors] = useState<Record<string, string>>({});
   const [sourceContent, setSourceContent] = useState<{ path: string; lineStart: number; lineEnd: number; content: string } | null>(null);
   const [copiedPath, setCopiedPath] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const fetchingAuthors = useRef<Set<string>>(new Set());
 
   const reload = () => {
@@ -91,6 +94,27 @@ export function BookDetail({ path, section, navigate }: Props) {
 
   const goPrev = () => { if (hasPrev) select(sections[currentIndex - 1].ID); };
   const goNext = () => { if (hasNext) select(sections[currentIndex + 1].ID); };
+
+  const toggleHistory = () => { setShowHistory((v) => !v); if (showHistory) setHistoryFilter(null); };
+  const toggleHelp = () => { setShowHelp((v) => !v); };
+
+  useEscape(() => {
+    if (showHelp) { setShowHelp(false); return true; }
+    if (sourceContent) { setSourceContent(null); return true; }
+    if (showHistory) { setShowHistory(false); setHistoryFilter(null); return true; }
+    return false;
+  });
+
+  useShortcuts([
+    { key: "j", description: "Next section", action: goNext },
+    { key: "k", description: "Previous section", action: goPrev },
+    { key: "ArrowRight", description: "Next section", action: goNext },
+    { key: "ArrowLeft", description: "Previous section", action: goPrev },
+    { key: "h", description: "Toggle history panel", action: toggleHistory },
+    { key: "s", description: "View section source", action: () => { if (selected) loadSource(selected.Source.Path, selected.Source.LineStart, selected.Source.LineEnd); } },
+    { key: "c", description: "Copy section file path", action: () => { if (selected) copyPath(selected.Source.Path); } },
+    { key: "?", description: "Show keyboard shortcuts", action: toggleHelp },
+  ]);
 
   const relativePath = (srcPath: string) => {
     const bookDir = path.includes(".") ? path.replace(/[/\\][^/\\]+$/, "") : path;
@@ -283,10 +307,13 @@ export function BookDetail({ path, section, navigate }: Props) {
         </button>
         <button
           class={`link-button ${showHistory ? "active" : ""}`}
-          onClick={() => { setShowHistory((v) => !v); if (showHistory) setHistoryFilter(null); }}
+          onClick={toggleHistory}
         >
           <History size={12} style={{ verticalAlign: "middle", marginRight: 4 }} />
           History
+        </button>
+        <button class="link-button" onClick={toggleHelp} title="Keyboard shortcuts (?)">
+          <HelpCircle size={12} />
         </button>
       </div>
 
@@ -431,6 +458,12 @@ export function BookDetail({ path, section, navigate }: Props) {
           </div>
         </div>
       )}
+
+      <HotkeyHelp
+        show={showHelp}
+        onClose={() => setShowHelp(false)}
+        shortcuts={getRegisteredShortcuts()}
+      />
 
       <div class="statusbar">
         <span class={`diagnostic-count ${errorCount > 0 ? "error" : ""}`}><CircleAlert size={11} /> {errorCount} errors</span>
