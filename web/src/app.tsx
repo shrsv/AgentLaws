@@ -39,6 +39,26 @@ export function App() {
     localStorage.setItem("watchMinimized", String(watchMinimized));
   }, [watchMinimized]);
 
+  // Dynamic page title
+  useEffect(() => {
+    let pageTitle = "AgentLaws";
+    if (route.name === "books") {
+      pageTitle = "Lawbooks — AgentLaws";
+    } else if (route.name === "book") {
+      const bookTitle = books.find((b) => b.Path === route.path)?.Title || route.path;
+      if (route.section) {
+        const sec = sections.find((s) => s.ID === route.section);
+        if (sec) pageTitle = `${sec.Number} ${sec.Title} — ${bookTitle} — AgentLaws`;
+        else pageTitle = `${route.section} — ${bookTitle} — AgentLaws`;
+      } else {
+        pageTitle = `${bookTitle} — AgentLaws`;
+      }
+    } else if (route.name === "playground") {
+      pageTitle = `Playground — ${route.path} — AgentLaws`;
+    }
+    document.title = pageTitle;
+  }, [route, sections, books]);
+
   // Ctrl+P to open command palette
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
