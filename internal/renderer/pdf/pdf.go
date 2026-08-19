@@ -4,10 +4,24 @@
 // This renderer uses goldmark-pdf to leverage goldmark's full CommonMark +
 // GFM parsing (headings, bold, italic, links, tables, code blocks, etc.)
 // instead of a hand-rolled markdown subset.
+//
+// goldmark-pdf@v0.4.2 has two bugs that matter for cross-referencing (see
+// fixed_fpdf.go and textNodeRenderer below for the full diagnosis and
+// fix of each, both confirmed by direct experiment against the vendored
+// library before this code was written):
+//
+//   - Internal links (`[text](#anchor)`) get two overlapping annotations
+//   - one broken, one correct - so viewers behave inconsistently.
+//     Fixed by fixedFpdf.
+//   - A paragraph that soft-wraps across source lines loses the space at
+//     the wrap point, e.g. "...complemented byreview requirementsand
+//     testing...". Fixed by textNodeRenderer.
 package pdf
 
 import (
+	"context"
 	"fmt"
+	"image/color"
 	"io"
 	"regexp"
 	"strings"
@@ -22,30 +36,72 @@ import (
 	"github.com/shrsv/AgentLaws/internal/resolver"
 )
 
-// markdownPDF is the goldmark instance configured for PDF output.
-var markdownPDF = goldmark.New(
-	goldmark.WithExtensions(
-		extension.GFM,
-	),
-	goldmark.WithRenderer(
-		pdflib.New(
-			pdflib.WithEscapeHTML(false),
-			pdflib.WithNodeRenderers(
-				util.Prioritized(&anchorNodeRenderer{}, 100),
+// LinkBlue is the standard link color for PDF links.
+var LinkBlue = color.RGBA{R: 0x1A, G: 0x73, B: 0xE8, A: 0xFF}
+
+// newMarkdownPDF builds a fresh goldmark instance configured for PDF
+// output. It is constructed fresh on every call rather than shared as a
+// package-level singleton: the fixedFpdf it wires in carries per-document
+// state (registered anchors, pending internal-link positions) that must
+// not leak between unrelated renders.
+func newMarkdownPDF() goldmark.Markdown {
+	fpdf := pdflib.NewFpdf(context.Background(), pdflib.FpdfConfig{}, nil)
+	fixed := newFixedFpdf(fpdf)
+
+	return goldmark.New(
+		goldmark.WithExtensions(
+			extension.GFM,
+		),
+		goldmark.WithRenderer(
+			pdflib.New(
+				pdflib.WithPDF(fixed),
+				pdflib.WithEscapeHTML(false),
+				pdflib.WithLinkColor(LinkBlue),
+				pdflib.WithNodeRenderers(
+					util.Prioritized(&anchorNodeRenderer{}, 100),
+					util.Prioritized(&textNodeRenderer{}, 100),
+				),
 			),
 		),
-	),
-)
+	)
+}
 
-// anchorSentinelRe matches <!--alaws-anchor:...--> sentinel comments.
-var anchorSentinelRe = regexp.MustCompile(`^<!--alaws-anchor:(.+)-->$`)
+// anchorSentinelRe matches a <!--alaws-anchor:...--> sentinel comment,
+// which buildMarkdownInto emits on its own line immediately before an
+// anchorable law or section so this renderer can register it as an
+// internal PDF link target.
+var anchorSentinelRe = regexp.MustCompile(`<!--alaws-anchor:(.+?)-->`)
 
-// anchorNodeRenderer handles raw HTML nodes that are alaws-anchor
-// sentinels, registering them as internal PDF link anchors.
+// anchorNodeRenderer registers alaws-anchor sentinels as internal PDF
+// link targets (via Pdf.AddInternalLink), so a later WriteInternalLink
+// to that anchor (see fixedFpdf) has somewhere to resolve to.
+//
+// A standalone-line HTML comment parses as a block-level ast.KindHTMLBlock
+// node, not inline ast.KindRawHTML - goldmark-pdf's default renderer for
+// KindHTMLBlock is a no-op ("Cannot process HTML blocks"), so without
+// this override, every anchor sentinel was silently dropped and no law
+// ever had a working internal-link target. KindRawHTML is also handled,
+// for robustness, in case a sentinel ever ends up inline instead.
 type anchorNodeRenderer struct{}
 
 func (r *anchorNodeRenderer) RegisterFuncs(reg pdflib.NodeRendererFuncRegisterer) {
+	reg.Register(ast.KindHTMLBlock, r.renderHTMLBlock)
 	reg.Register(ast.KindRawHTML, r.renderRawHTML)
+}
+
+func (r *anchorNodeRenderer) renderHTMLBlock(w *pdflib.Writer, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	if !entering {
+		return ast.WalkContinue, nil
+	}
+	n := node.(*ast.HTMLBlock)
+	lines := n.Lines()
+	for i := 0; i < lines.Len(); i++ {
+		seg := lines.At(i)
+		if m := anchorSentinelRe.FindStringSubmatch(string(seg.Value(source))); m != nil {
+			w.Pdf.AddInternalLink(m[1])
+		}
+	}
+	return ast.WalkContinue, nil
 }
 
 func (r *anchorNodeRenderer) renderRawHTML(w *pdflib.Writer, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
@@ -53,15 +109,39 @@ func (r *anchorNodeRenderer) renderRawHTML(w *pdflib.Writer, source []byte, node
 		return ast.WalkContinue, nil
 	}
 	n := node.(*ast.RawHTML)
-	segs := n.Segments
 	var content string
-	for i := 0; i < segs.Len(); i++ {
-		seg := segs.At(i)
+	for i := 0; i < n.Segments.Len(); i++ {
+		seg := n.Segments.At(i)
 		content += string(seg.Value(source))
 	}
 	if m := anchorSentinelRe.FindStringSubmatch(content); m != nil {
 		w.Pdf.AddInternalLink(m[1])
 	}
+	return ast.WalkContinue, nil
+}
+
+// textNodeRenderer replaces goldmark-pdf's default ast.KindText renderer
+// to fix the soft/hard line-break space loss described in the package
+// doc comment: the default renderer writes only Text.Segment's raw bytes
+// and never checks Text.SoftLineBreak()/HardLineBreak(), both of which
+// represent a space that CommonMark says should render as one but whose
+// literal newline byte is deliberately excluded from Segment.
+type textNodeRenderer struct{}
+
+func (r *textNodeRenderer) RegisterFuncs(reg pdflib.NodeRendererFuncRegisterer) {
+	reg.Register(ast.KindText, r.renderText)
+}
+
+func (r *textNodeRenderer) renderText(w *pdflib.Writer, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	if !entering {
+		return ast.WalkContinue, nil
+	}
+	n := node.(*ast.Text)
+	text := string(n.Segment.Value(source))
+	if n.SoftLineBreak() || n.HardLineBreak() {
+		text += " "
+	}
+	w.WriteText(text)
 	return ast.WalkContinue, nil
 }
 
@@ -97,7 +177,7 @@ func makeCombinedResolveFunc(books []model.Lawbook) ResolveFunc {
 func Render(w io.Writer, book model.Lawbook) error {
 	resolve := makeResolveFunc(book)
 	md := buildMarkdown(book, resolve)
-	return markdownPDF.Convert([]byte(md), w)
+	return newMarkdownPDF().Convert([]byte(md), w)
 }
 
 // RenderAll writes one combined PDF covering every book in books, each
@@ -113,7 +193,50 @@ func RenderAll(w io.Writer, title string, books []model.Lawbook) error {
 		}
 		buildMarkdownInto(&b, book, resolve)
 	}
-	return markdownPDF.Convert([]byte(b.String()), w)
+	return newMarkdownPDF().Convert([]byte(b.String()), w)
+}
+
+// blockStructureRe matches the first line of a Markdown block that has
+// line-significant structure (heading, list item, blockquote, fenced code)
+// - normalizeSoftWraps leaves such blocks untouched.
+var blockStructureRe = regexp.MustCompile("^(#{1,6}\\s|[-*+]\\s|[0-9]+[.)]\\s|>|```|~~~)")
+
+// normalizeSoftWraps collapses each soft-wrapped line break inside a plain
+// prose paragraph into the single space CommonMark says it should render
+// as, and leaves everything else (blank-line paragraph boundaries, and
+// blocks that look like a heading/list/blockquote/fenced code) untouched.
+//
+// This exists because textNodeRenderer (above) can only restore a soft
+// break's implied space when the break lands at the end of an ast.Text
+// node - but when the break instead lands right after a closing link
+// (`[text](url)\nmore text`), there is no Text node adjacent to the break
+// at all, so goldmark-pdf's renderer has nothing to hang a "this was a
+// line break" flag on; the space is unrecoverably gone by render time.
+// Confirmed by experiment: "...[testing obligations](url).\n" wrapping
+// straight into the *next* sentence rendered as "...obligationsAgents..."
+// even with textNodeRenderer active. Doing the normalization here, on the
+// raw Markdown source before goldmark ever parses it, sidesteps the gap
+// entirely - there is no longer an embedded newline for any inline node
+// adjacency to lose track of.
+//
+// Section commentary is the only input this is applied to: law text
+// never reaches here with embedded raw newlines in the first place,
+// since internal/parser's fence-aware clause folding already joins a
+// law's continuation lines with a single space before it ever becomes
+// model.Law.Text.
+func normalizeSoftWraps(md string) string {
+	blocks := regexp.MustCompile(`\n{2,}`).Split(md, -1)
+	for i, block := range blocks {
+		if blockStructureRe.MatchString(block) || strings.Contains(block, "```") || strings.Contains(block, "~~~") {
+			continue
+		}
+		lines := strings.Split(block, "\n")
+		for j, line := range lines {
+			lines[j] = strings.TrimRight(line, " \t")
+		}
+		blocks[i] = strings.Join(lines, " ")
+	}
+	return strings.Join(blocks, "\n\n")
 }
 
 // buildMarkdown converts a Lawbook IR into a Markdown string that
@@ -140,7 +263,7 @@ func buildMarkdownInto(b *strings.Builder, book model.Lawbook, resolve ResolveFu
 
 		// Commentary (already markdown — rewrite alaws: links)
 		if s.Commentary != "" {
-			b.WriteString(rewriteAlawsLinks(s.Commentary, resolve))
+			b.WriteString(rewriteAlawsLinks(normalizeSoftWraps(s.Commentary), resolve))
 			b.WriteString("\n\n")
 		}
 
