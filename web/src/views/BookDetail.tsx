@@ -151,6 +151,7 @@ export function BookDetail({ path, section, navigate, onSectionsChange, onOpenCo
     { key: "c", description: "Copy section file path", action: () => { if (selected) copyPath(selected.Source.Path); } },
     { key: "?", description: "Show keyboard shortcuts", action: toggleHelp },
     { key: "/", description: "Search in book", action: toggleSearch },
+    { key: "p", description: "Quick jump (Ctrl+P also works)", action: () => onOpenCommandPalette?.() },
   ]);
 
   const relativePath = (srcPath: string) => {

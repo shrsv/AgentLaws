@@ -12,6 +12,7 @@ import { CommandPalette } from "./components/CommandPalette";
 export function App() {
   const [route, navigate] = useRoute();
   const [watchOpen, setWatchOpen] = useState(false);
+  const [watchMinimized, setWatchMinimized] = useState(() => localStorage.getItem("watchMinimized") === "true");
   const [root, setRoot] = useState<string | null>(null);
   const [cmdOpen, setCmdOpen] = useState(false);
   const [books, setBooks] = useState<{ Path: string; Title: string }[]>([]);
@@ -32,6 +33,11 @@ export function App() {
       setWatchOpen(false);
     }
   }, [currentPath]);
+
+  // Persist minimized state
+  useEffect(() => {
+    localStorage.setItem("watchMinimized", String(watchMinimized));
+  }, [watchMinimized]);
 
   // Ctrl+P to open command palette
   useEffect(() => {
@@ -80,11 +86,18 @@ export function App() {
       <div class="app-footer">
         <button class="link-button" onClick={() => setWatchOpen((v) => !v)}>
           {watchOpen ? <EyeOff size={12} /> : <Eye size={12} />}
-          {watchOpen ? " Hide watch" : currentPath ? ` Watch ${currentPath}` : " Watch all books"}
+          {watchOpen ? (watchMinimized ? " Watch (minimized)" : " Hide watch") : currentPath ? ` Watch ${currentPath}` : " Watch all books"}
         </button>
       </div>
 
-      <WatchPanel path={currentPath} root={root} open={watchOpen} onClose={() => setWatchOpen(false)} />
+      <WatchPanel
+        path={currentPath}
+        root={root}
+        open={watchOpen}
+        minimized={watchMinimized}
+        onClose={() => setWatchOpen(false)}
+        onMinimize={() => setWatchMinimized((v) => !v)}
+      />
       <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} items={cmdItems} />
     </div>
   );

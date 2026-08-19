@@ -685,6 +685,15 @@ input::placeholder {
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3);
 }
 
+.watch-panel.minimized {
+  max-height: none;
+  width: 200px;
+}
+
+.watch-panel.minimized .watch-panel-header {
+  border-bottom: none;
+}
+
 .watch-panel-header {
   display: flex;
   align-items: center;
@@ -693,6 +702,13 @@ input::placeholder {
   font-size: 12px;
   font-weight: 600;
   border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.watch-panel-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
 }
 
 .watch-panel-body {
