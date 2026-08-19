@@ -186,7 +186,7 @@ func newLawFillSlugsCmd() *cobra.Command {
 				}
 
 				// Generate slugs for laws missing them.
-				for _, rl := range parsed.RawLaws {
+				for idx, rl := range parsed.RawLaws {
 					if rl.Slug != "" {
 						continue
 					}
@@ -194,19 +194,6 @@ func newLawFillSlugsCmd() *cobra.Command {
 					existing = append(existing, slug)
 					if flagDryRun {
 						cmd.Printf("would fill slug in %s: %q -> %q\n", full, truncate(rl.Text, 40), slug)
-						continue
-					}
-					// Use "last" as citation to target this specific law
-					// by position — but we need to find the right number.
-					// Since we iterate in order, the 1-based index matches.
-					idx := -1
-					for j, r := range parsed.RawLaws {
-						if &r == &rl {
-							idx = j
-							break
-						}
-					}
-					if idx < 0 {
 						continue
 					}
 					citation := strconv.Itoa(idx + 1)

@@ -40,6 +40,7 @@ AgentLaws is deliberately simple today. It does not attempt to build a formal le
 | Use it as a Go library in my app | [Using Laws from Go](#using-laws-from-go) |
 | Insert dynamic values into laws | [Variables in Prompt Composition](#variables-in-prompt-composition) |
 | Understand canonical citation numbers | [Canonical Law Numbers](#canonical-law-numbers) |
+| Cross-reference chapters, sections, and laws | [Cross-Referencing Laws](#cross-referencing-laws) |
 | See how agent citations create an audit trail | [Agent Citations](#agent-citations) |
 | Browse the lawbook in a web UI | [Local Web UI](#local-web-ui) |
 | Understand provenance and signed compilation | [Provenance and History](#provenance-and-history) |
@@ -433,7 +434,7 @@ AgentLaws can then resolve those citations to the actual rules.
 
 # Stable Section Identity
 
-Every Markdown file has a unique `id`.
+Every Markdown file — whether it's a top-level chapter or a section nested underneath one — has a unique `id`. A "chapter" isn't a separate concept AgentLaws tracks; it's just what we call a section at the top level (`alaws chapter create`, versus `alaws section create --parent ...` for one nested under it — see [Hierarchy and Ordering](#hierarchy-and-ordering)). Everything below applies equally to both.
 
 For example:
 
@@ -489,7 +490,156 @@ Git history
 
 ---
 
+# Cross-Referencing Laws
+
+Chapters, sections, and laws can all link to each other — from commentary or from law text — using addresses that stay valid even after you reorder things, insert new laws above them, or move a file to a different folder. This is what lets a law in `coding.md` say "see the [secrets handling rules](...)" in `security/secrets.md`, and have that link keep working no matter how either file changes later.
+
+## The three things you can link to
+
+| Linking to... | Its stable address | Where that address comes from |
+|---|---|---|
+| A chapter | its `id` | the chapter file's frontmatter, e.g. `id: engineering.security` |
+| A section nested under a chapter | its `id` | that section file's frontmatter, e.g. `id: engineering.security.secrets` |
+| A specific law | `<its section's id>.<its own slug>` | the containing section's `id`, plus a `{#slug}` tag you add to the law |
+
+As covered in [Stable Section Identity](#stable-section-identity), a chapter is just a section at the top level — there's no separate "chapter" type to learn here. Sections nest by dotted `id` as deep as you like, and AgentLaws never interprets the dots itself; they're just how the author shows nesting, the same way a package path does. A law's address is the one new piece: it's always *the section's own id* with the law's own slug tacked on the end.
+
+## Step 1: give the law a slug
+
+A law only becomes individually linkable once it has a slug — a short tag you add in a `{#slug}` block, either on the same line as the law or on its own line right after (useful for a law that spans several lines or contains a fenced code block):
+
+```md
+<!-- alaws:laws -->
+
+1. Credentials must never be committed to source control. {#no-secrets-in-scm}
+
+2. Agents must not print credentials into logs. {#no-logs}
+
+3. Credentials discovered in source must be treated as compromised and rotated.
+   {#rotate-discovered}
+```
+
+A slug just needs to be:
+
+- lowercase letters, digits, and hyphens, starting with a letter (`^[a-z][a-z0-9-]*$`)
+- unique *within its own section* — two laws in two different sections are free to reuse the same slug, no conflict
+
+The compiler enforces both, plus requires every law to have one — so a missing, malformed, or duplicate slug shows up as a validation error right away, rather than as a broken link somewhere else later.
+
+Don't want to hand-write a slug for every law you already have? Let the CLI do it:
+
+```bash
+alaws law fill-slugs ./my-governance
+```
+
+This fills in a slug for every law that's missing one, generated from the first few significant words of its text.
+
+## Step 2: see how that becomes the law's full address
+
+A law's fully-qualified address is just *its section's `id`* — however many chapter/section levels deep that already is — with `.` and the law's own slug appended:
+
+```text
+   engineering . security . secrets  +  . no-secrets-in-scm
+   \_____________________________/        \_______________/
+                  ↓                               ↓
+      the containing section's id        this law's own slug
+   (three levels deep here, but could      (only needs to be
+    be one level or five — the law's        unique inside that
+    address just mirrors whatever           one section)
+    that section's own id already is)
+
+   =  engineering.security.secrets.no-secrets-in-scm
+```
+
+Nothing about the format changes if `secrets` were instead its own top-level chapter (`id: engineering.secrets`) rather than nested under `security` — the law's address would simply be `engineering.secrets.no-secrets-in-scm`, one segment shorter. The rule is always the same regardless of depth: *section id, dot, slug*.
+
+This is what makes the address stable. Reorder the laws in `secrets.md`, insert five new ones above this one — `engineering.security.secrets.no-secrets-in-scm` still points at the exact same law. Compare that to its citation number, `2.5.1`, which is recomputed from list position on every compile and will happily point at a *different* law the moment something above it moves.
+
+## Step 3: write the link
+
+Use the `alaws:` scheme inside a normal Markdown link, from any chapter or section's commentary or law text:
+
+```md
+<!-- alaws:commentary -->
+
+Agents must follow the [secrets handling rules](alaws:engineering.security.secrets.no-secrets-in-scm)
+when working with credentials. See also the whole
+[Security chapter](alaws:engineering.security).
+```
+
+Because it's just a Markdown link with an unfamiliar URI scheme, it degrades gracefully anywhere that isn't AgentLaws — GitHub, a plain-Markdown viewer, an editor preview — the same way a `mailto:` link would. It's AgentLaws' own renderers that turn `alaws:...` into a real, clickable jump target.
+
+The token after `alaws:` can take any of these forms:
+
+| Token form | Example | Points at |
+|---|---|---|
+| A chapter or section's `id` | `alaws:engineering.security` | that chapter or section |
+| A law's fully-qualified address | `alaws:engineering.security.secrets.no-secrets-in-scm` | that one specific law |
+| A law's citation number, as last compiled | `alaws:2.5.1` | whichever law currently has that number |
+| A law's bare slug, with no section prefix | `alaws:no-secrets-in-scm` | that law — but only if no other section in the book happens to reuse the same slug |
+
+If you're not sure which to reach for: the fully-qualified law address is the one that's always safe and always stable, so it's the right default. The bare-slug form is a shorthand for when you know it's unique and don't feel like typing the section path; if a second section ever reuses that slug, the bare form becomes ambiguous and only the fully-qualified form still resolves — the `ambiguous-identity` and `duplicate-slug` diagnostics below exist to catch exactly that before it surprises anyone.
+
+Under the hood, a token is tried against each form in this order until one matches: chapter/section `id` → fully-qualified law address → law citation number → section citation number (e.g. `2.5`) → unambiguous bare slug. In practice this rarely matters — a chapter/section `id` and a law's slug live in different enough shapes that they don't collide by accident — but it's why an exact section `id` always wins if a link's token could technically be read more than one way.
+
+## How links render
+
+- **HTML export** — an `alaws:` link becomes a same-page anchor (`<a href="#sectionid.slug">`); clicking it jumps straight to the target.
+- **Web UI** — clicking a link navigates to the right chapter or section, scrolls to the specific law, and briefly highlights it. Every law also gets its own `#` permalink button that copies a direct URL.
+- **PDF export** — an `alaws:` link becomes a real internal PDF link, not a URL — click it in any PDF viewer with internal-link support and it jumps to the right page.
+- **Markdown export** — an `alaws:` link becomes a plain `[text](#anchor)` reference, with a matching `<a id="...">` anchor placed right before whatever it points at.
+
+## A complete example
+
+```md
+---
+title: Code Review
+id: engineering.coding.review
+---
+
+<!-- alaws:commentary -->
+
+Rules for how a code change gets reviewed before it merges. A reviewer
+should verify that [testing obligations](alaws:engineering.coding.testing.change-modifies-behavior-include-update)
+have been met and that [secrets are not introduced](alaws:engineering.security.secrets.no-secrets-in-scm)
+into the change.
+
+<!-- alaws:laws -->
+
+1. Every change must be reviewed by at least one human before merging. {#human-review-required}
+
+2. An agent must not approve its own pull request. {#no-self-approve}
+
+3. Review comments that request a change must be resolved before merge. {#resolve-review-comments}
+```
+
+This section's commentary links out to laws in two *other* sections, by their fully-qualified address. This section's own laws carry slugs precisely so that those other sections — or any other section in the book — can link back in here just as easily.
+
+## See it working
+
+- [`examples/`](examples/) has three complete lawbooks that cross-reference each other exactly this way:
+  - [`examples/engineering/`](examples/engineering/) — 19 sections covering principles, security, coding, operations, and incident response, e.g. deployment links to rollback, severity links to communication.
+  - [`examples/payments/`](examples/payments/) — authorization, refunds, and integration, e.g. fraud checks links to transaction limits.
+  - [`examples/support/`](examples/support/) — customer data, escalation, and integration, e.g. severity triage links to handoff.
+- [`samples/`](samples/) has those same lawbooks pre-compiled to HTML, PDF, Markdown, and JSON — open one and click a cross-reference link to see it actually jump, without compiling anything yourself.
+
+## Validator diagnostics
+
+Run `alaws validate` to catch any of these before they end up in a compiled lawbook:
+
+| Code | Severity | Meaning |
+|---|---|---|
+| `missing-slug` | Error | A law has no `{#slug}` tag |
+| `invalid-slug` | Error | Slug doesn't match `^[a-z][a-z0-9-]*$` |
+| `duplicate-slug` | Error | Two laws in the same section share a slug |
+| `ambiguous-identity` | Warning | A law's fully-qualified address happens to collide with some other chapter/section's `id` |
+| `dangling-reference` | Warning | An `alaws:` link points at a token that doesn't resolve to anything |
+
+---
+
 # Hierarchy and Ordering
+
+A quick terminology note before the rest of this section: a "chapter" is simply a section at the top level. There's no separate chapter type in the data model — `alaws chapter create` and `alaws section create --parent <id>` both just create a section; the only difference is whether it has a parent. `Level: 1` sections are what the rest of this README (and the CLI's own naming) calls chapters.
 
 AgentLaws keeps hierarchy explicit without giving folder *names* semantic meaning.
 

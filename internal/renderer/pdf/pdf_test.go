@@ -48,6 +48,48 @@ func TestRender_InternalLinksAndSpacing(t *testing.T) {
 	}
 }
 
+// TestRender_SectionLevelInternalLink is a regression test for a bug found
+// while regenerating a real lawbook's PDF: buildMarkdownInto only ever
+// emitted an alaws-anchor sentinel for laws, never for section headings, so
+// any alaws: link whose target was a section (not a law) resolved to a
+// href with no matching registered anchor - fixedFpdf.Write silently drops
+// such a pending link (see its "Dangling alaws: reference" comment) rather
+// than panicking, so the link vanished from the PDF with no error at all.
+func TestRender_SectionLevelInternalLink(t *testing.T) {
+	book := model.Lawbook{
+		Metadata: model.LawbookMetadata{Title: "Test Book"},
+		Sections: []model.Section{
+			{
+				ID:         "intro",
+				Number:     "1",
+				Title:      "Intro",
+				Level:      1,
+				Commentary: "See [the principles section](alaws:principles) for more.",
+			},
+			{
+				ID:     "principles",
+				Number: "2",
+				Title:  "Principles",
+				Level:  1,
+				Laws: []model.Law{
+					{Number: "2.1", Index: 1, Text: "Small changes are reviewable.", Slug: "review-required", SectionID: "principles"},
+				},
+			},
+		},
+	}
+
+	var buf bytes.Buffer
+	if err := Render(&buf, book); err != nil {
+		t.Fatalf("Render: %v", err)
+	}
+	raw := buf.String()
+
+	destAnnots := regexp.MustCompile(`/Dest\s*\[`).FindAllString(raw, -1)
+	if len(destAnnots) != 1 {
+		t.Errorf("got %d /Dest annotations, want exactly 1 for the section-level alaws: link", len(destAnnots))
+	}
+}
+
 func TestNormalizeSoftWraps(t *testing.T) {
 	tests := []struct {
 		name string

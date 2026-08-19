@@ -16,6 +16,14 @@
 //   - A paragraph that soft-wraps across source lines loses the space at
 //     the wrap point, e.g. "...complemented byreview requirementsand
 //     testing...". Fixed by textNodeRenderer.
+//
+// A third bug, not in the library itself but in this package's prior use of
+// it, was found afterward: buildMarkdownInto only ever emitted an
+// alaws-anchor sentinel before a law, never before a section heading, so an
+// alaws: link whose target was a section rather than a law silently
+// resolved to nothing (fixedFpdf.Write drops a pending link with no
+// matching registered anchor rather than erroring). Fixed by emitting a
+// sentinel before every section heading too.
 package pdf
 
 import (
@@ -256,6 +264,8 @@ func buildMarkdownInto(b *strings.Builder, book model.Lawbook, resolve ResolveFu
 		if level > 6 {
 			level = 6
 		}
+		sectionAnchor := resolver.AnchorFor(resolver.Resolved{Kind: resolver.KindSection, Section: s})
+		fmt.Fprintf(b, "<!--alaws-anchor:%s-->\n", sectionAnchor)
 		fmt.Fprintf(b, "%s %s %s\n\n", strings.Repeat("#", level), s.Number, s.Title)
 
 		// Section ID as a muted line
