@@ -5,9 +5,11 @@ import "github.com/shrsv/AgentLaws/internal/watcher"
 // WatchEvent describes a single recompilation triggered by a source
 // change (or the initial compile when watching starts).
 type WatchEvent struct {
-	ClusterPath string
-	Book        *Book // nil only if the lawbook couldn't be read at all
-	Err         error // non-nil if compilation failed; Book.Diagnostics() may still be non-empty
+	ClusterPath     string
+	Book            *Book // nil only if the lawbook couldn't be read at all
+	Err             error // non-nil if compilation failed; Book.Diagnostics() may still be non-empty
+	RenderedSections map[string]RenderedSection
+	RenderedPrompts  map[string]RenderedPrompt
 }
 
 // Watch monitors alaws.toml and *.md/*.mdx files under path (including
@@ -27,11 +29,32 @@ func Watch(path string) (<-chan WatchEvent, func(), error) {
 	go func() {
 		defer close(out)
 		for ev := range events {
-			out <- WatchEvent{
+			we := WatchEvent{
 				ClusterPath: ev.ClusterPath,
 				Book:        &Book{lawbook: ev.Result.Lawbook, diagnostics: diagnosticsFrom(ev.Result.Diagnostics)},
 				Err:         ev.Err,
 			}
+			// Pass through pre-rendered HTML fragments from the watcher.
+			if ev.RenderedSections != nil {
+				we.RenderedSections = make(map[string]RenderedSection, len(ev.RenderedSections))
+				for id, rs := range ev.RenderedSections {
+					we.RenderedSections[id] = RenderedSection{
+						CommentaryHTML: rs.CommentaryHTML,
+						LawHTML:        rs.LawHTML,
+					}
+				}
+			}
+			if ev.RenderedPrompts != nil {
+				we.RenderedPrompts = make(map[string]RenderedPrompt, len(ev.RenderedPrompts))
+				for id, rp := range ev.RenderedPrompts {
+					we.RenderedPrompts[id] = RenderedPrompt{
+						CommentaryHTML: rp.CommentaryHTML,
+						TemplateHTML:   rp.TemplateHTML,
+						CompactHTML:    rp.CompactHTML,
+					}
+				}
+			}
+			out <- we
 		}
 	}()
 

@@ -3,7 +3,9 @@
 package watcher
 
 import (
+	"fmt"
 	"io/fs"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,6 +14,8 @@ import (
 	"github.com/fsnotify/fsnotify"
 
 	"github.com/shrsv/AgentLaws/internal/compiler"
+	"github.com/shrsv/AgentLaws/internal/resolver"
+	renderhtml "github.com/shrsv/AgentLaws/internal/renderer/html"
 )
 
 // debounceWindow avoids recompiling once per fsnotify event when an editor
@@ -28,12 +32,31 @@ var skipDirs = map[string]bool{
 	".alaws":       true, // avoid recompiling in response to our own build output
 }
 
+// RenderedSection holds pre-rendered HTML fragments for a single section,
+// keyed by law citation number. Used by the SSE watch stream so the web UI
+// can update without a second round-trip.
+type RenderedSection struct {
+	CommentaryHTML string            `json:"CommentaryHTML"`
+	LawHTML        map[string]string `json:"LawHTML"`
+}
+
+// RenderedPrompt holds pre-rendered HTML fragments for a single prompt
+// template. TemplateHTML is the expanded version; CompactHTML shows ref
+// directives as alaws: links.
+type RenderedPrompt struct {
+	CommentaryHTML string `json:"CommentaryHTML"`
+	TemplateHTML   string `json:"TemplateHTML"`
+	CompactHTML    string `json:"CompactHTML"`
+}
+
 // Event describes a single recompilation triggered by a source change (or
 // the initial compile when watching starts).
 type Event struct {
-	ClusterPath string
-	Result      compiler.Result
-	Err         error // non-nil if compilation failed; Result may still hold partial diagnostics
+	ClusterPath     string
+	Result          compiler.Result
+	Err             error // non-nil if compilation failed; Result may still hold partial diagnostics
+	RenderedSections map[string]RenderedSection
+	RenderedPrompts  map[string]RenderedPrompt
 }
 
 // Watch monitors alaws.toml and *.md/*.mdx files under path (including
@@ -106,8 +129,14 @@ func Watch(path string) (<-chan Event, func(), error) {
 				}
 			case <-trigger:
 				result, err := compiler.Compile(path, compiler.Options{})
+
+				// Compute rendered HTML fragments so the web UI can update
+				// without a second round-trip to /api/book/compile.
+				ev := Event{ClusterPath: path, Result: result, Err: err}
+				ev.RenderedSections, ev.RenderedPrompts = computeRendered(path, result)
+
 				select {
-				case events <- Event{ClusterPath: path, Result: result, Err: err}:
+				case events <- ev:
 				case <-stopCh:
 					return
 				}
@@ -145,4 +174,80 @@ func addDirsRecursive(w *fsnotify.Watcher, root string) error {
 		}
 		return w.Add(p)
 	})
+}
+
+// computeRendered builds pre-rendered HTML fragments for sections and
+// prompt templates from a compilation result. The __BOOK_PATH__ placeholder
+// is replaced here so the SSE payload contains navigable hash routes.
+func computeRendered(path string, result compiler.Result) (map[string]RenderedSection, map[string]RenderedPrompt) {
+	lb := result.Lawbook
+	escapedBookPath := url.PathEscape(path)
+
+	resolve := func(token string) (string, bool) {
+		r, err := resolver.Resolve(lb, token)
+		if err != nil {
+			return "", false
+		}
+		switch r.Kind {
+		case resolver.KindLaw:
+			lawAnchor := r.Law.Slug
+			if lawAnchor == "" {
+				lawAnchor = fmt.Sprintf("%d", r.Law.Index)
+			}
+			return fmt.Sprintf("#/books/__BOOK_PATH__/%s~%s", r.Law.SectionID, lawAnchor), true
+		case resolver.KindSection:
+			return fmt.Sprintf("#/books/__BOOK_PATH__/%s", r.Section.ID), true
+		case resolver.KindPrompt:
+			return fmt.Sprintf("#/books/__BOOK_PATH__/prompts/%s", r.Prompt.ID), true
+		}
+		return "", false
+	}
+
+	replaceBookPath := func(s string) string {
+		return strings.ReplaceAll(s, "__BOOK_PATH__", escapedBookPath)
+	}
+
+	sections := make(map[string]RenderedSection, len(lb.Sections))
+	for _, s := range lb.Sections {
+		commentaryHTML, err := renderhtml.RenderFragment(s.Commentary, resolve)
+		if err != nil {
+			continue
+		}
+		lawHTML := make(map[string]string, len(s.Laws))
+		for _, law := range s.Laws {
+			frag, err := renderhtml.RenderFragment(law.Text, resolve)
+			if err != nil {
+				continue
+			}
+			lawHTML[law.Number] = replaceBookPath(frag)
+		}
+		sections[s.ID] = RenderedSection{
+			CommentaryHTML: replaceBookPath(commentaryHTML),
+			LawHTML:        lawHTML,
+		}
+	}
+
+	prompts := make(map[string]RenderedPrompt, len(lb.Prompts))
+	for _, p := range lb.Prompts {
+		commentaryHTML, err := renderhtml.RenderFragment(p.Commentary, resolve)
+		if err != nil {
+			continue
+		}
+		templateHTML, err := renderhtml.RenderFragment(p.Template, resolve)
+		if err != nil {
+			continue
+		}
+		compactMD := resolver.PromptDisplayText(p, false)
+		compactHTML, err := renderhtml.RenderFragment(compactMD, resolve)
+		if err != nil {
+			continue
+		}
+		prompts[p.ID] = RenderedPrompt{
+			CommentaryHTML: replaceBookPath(commentaryHTML),
+			TemplateHTML:   replaceBookPath(templateHTML),
+			CompactHTML:    replaceBookPath(compactHTML),
+		}
+	}
+
+	return sections, prompts
 }

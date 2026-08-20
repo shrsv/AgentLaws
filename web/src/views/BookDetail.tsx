@@ -105,6 +105,25 @@ export function BookDetail({ path, section, law, navigate, onSectionsChange, onO
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(reload, [path]);
 
+  // Live-reload: subscribe to watch events so the UI updates when any
+  // source file changes (sections, prompt templates, alaws.toml) without
+  // requiring a manual refresh. The SSE payload now includes rendered
+  // HTML fragments, so we update state directly instead of calling reload().
+  useEffect(() => {
+    const stop = api.watch(path, (ev) => {
+      if (!ev.ok) return;
+      setTitle(ev.lawbook.Metadata.Title);
+      setSections(ev.lawbook.Sections);
+      onSectionsChange?.(ev.lawbook.Sections);
+      setRendered(ev.rendered ?? {});
+      setRenderedPrompts(ev.renderedPrompts ?? {});
+      setPrompts(ev.lawbook.Prompts ?? []);
+      setPromptBacklinks(ev.lawbook.PromptBacklinks ?? {});
+      setDiagnostics(ev.diagnostics ?? []);
+    });
+    return stop;
+  }, [path]);
+
   // Clear parent sections on unmount
   useEffect(() => {
     return () => onSectionsChange?.([]);

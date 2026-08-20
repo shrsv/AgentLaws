@@ -55,11 +55,13 @@ func handleWatch(w http.ResponseWriter, r *http.Request) {
 			}
 			fmt.Fprint(w, "data: ")
 			_ = enc.Encode(map[string]any{
-				"clusterPath": ev.ClusterPath,
-				"ok":          ev.Err == nil,
-				"error":       errString(ev.Err),
-				"lawbook":     ev.Book.Lawbook(),
-				"diagnostics": ev.Book.Diagnostics(),
+				"clusterPath":     ev.ClusterPath,
+				"ok":              ev.Err == nil,
+				"error":           errString(ev.Err),
+				"lawbook":         ev.Book.Lawbook(),
+				"diagnostics":     ev.Book.Diagnostics(),
+				"rendered":        ev.RenderedSections,
+				"renderedPrompts": ev.RenderedPrompts,
 			})
 			fmt.Fprint(w, "\n")
 			flusher.Flush()
