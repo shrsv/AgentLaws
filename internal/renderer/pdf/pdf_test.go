@@ -41,12 +41,23 @@ func TestRender_InternalLinksAndSpacing(t *testing.T) {
 
 	linkAnnots := regexp.MustCompile(`/Subtype\s*/Link`).FindAllString(raw, -1)
 	uriAnnots := regexp.MustCompile(`/S\s*/URI`).FindAllString(raw, -1)
-	destAnnots := regexp.MustCompile(`/Dest\s*\[`).FindAllString(raw, -1)
-	if len(linkAnnots) != 1 || len(uriAnnots) != 0 || len(destAnnots) != 1 {
-		t.Errorf("internal link annotations: got annots=%d uri=%d dest=%d, want exactly one clean /Dest link and zero URI actions",
-			len(linkAnnots), len(uriAnnots), len(destAnnots))
+	// Scoped to /Subtype /Link annotation objects specifically - the
+	// document also now carries /Dest entries for its /Outlines sidebar
+	// bookmarks (book title + section, one apiece for this book), which
+	// are a separate, intentional PDF construct and not what this test
+	// is checking.
+	linkDestAnnots := linkDestRe.FindAllString(raw, -1)
+	if len(linkAnnots) != 1 || len(uriAnnots) != 0 || len(linkDestAnnots) != 1 {
+		t.Errorf("internal link annotations: got annots=%d uri=%d linkDest=%d, want exactly one clean /Dest link and zero URI actions",
+			len(linkAnnots), len(uriAnnots), len(linkDestAnnots))
 	}
 }
+
+// linkDestRe matches a /Dest entry that belongs to a /Subtype /Link
+// annotation object specifically, as opposed to one belonging to an
+// /Outlines sidebar bookmark entry - both are legitimate uses of /Dest
+// in the documents this package renders.
+var linkDestRe = regexp.MustCompile(`(?s)/Subtype\s*/Link.*?/Dest\s*\[`)
 
 // TestRender_SectionLevelInternalLink is a regression test for a bug found
 // while regenerating a real lawbook's PDF: buildMarkdownInto only ever
@@ -84,9 +95,58 @@ func TestRender_SectionLevelInternalLink(t *testing.T) {
 	}
 	raw := buf.String()
 
-	destAnnots := regexp.MustCompile(`/Dest\s*\[`).FindAllString(raw, -1)
-	if len(destAnnots) != 1 {
-		t.Errorf("got %d /Dest annotations, want exactly 1 for the section-level alaws: link", len(destAnnots))
+	linkDestAnnots := linkDestRe.FindAllString(raw, -1)
+	if len(linkDestAnnots) != 1 {
+		t.Errorf("got %d link /Dest annotations, want exactly 1 for the section-level alaws: link", len(linkDestAnnots))
+	}
+}
+
+// TestRender_OutlineReflectsIROnly is a regression test for the
+// /Outlines sidebar (bookmarkNodeRenderer/writeBookmarkSentinel):
+// entries must come straight from the compiled Lawbook IR - book title,
+// LawBook/PromptBook group headers, sections (nested by Level), and
+// prompts - never from scanning rendered Markdown for heading tags. A
+// prompt's own expanded template can contain "##" headings an author
+// wrote for prose formatting (see
+// examples/engineering/prompts/code-review.md's "## Mandatory checks"
+// etc.); those must render as ordinary headings in the body but must
+// never add extra outline entries.
+func TestRender_OutlineReflectsIROnly(t *testing.T) {
+	book := model.Lawbook{
+		Metadata: model.LawbookMetadata{Title: "Test Book"},
+		Sections: []model.Section{
+			{ID: "principles", Number: "1", Title: "Principles", Level: 1},
+			{ID: "principles.review", Number: "1.1", Title: "Review", Level: 2},
+		},
+		Prompts: []model.PromptTemplate{
+			{
+				ID:    "review-prompt",
+				Title: "Review Prompt",
+				Segments: []model.PromptSegment{{
+					Kind: model.SegmentText,
+					Text: "Do the review.\n\n## Mandatory checks\n\nCheck things.\n\n" +
+						"## Output format\n\nSay things.",
+				}},
+			},
+		},
+	}
+
+	var buf bytes.Buffer
+	if err := Render(&buf, book); err != nil {
+		t.Fatalf("Render: %v", err)
+	}
+	raw := buf.String()
+
+	if !regexp.MustCompile(`/Type\s*/Outlines`).MatchString(raw) {
+		t.Fatalf("expected a /Type /Outlines root in the PDF")
+	}
+
+	titleObjs := regexp.MustCompile(`<</Title `).FindAllString(raw, -1)
+	// book title, LawBook group, 2 sections, PromptBook group, 1 prompt.
+	const want = 6
+	if len(titleObjs) != want {
+		t.Errorf("outline entry count: got %d, want %d (book + LawBook + 2 sections + PromptBook + 1 prompt) - "+
+			"prompt-body \"##\" headings must not add extra entries", len(titleObjs), want)
 	}
 }
 

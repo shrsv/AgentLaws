@@ -58,6 +58,17 @@ func (f *fixedFpdf) AddInternalLink(anchor string) {
 	f.anchors[anchor] = id
 }
 
+// Bookmark registers text as an entry in the PDF's /Outlines sidebar at
+// the given nesting level, at the current position on the current page
+// (y == -1) or an explicit y. goldmark-pdf's own PDF interface
+// (pdflib.PDF, see writer.go) doesn't expose this - its heading renderer
+// only ever calls AddInternalLink, never a bookmark - so callers that
+// want the sidebar populated must reach the embedded *gofpdf.Fpdf
+// directly, which is what this pass-through does.
+func (f *fixedFpdf) Bookmark(text string, level int, y float64) {
+	f.Fpdf.Fpdf.Bookmark(text, level, y)
+}
+
 func (f *fixedFpdf) WriteInternalLink(lineHeight float64, text string, anchor string) {
 	raw := f.Fpdf.Fpdf
 	f.pending = append(f.pending, internalLinkPos{

@@ -32,6 +32,7 @@ import (
 	"image/color"
 	"io"
 	"regexp"
+	"strconv"
 	"strings"
 
 	pdflib "github.com/stephenafamo/goldmark-pdf"
@@ -52,7 +53,7 @@ var LinkBlue = color.RGBA{R: 0x1A, G: 0x73, B: 0xE8, A: 0xFF}
 // package-level singleton: the fixedFpdf it wires in carries per-document
 // state (registered anchors, pending internal-link positions) that must
 // not leak between unrelated renders.
-func newMarkdownPDF() goldmark.Markdown {
+func newMarkdownPDF(bookmarks []bookmarkEntry) goldmark.Markdown {
 	fpdf := pdflib.NewFpdf(context.Background(), pdflib.FpdfConfig{}, nil)
 	fixed := newFixedFpdf(fpdf)
 
@@ -66,7 +67,7 @@ func newMarkdownPDF() goldmark.Markdown {
 				pdflib.WithEscapeHTML(false),
 				pdflib.WithLinkColor(LinkBlue),
 				pdflib.WithNodeRenderers(
-					util.Prioritized(&anchorNodeRenderer{}, 100),
+					util.Prioritized(&anchorNodeRenderer{bookmarks: bookmarks}, 100),
 					util.Prioritized(&textNodeRenderer{}, 100),
 				),
 			),
@@ -80,21 +81,62 @@ func newMarkdownPDF() goldmark.Markdown {
 // internal PDF link target.
 var anchorSentinelRe = regexp.MustCompile(`<!--alaws-anchor:(.+?)-->`)
 
+// bookmarkSentinelRe matches a <!--alaws-bookmark:N--> sentinel comment,
+// which buildMarkdownInto emits immediately before a book title, group
+// header, section heading, or prompt heading - never before a law or
+// inside commentary/prompt-template Markdown - so this renderer can
+// register exactly that structural node, and nothing else, as a
+// /Outlines sidebar entry (via Pdf.Bookmark). N indexes into the
+// bookmarks slice built alongside the Markdown by buildMarkdownInto.
+var bookmarkSentinelRe = regexp.MustCompile(`<!--alaws-bookmark:(\d+)-->`)
+
+// bookmarkEntry is one entry to register in the PDF's /Outlines sidebar:
+// its display text and nesting level (0 = top).
+type bookmarkEntry struct {
+	Text  string
+	Level int
+}
+
 // anchorNodeRenderer registers alaws-anchor sentinels as internal PDF
 // link targets (via Pdf.AddInternalLink), so a later WriteInternalLink
-// to that anchor (see fixedFpdf) has somewhere to resolve to.
+// to that anchor (see fixedFpdf) has somewhere to resolve to, and
+// alaws-bookmark sentinels as /Outlines sidebar entries (via
+// Pdf.Bookmark). Both sentinel kinds are handled by this one renderer,
+// rather than two separate ones, because goldmark-pdf's Register keeps
+// only the last-registered func per ast.NodeKind (renderer.go) - a
+// second renderer registered for the same KindHTMLBlock/KindRawHTML
+// would silently replace this one instead of running alongside it.
 //
 // A standalone-line HTML comment parses as a block-level ast.KindHTMLBlock
 // node, not inline ast.KindRawHTML - goldmark-pdf's default renderer for
 // KindHTMLBlock is a no-op ("Cannot process HTML blocks"), so without
-// this override, every anchor sentinel was silently dropped and no law
-// ever had a working internal-link target. KindRawHTML is also handled,
-// for robustness, in case a sentinel ever ends up inline instead.
-type anchorNodeRenderer struct{}
+// this override, every sentinel was silently dropped. KindRawHTML is
+// also handled, for robustness, in case a sentinel ever ends up inline
+// instead.
+type anchorNodeRenderer struct {
+	bookmarks []bookmarkEntry
+}
 
 func (r *anchorNodeRenderer) RegisterFuncs(reg pdflib.NodeRendererFuncRegisterer) {
 	reg.Register(ast.KindHTMLBlock, r.renderHTMLBlock)
 	reg.Register(ast.KindRawHTML, r.renderRawHTML)
+}
+
+func (r *anchorNodeRenderer) handleSentinel(w *pdflib.Writer, content string) {
+	if m := anchorSentinelRe.FindStringSubmatch(content); m != nil {
+		w.Pdf.AddInternalLink(m[1])
+	}
+	if m := bookmarkSentinelRe.FindStringSubmatch(content); m != nil {
+		idx, err := strconv.Atoi(m[1])
+		if err == nil && idx >= 0 && idx < len(r.bookmarks) {
+			entry := r.bookmarks[idx]
+			if bm, ok := w.Pdf.(interface {
+				Bookmark(text string, level int, y float64)
+			}); ok {
+				bm.Bookmark(entry.Text, entry.Level, -1)
+			}
+		}
+	}
 }
 
 func (r *anchorNodeRenderer) renderHTMLBlock(w *pdflib.Writer, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
@@ -105,9 +147,7 @@ func (r *anchorNodeRenderer) renderHTMLBlock(w *pdflib.Writer, source []byte, no
 	lines := n.Lines()
 	for i := 0; i < lines.Len(); i++ {
 		seg := lines.At(i)
-		if m := anchorSentinelRe.FindStringSubmatch(string(seg.Value(source))); m != nil {
-			w.Pdf.AddInternalLink(m[1])
-		}
+		r.handleSentinel(w, string(seg.Value(source)))
 	}
 	return ast.WalkContinue, nil
 }
@@ -122,9 +162,7 @@ func (r *anchorNodeRenderer) renderRawHTML(w *pdflib.Writer, source []byte, node
 		seg := n.Segments.At(i)
 		content += string(seg.Value(source))
 	}
-	if m := anchorSentinelRe.FindStringSubmatch(content); m != nil {
-		w.Pdf.AddInternalLink(m[1])
-	}
+	r.handleSentinel(w, content)
 	return ast.WalkContinue, nil
 }
 
@@ -184,8 +222,8 @@ func makeCombinedResolveFunc(books []model.Lawbook) ResolveFunc {
 // Render writes the PDF representation of book to w.
 func Render(w io.Writer, book model.Lawbook) error {
 	resolve := makeResolveFunc(book)
-	md := buildMarkdown(book, resolve)
-	return newMarkdownPDF().Convert([]byte(md), w)
+	md, bookmarks := buildMarkdown(book, resolve)
+	return newMarkdownPDF(bookmarks).Convert([]byte(md), w)
 }
 
 // RenderAll writes one combined PDF covering every book in books, each
@@ -194,14 +232,16 @@ func Render(w io.Writer, book model.Lawbook) error {
 func RenderAll(w io.Writer, title string, books []model.Lawbook) error {
 	resolve := makeCombinedResolveFunc(books)
 	var b strings.Builder
+	var bookmarks []bookmarkEntry
+	writeBookmarkSentinel(&b, &bookmarks, title, 0)
 	fmt.Fprintf(&b, "# %s\n\n", title)
 	for i, book := range books {
 		if i > 0 {
 			b.WriteString("\n\\newpage\n\n")
 		}
-		buildMarkdownInto(&b, book, resolve)
+		buildMarkdownInto(&b, book, resolve, 1, &bookmarks)
 	}
-	return newMarkdownPDF().Convert([]byte(b.String()), w)
+	return newMarkdownPDF(bookmarks).Convert([]byte(b.String()), w)
 }
 
 // blockStructureRe matches the first line of a Markdown block that has
@@ -248,19 +288,56 @@ func normalizeSoftWraps(md string) string {
 }
 
 // buildMarkdown converts a Lawbook IR into a Markdown string that
-// goldmark-pdf can render with full CommonMark + GFM support.
-func buildMarkdown(book model.Lawbook, resolve ResolveFunc) string {
+// goldmark-pdf can render with full CommonMark + GFM support, plus the
+// ordered list of /Outlines sidebar entries (see bookmarkNodeRenderer)
+// to register alongside it.
+func buildMarkdown(book model.Lawbook, resolve ResolveFunc) (string, []bookmarkEntry) {
 	var b strings.Builder
-	buildMarkdownInto(&b, book, resolve)
-	return b.String()
+	var bookmarks []bookmarkEntry
+	buildMarkdownInto(&b, book, resolve, 0, &bookmarks)
+	return b.String(), bookmarks
 }
 
-func buildMarkdownInto(b *strings.Builder, book model.Lawbook, resolve ResolveFunc) {
+// writeBookmarkSentinel registers text as a bookmarks entry at level and
+// writes the <!--alaws-bookmark:N--> sentinel referencing it into b, so
+// bookmarkNodeRenderer can call Pdf.Bookmark at the right position once
+// this Markdown is actually rendered (see anchorSentinelRe's doc comment
+// for why the position can only be known at render time, not here).
+func writeBookmarkSentinel(b *strings.Builder, bookmarks *[]bookmarkEntry, text string, level int) {
+	idx := len(*bookmarks)
+	*bookmarks = append(*bookmarks, bookmarkEntry{Text: text, Level: level})
+	fmt.Fprintf(b, "<!--alaws-bookmark:%d-->\n", idx)
+}
+
+// buildMarkdownInto appends book's Markdown to b, and appends the
+// /Outlines sidebar entries for its structural nodes - book title, the
+// LawBook/PromptBook group headers (when book has prompts), each section
+// heading, and each prompt heading - to *bookmarks. baseLevel is the
+// book title's own bookmark level (0 for a standalone Render, 1 under
+// RenderAll's combined-title entry); every other level here is derived
+// from baseLevel plus, for sections, Section.Level, so the levels handed
+// to Pdf.Bookmark are always contiguous (parent, then parent+1) - a gap
+// would misattribute PDF outline parents (see gofpdf's putbookmarks,
+// which reads outline[level-1] to find each entry's parent).
+//
+// Deliberately, no bookmark sentinel is ever emitted for a law heading
+// or from inside Commentary/Template Markdown: those bodies are written
+// through rewriteAlawsLinks/normalizeSoftWraps unchanged below, so a
+// "##" a prompt author writes inline for prose formatting (see
+// examples/engineering/prompts/code-review.md) renders as an ordinary
+// heading with no outline entry of its own.
+func buildMarkdownInto(b *strings.Builder, book model.Lawbook, resolve ResolveFunc, baseLevel int, bookmarks *[]bookmarkEntry) {
+	writeBookmarkSentinel(b, bookmarks, book.Metadata.Title, baseLevel)
 	fmt.Fprintf(b, "# %s\n\n", book.Metadata.Title)
 
-	if len(book.Prompts) > 0 {
+	hasPrompts := len(book.Prompts) > 0
+	sectionBase := baseLevel
+	if hasPrompts {
+		groupLevel := baseLevel + 1
+		writeBookmarkSentinel(b, bookmarks, "LawBook", groupLevel)
 		b.WriteString("## LawBook\n\n")
 		b.WriteString("*Laws and sections that define the book's rules.*\n\n")
+		sectionBase = groupLevel
 	}
 
 	for _, s := range book.Sections {
@@ -271,6 +348,7 @@ func buildMarkdownInto(b *strings.Builder, book model.Lawbook, resolve ResolveFu
 		}
 		sectionAnchor := resolver.AnchorFor(resolver.Resolved{Kind: resolver.KindSection, Section: s})
 		fmt.Fprintf(b, "<!--alaws-anchor:%s-->\n", sectionAnchor)
+		writeBookmarkSentinel(b, bookmarks, s.Number+" "+s.Title, sectionBase+s.Level)
 		fmt.Fprintf(b, "%s %s %s\n\n", strings.Repeat("#", level), s.Number, s.Title)
 
 		// Section ID as a muted line
@@ -324,13 +402,17 @@ func buildMarkdownInto(b *strings.Builder, book model.Lawbook, resolve ResolveFu
 	}
 
 	// PromptBook section
-	if len(book.Prompts) > 0 {
+	if hasPrompts {
+		promptGroupLevel := baseLevel + 1
+		promptLevel := promptGroupLevel + 1
 		b.WriteString("---\n\n")
+		writeBookmarkSentinel(b, bookmarks, "PromptBook", promptGroupLevel)
 		b.WriteString("## PromptBook\n\n")
 		b.WriteString("*Prompt templates that stitch laws and sections into reusable agent prompts.*\n\n")
 		for _, p := range book.Prompts {
 			promptAnchor := p.ID
 			fmt.Fprintf(b, "<!--alaws-anchor:%s-->\n", promptAnchor)
+			writeBookmarkSentinel(b, bookmarks, p.Title, promptLevel)
 			fmt.Fprintf(b, "### %s\n\n", p.Title)
 			fmt.Fprintf(b, "*%s*\n\n", p.ID)
 

@@ -1,6 +1,19 @@
 <!doctype html>
-<html><head><meta charset="utf-8"><title>Combined Governance</title><style>
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:860px;margin:2rem auto;padding:0 1rem;color:#1e1e1e;line-height:1.55}
+<html><head><meta charset="utf-8"><title>All Governance</title><style>
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;padding:0;color:#1e1e1e;line-height:1.55}
+.layout{display:grid;grid-template-columns:260px 1fr;align-items:start;max-width:1180px;margin:0 auto}
+nav.toc{position:sticky;top:0;max-height:100vh;overflow-y:auto;padding:2rem 1rem 2rem 1.5rem;border-right:1px solid #ddd;box-sizing:border-box;font-size:.85rem}
+nav.toc .toc-book+.toc-book{margin-top:1.5rem}
+nav.toc .toc-book-title{font-weight:700;margin:0 0 .4rem}
+nav.toc .toc-group-title{font-weight:600;color:#555;margin:.9rem 0 .3rem;font-size:.78rem;text-transform:uppercase;letter-spacing:.04em}
+nav.toc ul{list-style:none;margin:0;padding-left:0}
+nav.toc ul.toc-children{padding-left:.9rem}
+nav.toc li{margin:.15rem 0}
+nav.toc a{color:#1e1e1e;text-decoration:none;display:block;padding:.1rem 0}
+nav.toc a:hover{color:#1a73e8;text-decoration:underline}
+nav.toc .toc-number{color:#767676;font-family:ui-monospace,Menlo,monospace;font-size:.8em;margin-right:.35em}
+.content{min-width:0;max-width:860px;margin:2rem auto;padding:0 1rem;box-sizing:border-box}
+@media (max-width:700px){.layout{display:block}nav.toc{position:static;max-height:none;border-right:none;border-bottom:1px solid #ddd}}
 h1{border-bottom:1px solid #ddd;padding-bottom:.5rem}
 h2.book-title{margin-top:3rem;border-bottom:2px solid #333;padding-bottom:.4rem}
 .section-id{color:#767676;font-family:ui-monospace,Menlo,monospace;font-size:.85rem;margin-top:-.5rem}
@@ -16,9 +29,111 @@ table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.92em}
 th,td{border:1px solid #ddd;padding:.5rem .75rem;text-align:left}
 th{background:#f5f5f5;font-weight:600}
 tr:nth-child(even){background:#fafafa}
+hr.promptbook-separator{margin:3rem 0 1rem;border:none;border-top:2px solid #333}
+.promptbook-subtitle{color:#767676;font-size:.9rem;margin-top:-.4rem;margin-bottom:1.5rem}
+.prompt-template-content{background:#f8f8f8;border:1px solid #ddd;border-radius:6px;padding:.85rem 1rem;margin:.5rem 0;font-size:.92rem;line-height:1.55}
+.prompt-template-content code{font-family:ui-monospace,Menlo,monospace;background:#f0f0f0;padding:.1em .3em;border-radius:3px;font-size:.92em}
+.prompt-template-content pre{background:#272822}
+.prompt-template-content pre code{background:none;padding:0;border-radius:0;color:#f8f8f2}
+.backlinks{color:#767676;font-size:.85rem;margin:.25rem 0}
+.backlinks-label{font-weight:600}
+.law-backlinks{color:#767676;font-size:.8rem}
+.alaws-link{color:#1a73e8;text-decoration:none}
+.alaws-link:hover{text-decoration:underline}
 </style></head><body>
-<h1>Combined Governance</h1>
+<div class="layout">
+<nav class="toc" aria-label="Table of contents">
+<div class="toc-book">
+<p class="toc-book-title">Engineering Governance</p>
+<p class="toc-group-title">LawBook</p>
+<ul class="toc-sections">
+<li><a href="#book0-engineering.principles"><span class="toc-number">1</span>Principles</a></li>
+<li><a href="#book0-engineering.security"><span class="toc-number">2</span>Security</a><ul class="toc-children">
+<li><a href="#book0-engineering.security.authentication"><span class="toc-number">2.1</span>Authentication</a></li>
+<li><a href="#book0-engineering.security.secrets"><span class="toc-number">2.2</span>Secrets</a></li>
+<li><a href="#book0-engineering.security.dependencies"><span class="toc-number">2.3</span>Dependencies</a></li>
+</ul>
+</li>
+<li><a href="#book0-engineering.coding"><span class="toc-number">3</span>Coding</a><ul class="toc-children">
+<li><a href="#book0-engineering.coding.review"><span class="toc-number">3.1</span>Code Review</a></li>
+<li><a href="#book0-engineering.coding.testing"><span class="toc-number">3.2</span>Testing</a></li>
+</ul>
+</li>
+<li><a href="#book0-engineering.operations"><span class="toc-number">4</span>Operations</a><ul class="toc-children">
+<li><a href="#book0-engineering.operations.deployment"><span class="toc-number">4.1</span>Deployment</a></li>
+<li><a href="#book0-engineering.operations.monitoring"><span class="toc-number">4.2</span>Monitoring</a></li>
+<li><a href="#book0-engineering.operations.rollback"><span class="toc-number">4.3</span>Rollback</a><ul class="toc-children">
+<li><a href="#book0-engineering.operations.rollback.emergency"><span class="toc-number">4.3.1</span>Emergency Procedures</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#book0-engineering.incident_response"><span class="toc-number">5</span>Incident Response</a><ul class="toc-children">
+<li><a href="#book0-engineering.incident_response.severity_levels"><span class="toc-number">5.1</span>Severity Levels</a></li>
+<li><a href="#book0-engineering.incident_response.communication"><span class="toc-number">5.2</span>Communication</a></li>
+</ul>
+</li>
+<li><a href="#book0-engineering.integration"><span class="toc-number">6</span>Agent Integration</a><ul class="toc-children">
+<li><a href="#book0-engineering.integration.response_format"><span class="toc-number">6.1</span>Response Format</a></li>
+<li><a href="#book0-engineering.integration.variables"><span class="toc-number">6.2</span>Variables</a></li>
+</ul>
+</li>
+</ul>
+<p class="toc-group-title">PromptBook</p>
+<ul class="toc-prompts">
+<li><a href="#book0-engineering.prompts.code-review">Code Review Prompt</a></li>
+<li><a href="#book0-engineering.prompts.incident-triage">Incident Triage Prompt</a></li>
+<li><a href="#book0-engineering.prompts.deployment-gate">Deployment Gate Prompt</a></li>
+<li><a href="#book0-engineering.prompts.security-audit">Security Audit Prompt</a></li>
+<li><a href="#book0-engineering.prompts.agent-onboarding">Agent Onboarding Prompt</a></li>
+</ul>
+</div>
+<div class="toc-book">
+<p class="toc-book-title">Payments Authorization &amp; Refunds</p>
+<ul class="toc-sections">
+<li><a href="#book1-payments.authorization"><span class="toc-number">1</span>Authorization</a><ul class="toc-children">
+<li><a href="#book1-payments.authorization.transaction_limits"><span class="toc-number">1.1</span>Transaction Limits</a></li>
+<li><a href="#book1-payments.authorization.fraud_checks"><span class="toc-number">1.2</span>Fraud Checks</a></li>
+</ul>
+</li>
+<li><a href="#book1-payments.refunds"><span class="toc-number">2</span>Refunds</a><ul class="toc-children">
+<li><a href="#book1-payments.refunds.approval_thresholds"><span class="toc-number">2.1</span>Approval Thresholds</a></li>
+<li><a href="#book1-payments.refunds.customer_communication"><span class="toc-number">2.2</span>Customer Communication</a></li>
+</ul>
+</li>
+<li><a href="#book1-payments.integration"><span class="toc-number">3</span>Agent Integration</a><ul class="toc-children">
+<li><a href="#book1-payments.integration.response_format"><span class="toc-number">3.1</span>Response Format</a></li>
+<li><a href="#book1-payments.integration.variables"><span class="toc-number">3.2</span>Variables</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toc-book">
+<p class="toc-book-title">Customer Support Governance</p>
+<ul class="toc-sections">
+<li><a href="#book2-support.customer_data"><span class="toc-number">1</span>Customer Data</a><ul class="toc-children">
+<li><a href="#book2-support.customer_data.pii_handling"><span class="toc-number">1.1</span>PII Handling</a></li>
+<li><a href="#book2-support.customer_data.retention"><span class="toc-number">1.2</span>Retention</a></li>
+</ul>
+</li>
+<li><a href="#book2-support.escalation"><span class="toc-number">2</span>Escalation</a><ul class="toc-children">
+<li><a href="#book2-support.escalation.severity_triage"><span class="toc-number">2.1</span>Severity Triage</a></li>
+<li><a href="#book2-support.escalation.handoff"><span class="toc-number">2.2</span>Handoff</a></li>
+</ul>
+</li>
+<li><a href="#book2-support.integration"><span class="toc-number">3</span>Agent Integration</a><ul class="toc-children">
+<li><a href="#book2-support.integration.response_format"><span class="toc-number">3.1</span>Response Format</a></li>
+<li><a href="#book2-support.integration.variables"><span class="toc-number">3.2</span>Variables</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</nav>
+<div class="content">
+<h1>All Governance</h1>
 <h2 class="book-title">Engineering Governance</h2>
+<h3 id="book0-laws">LawBook</h3>
+<p class="promptbook-subtitle">Laws and sections that define the book's rules.</p>
 <h3 id="book0-engineering.principles">1 Principles</h3>
 <p class="section-id">engineering.principles</p>
 <p>These are the general principles that govern every agent working in this
@@ -29,6 +144,7 @@ override a principle stated here.</p>
 <a href="#book0-engineering.coding.review.every-change-reviewed-least-one">review requirements</a>
 and <a href="#book0-engineering.coding.testing.change-modifies-behavior-include-update">testing obligations</a>.
 Agents must also follow <a href="#book0-engineering.security.secrets.credentials-never-committed-source-control">secrets handling</a> when working with credentials.</p>
+<p class="backlinks"><span class="backlinks-label">Used in prompts:</span> <a href="#book0-engineering.prompts.agent-onboarding" class="alaws-link">engineering.prompts.agent-onboarding</a></p>
 <ol class="laws">
 <li id="book0-engineering.principles.agents-prefer-small-reviewable-changes"><span class="law-number">1.1</span><p>Agents must prefer small, reviewable changes over large, sweeping rewrites.</p>
 </li>
@@ -49,6 +165,7 @@ itself states no laws directly - see
 <p class="section-id">engineering.security.authentication</p>
 <p>Rules governing how an agent authenticates to internal and third-party
 systems while performing a task.</p>
+<p class="backlinks"><span class="backlinks-label">Used in prompts:</span> <a href="#book0-engineering.prompts.agent-onboarding" class="alaws-link">engineering.prompts.agent-onboarding</a> · <a href="#book0-engineering.prompts.code-review" class="alaws-link">engineering.prompts.code-review</a> · <a href="#book0-engineering.prompts.security-audit" class="alaws-link">engineering.prompts.security-audit</a></p>
 <ol class="laws">
 <li id="book0-engineering.security.authentication.agent-authenticate-using-short-lived-scoped"><span class="law-number">2.1.1</span><p>Agent {{agent_name}} must authenticate using short-lived, scoped credentials rather than long-lived API keys wherever the target system supports it.</p>
 </li>
@@ -63,6 +180,7 @@ systems while performing a task.</p>
 the repository. These rules work alongside
 <a href="#book0-engineering.security.authentication.agent-authenticate-using-short-lived-scoped">authentication requirements</a> -
 a leaked credential is useless if auth is short-lived and scoped.</p>
+<p class="backlinks"><span class="backlinks-label">Used in prompts:</span> <a href="#book0-engineering.prompts.agent-onboarding" class="alaws-link">engineering.prompts.agent-onboarding</a> · <a href="#book0-engineering.prompts.code-review" class="alaws-link">engineering.prompts.code-review</a> · <a href="#book0-engineering.prompts.deployment-gate" class="alaws-link">engineering.prompts.deployment-gate</a> · <a href="#book0-engineering.prompts.security-audit" class="alaws-link">engineering.prompts.security-audit</a></p>
 <ol class="laws">
 <li id="book0-engineering.security.secrets.credentials-never-committed-source-control"><span class="law-number">2.2.1</span><p>Credentials must never be committed to source control, including in commit messages or code comments.</p>
 </li>
@@ -76,6 +194,7 @@ a leaked credential is useless if auth is short-lived and scoped.</p>
 <h4 id="book0-engineering.security.dependencies">2.3 Dependencies</h4>
 <p class="section-id">engineering.security.dependencies</p>
 <p>Rules for adding, upgrading, and evaluating third-party dependencies.</p>
+<p class="backlinks"><span class="backlinks-label">Used in prompts:</span> <a href="#book0-engineering.prompts.deployment-gate" class="alaws-link">engineering.prompts.deployment-gate</a> · <a href="#book0-engineering.prompts.security-audit" class="alaws-link">engineering.prompts.security-audit</a></p>
 <ol class="laws">
 <li id="book0-engineering.security.dependencies.before-adding-new-dependency-agent"><span class="law-number">2.3.1</span><p>Before adding a new dependency to {{repo}}, an agent must check it for known vulnerabilities using the approved scanner.</p>
 </li>
@@ -93,6 +212,7 @@ Testing below; this chapter itself states no laws directly.</p>
 <p>Rules for how a code change gets reviewed before it merges. A reviewer
 should verify that <a href="#book0-engineering.coding.testing.change-modifies-behavior-include-update">testing obligations</a> have been met and that
 <a href="#book0-engineering.security.secrets.credentials-never-committed-source-control">secrets are not introduced</a> into the change.</p>
+<p class="backlinks"><span class="backlinks-label">Used in prompts:</span> <a href="#book0-engineering.prompts.agent-onboarding" class="alaws-link">engineering.prompts.agent-onboarding</a> · <a href="#book0-engineering.prompts.code-review" class="alaws-link">engineering.prompts.code-review</a></p>
 <ol class="laws">
 <li id="book0-engineering.coding.review.every-change-reviewed-least-one"><span class="law-number">3.1.1</span><p>Every change to {{repo}} must be reviewed by at least one human, {{reviewer}} or another qualified reviewer, before merging.</p>
 </li>
@@ -106,6 +226,7 @@ should verify that <a href="#book0-engineering.coding.testing.change-modifies-be
 <p>Rules for what test coverage a change needs before it can be proposed.
 Tests are validated during <a href="#book0-engineering.coding.review.every-change-reviewed-least-one">code review</a>, and failing tests must not be hidden
 to circumvent the <a href="#book0-engineering.coding.review.review-comments-request-change-resolved">review process</a>.</p>
+<p class="backlinks"><span class="backlinks-label">Used in prompts:</span> <a href="#book0-engineering.prompts.agent-onboarding" class="alaws-link">engineering.prompts.agent-onboarding</a> · <a href="#book0-engineering.prompts.code-review" class="alaws-link">engineering.prompts.code-review</a> · <a href="#book0-engineering.prompts.deployment-gate" class="alaws-link">engineering.prompts.deployment-gate</a></p>
 <ol class="laws">
 <li id="book0-engineering.coding.testing.change-modifies-behavior-include-update"><span class="law-number">3.2.1</span><p>A change that modifies behavior must include or update an automated test that would fail without the change.</p>
 </li>
@@ -124,6 +245,7 @@ directly.</p>
 <p>Rules for pushing a change to a running environment. Every deployment
 must have a rollback plan (see <a href="#book0-engineering.operations.rollback">Rollback</a>) before it proceeds, and
 <a href="#book0-engineering.operations.monitoring">monitoring</a> must be in place to detect failures quickly.</p>
+<p class="backlinks"><span class="backlinks-label">Used in prompts:</span> <a href="#book0-engineering.prompts.deployment-gate" class="alaws-link">engineering.prompts.deployment-gate</a> · <a href="#book0-engineering.prompts.security-audit" class="alaws-link">engineering.prompts.security-audit</a></p>
 <ol class="laws">
 <li id="book0-engineering.operations.deployment.agent-deploy-directly-environment-without"><span class="law-number">4.1.1</span><p>Agent {{agent_name}} must not deploy directly to the {{environment}} environment without an approved change record.</p>
 </li>
@@ -135,6 +257,7 @@ must have a rollback plan (see <a href="#book0-engineering.operations.rollback">
 <h4 id="book0-engineering.operations.monitoring">4.2 Monitoring</h4>
 <p class="section-id">engineering.operations.monitoring</p>
 <p>Rules for alerting and anomaly handling once a service is live.</p>
+<p class="backlinks"><span class="backlinks-label">Used in prompts:</span> <a href="#book0-engineering.prompts.deployment-gate" class="alaws-link">engineering.prompts.deployment-gate</a> · <a href="#book0-engineering.prompts.incident-triage" class="alaws-link">engineering.prompts.incident-triage</a></p>
 <ol class="laws">
 <li id="book0-engineering.operations.monitoring.new-production-service-baseline-alerting"><span class="law-number">4.2.1</span><p>A new production service must have baseline alerting configured before it receives real traffic.</p>
 </li>
@@ -157,6 +280,7 @@ Rollback &gt; Emergency Procedures), and its citations reflect that:
 1.x.y.z-style numbers. It covers the narrow exception to the normal
 rollback and deployment rules that applies only during a declared
 incident.</p>
+<p class="backlinks"><span class="backlinks-label">Used in prompts:</span> <a href="#book0-engineering.prompts.incident-triage" class="alaws-link">engineering.prompts.incident-triage</a></p>
 <ol class="laws">
 <li id="book0-engineering.operations.rollback.emergency.during-incident-agent-roll-back"><span class="law-number">4.3.1.1</span><p>During incident {{incident_id}}, agent {{agent_name}} may roll back a production deployment without waiting for review, and must file the change record within one hour after the fact.</p>
 </li>
@@ -175,6 +299,7 @@ laws directly.</p>
 <p>How an incident's severity is assigned and revised. Severity directly
 governs <a href="#book0-engineering.incident_response.communication.incident-severity-status-update-posted">communication cadence</a> and determines whether
 automated <a href="#book0-engineering.operations.rollback">rollback</a> should be triggered.</p>
+<p class="backlinks"><span class="backlinks-label">Used in prompts:</span> <a href="#book0-engineering.prompts.agent-onboarding" class="alaws-link">engineering.prompts.agent-onboarding</a> · <a href="#book0-engineering.prompts.incident-triage" class="alaws-link">engineering.prompts.incident-triage</a></p>
 <ol class="laws">
 <li id="book0-engineering.incident_response.severity_levels.incident-causes-customer-visible-data-loss"><span class="law-number">5.1.1</span><p>An incident that causes customer-visible data loss must be classified Severity 1 regardless of the number of customers affected.</p>
 </li>
@@ -189,6 +314,7 @@ automated <a href="#book0-engineering.operations.rollback">rollback</a> should b
 incident. Communication frequency is driven by
 <a href="#book0-engineering.incident_response.severity_levels.incident-causes-customer-visible-data-loss">severity level</a>, and post-incident reviews must reference the
 original <a href="#book0-engineering.incident_response.severity_levels.severity-classification-reassessed-new-information">severity classification</a>.</p>
+<p class="backlinks"><span class="backlinks-label">Used in prompts:</span> <a href="#book0-engineering.prompts.agent-onboarding" class="alaws-link">engineering.prompts.agent-onboarding</a> · <a href="#book0-engineering.prompts.incident-triage" class="alaws-link">engineering.prompts.incident-triage</a></p>
 <ol class="laws">
 <li id="book0-engineering.incident_response.communication.incident-severity-status-update-posted"><span class="law-number">5.2.1</span><p>Incident {{incident_id}} at severity {{severity}} must have a status update posted at least once per hour until resolved.</p>
 </li>
@@ -213,7 +339,8 @@ auditable; a prose explanation is not. The required shape:</p>
 </span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;laws&#34;</span>: [<span style="color:#e6db74">&#34;&lt;citation&gt;&#34;</span>, <span style="color:#e6db74">&#34;...&#34;</span>],
 </span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;reasoning&#34;</span>: <span style="color:#e6db74">&#34;&lt;string&gt;&#34;</span>
 </span></span><span style="display:flex;"><span>}
-</span></span></code></pre><ol class="laws">
+</span></span></code></pre><p class="backlinks"><span class="backlinks-label">Used in prompts:</span> <a href="#book0-engineering.prompts.agent-onboarding" class="alaws-link">engineering.prompts.agent-onboarding</a></p>
+<ol class="laws">
 <li id="book0-engineering.integration.response_format.agent-makes-decision-governed-lawbook"><span class="law-number">6.1.1</span><p>When an agent makes a decision governed by this lawbook, it must respond with structured JSON matching the schema in this section's commentary, not prose.</p>
 <pre style="color:#f8f8f2;background-color:#272822;"><code><span style="display:flex;"><span>{
 </span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;decision&#34;</span>: <span style="color:#e6db74">&#34;approve&#34;</span>,
@@ -243,8 +370,288 @@ uses them:</p>
 <li id="book0-engineering.integration.variables.applications-rendering-lawbooks-laws-prompt"><span class="law-number">6.2.1</span><p>Applications rendering this lawbook's laws for a prompt must supply a value for every variable referenced by the laws selected, or the render must fail rather than substitute a placeholder silently.</p>
 </li>
 </ol>
+<hr class="promptbook-separator">
+<h3 id="book0-prompts">PromptBook</h3>
+<p class="promptbook-subtitle">Prompt templates that stitch laws and sections into reusable agent prompts.</p>
+<h4 id="book0-engineering.prompts.code-review">Code Review Prompt</h4>
+<p class="section-id">engineering.prompts.code-review</p>
+<p>Standard prompt for the CI review bot. Runs automatically on every pull
+request that touches payment or authentication code. The bot posts its
+decision as a PR comment with full law citations.</p>
+<p>Variables are injected by the CI pipeline from the PR metadata and the
+repository context.</p>
+<div class="prompt-template-content"><p>You are an automated code reviewer for {{repo}} operating under the
+engineering governance lawbook. A pull request authored by {{author}}
+modifies {{file_count}} file(s) in the {{module}} module.</p>
+<p>Your task is to decide whether this PR may be merged.</p>
+<h2>Mandatory checks</h2>
+<p>Apply every law in the Code Review and Testing sections:</p>
+<p>3.1.1 Every change to {{repo}} must be reviewed by at least one human, {{reviewer}} or another qualified reviewer, before merging.
+3.1.2 An agent must not approve its own pull request.
+3.1.3 Review comments that request a change must be resolved or explicitly declined with a rationale before merge.</p>
+<p>3.2.1 A change that modifies behavior must include or update an automated test that would fail without the change.
+3.2.2 Agents must not disable or skip a failing test to make a build pass without flagging it to a human.
+3.2.3 Test suites must be run locally or in CI before a change is proposed for review.</p>
+<p>If the PR touches authentication or secrets, also apply:</p>
+<p>2.2.1 Credentials must never be committed to source control, including in commit messages or code comments.
+2.2.2 Agents must not print credentials into logs, error messages, or any output that may be persisted.
+2.2.3 Credentials discovered in source must be treated as compromised and rotated, not merely removed.
+2.2.4 Secrets required at runtime must be retrieved from the approved secret store, never hardcoded.</p>
+<p>2.1.1 Agent {{agent_name}} must authenticate using short-lived, scoped credentials rather than long-lived API keys wherever the target system supports it.
+2.1.2 Agents must not share authentication tokens between unrelated tasks or sessions.
+2.1.3 A failed authentication attempt must be logged with the agent's identity and the resource it attempted to access.</p>
+<h2>Output format</h2>
+<p>You must produce a structured decision:</p>
+<ul>
+<li><strong>Decision</strong>: APPROVE or REQUEST_CHANGES</li>
+<li><strong>Confidence</strong>: HIGH, MEDIUM, or LOW</li>
+<li><strong>Citations</strong>: Every law number you relied on, e.g. &quot;1.1, 1.3, 2.1&quot;</li>
+<li><strong>Reasoning</strong>: One paragraph explaining your decision</li>
+</ul>
+<p>If you REQUEST_CHANGES, list each violation as a separate bullet point
+with the law citation and the specific line or pattern that violates it.</p>
+<h2>Context</h2>
+<p>PR title: {{pr_title}}
+PR branch: {{pr_branch}}
+Target branch: {{target_branch}}
+Diff summary: {{diff_summary}}</p>
+</div>
+<p class="backlinks"><span class="backlinks-label">References:</span> <a href="#book0-engineering.coding.review" class="alaws-link">engineering.coding.review</a> · <a href="#book0-engineering.coding.testing" class="alaws-link">engineering.coding.testing</a> · <a href="#book0-engineering.security.authentication" class="alaws-link">engineering.security.authentication</a> · <a href="#book0-engineering.security.secrets" class="alaws-link">engineering.security.secrets</a></p>
+<h4 id="book0-engineering.prompts.incident-triage">Incident Triage Prompt</h4>
+<p class="section-id">engineering.prompts.incident-triage</p>
+<p>Used by the on-call automation agent when a new alert fires or a human
+pages the team. The agent receives raw alert context and must classify
+the incident, propose immediate actions, and post the initial status
+update — all before the first 15 minutes elapse.</p>
+<div class="prompt-template-content"><p>You are the on-call triage agent for {{service_name}}. An alert has
+fired at {{alert_time}} UTC.</p>
+<h2>Alert details</h2>
+<ul>
+<li><strong>Source</strong>: {{alert_source}}</li>
+<li><strong>Metric</strong>: {{alert_metric}}</li>
+<li><strong>Current value</strong>: {{alert_value}}</li>
+<li><strong>Threshold</strong>: {{alert_threshold}}</li>
+<li><strong>Affected region</strong>: {{region}}</li>
+</ul>
+<h2>Your responsibilities</h2>
+<p>First, classify this incident using the severity level definitions:</p>
+<p>5.1.1 An incident that causes customer-visible data loss must be classified Severity 1 regardless of the number of customers affected.
+5.1.2 Severity classification must be reassessed if new information changes the blast radius, not fixed at first report.
+5.1.3 Agents must not downgrade a severity level without a human confirming the downgrade.</p>
+<p>Then follow the communication requirements for the severity you assigned:</p>
+<p>5.2.1 Incident {{incident_id}} at severity {{severity}} must have a status update posted at least once per hour until resolved.
+5.2.2 Customer-facing communication about an incident must be reviewed by a human before it is sent.
+5.2.3 Post-incident reviews must be published within five business days of resolution.</p>
+<p>If the incident is severity 1 or 2, you must also review the emergency
+rollback procedures in case the situation degrades:</p>
+<p>4.3.1.1 During incident {{incident_id}}, agent {{agent_name}} may roll back a production deployment without waiting for review, and must file the change record within one hour after the fact.
+4.3.1.2 An emergency rollback must be announced in the incident channel before it is executed, not only after.
+4.3.1.3 Emergency authority granted during an incident expires when the incident is closed and does not carry over to unrelated changes.</p>
+<p>And verify that monitoring baselines are in place for the affected service:</p>
+<p>4.2.1 A new production service must have baseline alerting configured before it receives real traffic.
+4.2.2 Agents must not silence an alert without recording the reason and an expiry for the silence.
+4.2.3 Anomalies detected by an agent must be reported even if the agent itself is not the cause.</p>
+<h2>Output</h2>
+<p>Produce a JSON object with these fields:</p>
+<pre style="color:#f8f8f2;background-color:#272822;"><code><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;severity&#34;</span>: <span style="color:#e6db74">&#34;SEV-1|SEV-2|SEV-3|SEV-4&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;summary&#34;</span>: <span style="color:#e6db74">&#34;one-line human-readable summary&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;immediate_actions&#34;</span>: [<span style="color:#e6db74">&#34;action 1&#34;</span>, <span style="color:#e6db74">&#34;action 2&#34;</span>],
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;rollback_recommended&#34;</span>: <span style="color:#66d9ef">true</span><span style="color:#960050;background-color:#1e0010">|</span><span style="color:#66d9ef">false</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;status_update&#34;</span>: <span style="color:#e6db74">&#34;the message to post in #incident-response&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;citations&#34;</span>: [<span style="color:#e6db74">&#34;law numbers relied on&#34;</span>]
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre><p>Do not downgrade severity without evidence. When in doubt, err on the
+side of higher severity — you can always reassess later per the
+reassessment law.</p>
+</div>
+<p class="backlinks"><span class="backlinks-label">References:</span> <a href="#book0-engineering.incident_response.communication" class="alaws-link">engineering.incident_response.communication</a> · <a href="#book0-engineering.incident_response.severity_levels" class="alaws-link">engineering.incident_response.severity_levels</a> · <a href="#book0-engineering.operations.monitoring" class="alaws-link">engineering.operations.monitoring</a> · <a href="#book0-engineering.operations.rollback.emergency" class="alaws-link">engineering.operations.rollback.emergency</a></p>
+<h4 id="book0-engineering.prompts.deployment-gate">Deployment Gate Prompt</h4>
+<p class="section-id">engineering.prompts.deployment-gate</p>
+<p>Runs as a CI gate before any production deployment. The agent reviews the
+deployment manifest, the test results, and the current production health
+metrics, then decides whether the deployment may proceed.</p>
+<p>Triggered by the deploy pipeline after staging validation completes.</p>
+<div class="prompt-template-content"><p>You are the deployment gate agent for {{service_name}}. A deployment to
+{{target_environment}} is pending.</p>
+<h2>Deployment context</h2>
+<ul>
+<li><strong>Deployer</strong>: {{deployer}}</li>
+<li><strong>Image tag</strong>: {{image_tag}}</li>
+<li><strong>Commit</strong>: {{commit_sha}}</li>
+<li><strong>Staging test pass rate</strong>: {{staging_pass_rate}}</li>
+<li><strong>Rollback plan</strong>: {{rollback_plan}}</li>
+</ul>
+<h2>Gate checks</h2>
+<p>You must verify every law in the Deployment section:</p>
+<p>4.1.1 Agent {{agent_name}} must not deploy directly to the {{environment}} environment without an approved change record.
+4.1.2 Deployments to production must be preceded by a successful deployment to staging with the same artifact.
+4.1.3 A deployment must be reversible within one command or one documented procedure.</p>
+<p>You must also confirm that test obligations were met:</p>
+<p>3.2.1 A change that modifies behavior must include or update an automated test that would fail without the change.
+3.2.2 Agents must not disable or skip a failing test to make a build pass without flagging it to a human.
+3.2.3 Test suites must be run locally or in CI before a change is proposed for review.</p>
+<p>And that no security rules were violated in the changes being deployed:</p>
+<p>2.2.1 Credentials must never be committed to source control, including in commit messages or code comments.
+2.2.2 Agents must not print credentials into logs, error messages, or any output that may be persisted.
+2.2.3 Credentials discovered in source must be treated as compromised and rotated, not merely removed.
+2.2.4 Secrets required at runtime must be retrieved from the approved secret store, never hardcoded.</p>
+<p>2.3.1 Before adding a new dependency to {{repo}}, an agent must check it for known vulnerabilities using the approved scanner.
+2.3.2 Agents must not upgrade a dependency across a major version without flagging the change for human review.
+2.3.3 Dependencies with no maintenance activity in the last two years must be flagged as a risk, not silently relied upon.</p>
+<p>Verify monitoring and alerting are in place for the target environment:</p>
+<p>4.2.1 A new production service must have baseline alerting configured before it receives real traffic.
+4.2.2 Agents must not silence an alert without recording the reason and an expiry for the silence.
+4.2.3 Anomalies detected by an agent must be reported even if the agent itself is not the cause.</p>
+<h2>Decision</h2>
+<p>Output a structured decision:</p>
+<ul>
+<li><strong>Decision</strong>: DEPLOY or BLOCK</li>
+<li><strong>Citations</strong>: Every law number you checked</li>
+<li><strong>Blocking violations</strong>: List each violation that blocks deployment</li>
+<li><strong>Warnings</strong>: Non-blocking concerns worth noting</li>
+<li><strong>Rollback readiness</strong>: Confirm the rollback plan satisfies the
+reversibility requirement</li>
+</ul>
+<p>If you BLOCK, the deployer must fix every violation and re-run this gate.
+Do not allow manual overrides — the laws are binding.</p>
+</div>
+<p class="backlinks"><span class="backlinks-label">References:</span> <a href="#book0-engineering.coding.testing" class="alaws-link">engineering.coding.testing</a> · <a href="#book0-engineering.operations.deployment" class="alaws-link">engineering.operations.deployment</a> · <a href="#book0-engineering.operations.monitoring" class="alaws-link">engineering.operations.monitoring</a> · <a href="#book0-engineering.security.dependencies" class="alaws-link">engineering.security.dependencies</a> · <a href="#book0-engineering.security.secrets" class="alaws-link">engineering.security.secrets</a></p>
+<h4 id="book0-engineering.prompts.security-audit">Security Audit Prompt</h4>
+<p class="section-id">engineering.prompts.security-audit</p>
+<p>Used by the periodic security scanner agent. Runs weekly against every
+active repository in the organization. Produces a compliance report that
+the security team reviews.</p>
+<p>Also triggered on-demand when a human runs <code>alaws prompt render</code>
+with a specific commit hash to audit a point-in-time snapshot.</p>
+<div class="prompt-template-content"><p>You are the security audit agent performing a compliance review of
+{{repo}} at commit {{commit_sha}} ({{commit_date}}).</p>
+<h2>Scope</h2>
+<p>This audit covers the full Security section of the engineering lawbook:</p>
+<p>2.1.1 Agent {{agent_name}} must authenticate using short-lived, scoped credentials rather than long-lived API keys wherever the target system supports it.
+2.1.2 Agents must not share authentication tokens between unrelated tasks or sessions.
+2.1.3 A failed authentication attempt must be logged with the agent's identity and the resource it attempted to access.</p>
+<p>2.2.1 Credentials must never be committed to source control, including in commit messages or code comments.
+2.2.2 Agents must not print credentials into logs, error messages, or any output that may be persisted.
+2.2.3 Credentials discovered in source must be treated as compromised and rotated, not merely removed.
+2.2.4 Secrets required at runtime must be retrieved from the approved secret store, never hardcoded.</p>
+<p>2.3.1 Before adding a new dependency to {{repo}}, an agent must check it for known vulnerabilities using the approved scanner.
+2.3.2 Agents must not upgrade a dependency across a major version without flagging the change for human review.
+2.3.3 Dependencies with no maintenance activity in the last two years must be flagged as a risk, not silently relied upon.</p>
+<p>Additionally, verify that deployment practices don't weaken security:</p>
+<p>4.1.1 Agent {{agent_name}} must not deploy directly to the {{environment}} environment without an approved change record.
+4.1.2 Deployments to production must be preceded by a successful deployment to staging with the same artifact.
+4.1.3 A deployment must be reversible within one command or one documented procedure.</p>
+<h2>Audit checklist</h2>
+<p>For each law, determine:</p>
+<ol>
+<li>Is the law currently satisfied? (PASS / FAIL / NOT_APPLICABLE)</li>
+<li>What evidence did you check? (file paths, config snippets, commit logs)</li>
+<li>If FAIL, what is the specific violation and its severity?</li>
+</ol>
+<h2>Special attention</h2>
+<ul>
+<li>Scan for hardcoded credentials, API keys, or tokens in the diff since
+{{baseline_commit}}</li>
+<li>Verify no dependency was upgraded across a major version without review</li>
+<li>Check that authentication tokens are short-lived and scoped per the
+authentication law</li>
+<li>Confirm no agent has printed credentials into logs</li>
+</ul>
+<h2>Output format</h2>
+<p>Return a structured report:</p>
+<pre><code>## Audit Report — {{repo}} @ {{commit_sha}}
+
+**Auditor**: security-audit agent
+**Date**: {{commit_date}}
+**Baseline**: {{baseline_commit}}
+
+### Summary
+- Total laws checked: N
+- Pass: N
+- Fail: N
+- Not applicable: N
+
+### Findings
+
+| Law | Status | Evidence | Notes |
+|-----|--------|----------|-------|
+| 3.1 | PASS | src/auth/token.go:42 | Token TTL = 15m |
+| 3.2 | FAIL | .env.example:3 | Contains placeholder that looks like real key |
+
+### Recommendations
+1. (any actionable items)
+</code></pre>
+<p>Be thorough. A false positive is acceptable; a missed violation is not.</p>
+</div>
+<p class="backlinks"><span class="backlinks-label">References:</span> <a href="#book0-engineering.operations.deployment" class="alaws-link">engineering.operations.deployment</a> · <a href="#book0-engineering.security.authentication" class="alaws-link">engineering.security.authentication</a> · <a href="#book0-engineering.security.dependencies" class="alaws-link">engineering.security.dependencies</a> · <a href="#book0-engineering.security.secrets" class="alaws-link">engineering.security.secrets</a></p>
+<h4 id="book0-engineering.prompts.agent-onboarding">Agent Onboarding Prompt</h4>
+<p class="section-id">engineering.prompts.agent-onboarding</p>
+<p>First prompt loaded when a new AI agent joins the engineering team. It
+provides the foundational governance principles and a curated subset of
+the most important operational laws. The agent receives this before it
+begins any work on the repository.</p>
+<p>The {{agent_name}} and {{repository}} variables are injected by the
+agent provisioning system.</p>
+<div class="prompt-template-content"><p>Welcome, {{agent_name}}. You are being provisioned to work on
+{{repository}} as part of the {{team_name}} team.</p>
+<p>You must internalize and follow every principle in this lawbook. Start
+with the foundational principles:</p>
+<p>1.1 Agents must prefer small, reviewable changes over large, sweeping rewrites.
+1.2 Agents must not merge code without human review unless the change is explicitly pre-authorized for autonomous merge.
+1.3 Agents must explain their reasoning when a decision is not obvious from the diff alone.</p>
+<p>These principles govern all your actions. Every decision you make must
+be explainable in terms of these principles.</p>
+<h2>Core operational laws</h2>
+<p>You will encounter these areas most frequently in your daily work:</p>
+<p><strong>Code changes</strong> — every change you propose must satisfy:</p>
+<p>3.1.1 Every change to {{repo}} must be reviewed by at least one human, {{reviewer}} or another qualified reviewer, before merging.
+3.1.2 An agent must not approve its own pull request.
+3.1.3 Review comments that request a change must be resolved or explicitly declined with a rationale before merge.</p>
+<p>3.2.1 A change that modifies behavior must include or update an automated test that would fail without the change.
+3.2.2 Agents must not disable or skip a failing test to make a build pass without flagging it to a human.
+3.2.3 Test suites must be run locally or in CI before a change is proposed for review.</p>
+<p><strong>Security</strong> — you are a high-value target. Follow these without exception:</p>
+<p>2.2.1 Credentials must never be committed to source control, including in commit messages or code comments.
+2.2.2 Agents must not print credentials into logs, error messages, or any output that may be persisted.
+2.2.3 Credentials discovered in source must be treated as compromised and rotated, not merely removed.
+2.2.4 Secrets required at runtime must be retrieved from the approved secret store, never hardcoded.</p>
+<p>2.1.1 Agent {{agent_name}} must authenticate using short-lived, scoped credentials rather than long-lived API keys wherever the target system supports it.
+2.1.2 Agents must not share authentication tokens between unrelated tasks or sessions.
+2.1.3 A failed authentication attempt must be logged with the agent's identity and the resource it attempted to access.</p>
+<p><strong>Incidents</strong> — when things go wrong, follow this process:</p>
+<p>5.1.1 An incident that causes customer-visible data loss must be classified Severity 1 regardless of the number of customers affected.
+5.1.2 Severity classification must be reassessed if new information changes the blast radius, not fixed at first report.
+5.1.3 Agents must not downgrade a severity level without a human confirming the downgrade.</p>
+<p>5.2.1 Incident {{incident_id}} at severity {{severity}} must have a status update posted at least once per hour until resolved.
+5.2.2 Customer-facing communication about an incident must be reviewed by a human before it is sent.
+5.2.3 Post-incident reviews must be published within five business days of resolution.</p>
+<h2>Your obligations</h2>
+<ol>
+<li>Every decision you make must cite the relevant law numbers</li>
+<li>If you are uncertain whether an action complies, stop and ask a human</li>
+<li>Never override a law because &quot;it's just this once&quot; — the lawbook is
+binding, not advisory</li>
+<li>When you produce output for agent integration, follow the response
+format requirements:</li>
+</ol>
+<p>6.1.1 When an agent makes a decision governed by this lawbook, it must respond with structured JSON matching the schema in this section's commentary, not prose.</p>
+<pre style="color:#f8f8f2;background-color:#272822;"><code><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;decision&#34;</span>: <span style="color:#e6db74">&#34;approve&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;laws&#34;</span>: [<span style="color:#e6db74">&#34;4.1.2&#34;</span>, <span style="color:#e6db74">&#34;4.1.3&#34;</span>],
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;reasoning&#34;</span>: <span style="color:#e6db74">&#34;The deployment passes all checks and the rollback path is ready.&#34;</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre><p>6.1.2 Every citation in the <code>laws</code> field must be one of the laws actually supplied to the agent for that decision; citing a law it was never given is itself a violation of this section.
+6.1.3 An &quot;approve&quot; or &quot;reject&quot; decision must cite at least one law, unless no law in this book applied to the task at hand.</p>
+<h2>Getting started</h2>
+<p>Run <code>alaws compile {{repository}}</code> to verify the lawbook compiles
+cleanly. Then run <code>alaws prompt render {{repository}} engineering.prompts.code-review</code>
+to see an example of how prompts are built from laws.</p>
+<p>Your first task will be assigned by {{team_lead}}. Good luck.</p>
+</div>
+<p class="backlinks"><span class="backlinks-label">References:</span> <a href="#book0-engineering.coding.review" class="alaws-link">engineering.coding.review</a> · <a href="#book0-engineering.coding.testing" class="alaws-link">engineering.coding.testing</a> · <a href="#book0-engineering.incident_response.communication" class="alaws-link">engineering.incident_response.communication</a> · <a href="#book0-engineering.incident_response.severity_levels" class="alaws-link">engineering.incident_response.severity_levels</a> · <a href="#book0-engineering.integration.response_format" class="alaws-link">engineering.integration.response_format</a> · <a href="#book0-engineering.principles" class="alaws-link">engineering.principles</a> · <a href="#book0-engineering.security.authentication" class="alaws-link">engineering.security.authentication</a> · <a href="#book0-engineering.security.secrets" class="alaws-link">engineering.security.secrets</a></p>
 <footer class="provenance">
-<p>revision 08cb50cdac66 (dirty) · compiled 2026-08-19T19:29:05Z · by Shrijith Venkatramana · alaws v0.1.0-30-g08cb50c-dirty (built 2026-08-19T19:18:11Z)</p>
+<p>revision fed2f152e5d4 · compiled 2026-08-20T15:18:58Z · by Shrijith Venkatramana · alaws dev</p>
 </footer>
 <h2 class="book-title">Payments Authorization &amp; Refunds</h2>
 <h3 id="book1-payments.authorization">1 Authorization</h3>
@@ -344,7 +751,7 @@ uses them:</p>
 </li>
 </ol>
 <footer class="provenance">
-<p>revision 08cb50cdac66 (dirty) · compiled 2026-08-19T19:29:05Z · by Shrijith Venkatramana · alaws v0.1.0-30-g08cb50c-dirty (built 2026-08-19T19:18:11Z)</p>
+<p>revision fed2f152e5d4 · compiled 2026-08-20T15:18:58Z · by Shrijith Venkatramana · alaws dev</p>
 </footer>
 <h2 class="book-title">Customer Support Governance</h2>
 <h3 id="book2-support.customer_data">1 Customer Data</h3>
@@ -444,6 +851,8 @@ uses them:</p>
 </li>
 </ol>
 <footer class="provenance">
-<p>revision 08cb50cdac66 (dirty) · compiled 2026-08-19T19:29:05Z · by Shrijith Venkatramana · alaws v0.1.0-30-g08cb50c-dirty (built 2026-08-19T19:18:11Z)</p>
+<p>revision fed2f152e5d4 · compiled 2026-08-20T15:18:58Z · by Shrijith Venkatramana · alaws dev</p>
 </footer>
+</div>
+</div>
 </body></html>

@@ -19,6 +19,7 @@ import (
 	"github.com/yuin/goldmark/text"
 
 	"github.com/shrsv/AgentLaws/internal/model"
+	"github.com/shrsv/AgentLaws/internal/renderer/navtree"
 	"github.com/shrsv/AgentLaws/internal/resolver"
 )
 
@@ -89,7 +90,20 @@ func RenderFragment(md string, resolve ResolveFunc) (string, error) {
 }
 
 const style = `<style>
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:860px;margin:2rem auto;padding:0 1rem;color:#1e1e1e;line-height:1.55}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;padding:0;color:#1e1e1e;line-height:1.55}
+.layout{display:grid;grid-template-columns:260px 1fr;align-items:start;max-width:1180px;margin:0 auto}
+nav.toc{position:sticky;top:0;max-height:100vh;overflow-y:auto;padding:2rem 1rem 2rem 1.5rem;border-right:1px solid #ddd;box-sizing:border-box;font-size:.85rem}
+nav.toc .toc-book+.toc-book{margin-top:1.5rem}
+nav.toc .toc-book-title{font-weight:700;margin:0 0 .4rem}
+nav.toc .toc-group-title{font-weight:600;color:#555;margin:.9rem 0 .3rem;font-size:.78rem;text-transform:uppercase;letter-spacing:.04em}
+nav.toc ul{list-style:none;margin:0;padding-left:0}
+nav.toc ul.toc-children{padding-left:.9rem}
+nav.toc li{margin:.15rem 0}
+nav.toc a{color:#1e1e1e;text-decoration:none;display:block;padding:.1rem 0}
+nav.toc a:hover{color:#1a73e8;text-decoration:underline}
+nav.toc .toc-number{color:#767676;font-family:ui-monospace,Menlo,monospace;font-size:.8em;margin-right:.35em}
+.content{min-width:0;max-width:860px;margin:2rem auto;padding:0 1rem;box-sizing:border-box}
+@media (max-width:700px){.layout{display:block}nav.toc{position:static;max-height:none;border-right:none;border-bottom:1px solid #ddd}}
 h1{border-bottom:1px solid #ddd;padding-bottom:.5rem}
 h2.book-title{margin-top:3rem;border-bottom:2px solid #333;padding-bottom:.4rem}
 .section-id{color:#767676;font-family:ui-monospace,Menlo,monospace;font-size:.85rem;margin-top:-.5rem}
@@ -123,6 +137,9 @@ func Render(w io.Writer, book model.Lawbook) error {
 	resolve := makeResolveFunc(book, "")
 	fmt.Fprintf(w, "<!doctype html>\n<html><head><meta charset=\"utf-8\"><title>%s</title>%s</head><body>\n",
 		html.EscapeString(book.Metadata.Title), style)
+	fmt.Fprint(w, "<div class=\"layout\">\n<nav class=\"toc\" aria-label=\"Table of contents\">\n")
+	renderNavBook(w, book, "")
+	fmt.Fprint(w, "</nav>\n<div class=\"content\">\n")
 	fmt.Fprintf(w, "<h1>%s</h1>\n", html.EscapeString(book.Metadata.Title))
 	if len(book.Prompts) > 0 {
 		fmt.Fprint(w, "<h2 id=\"laws\">LawBook</h2>\n")
@@ -137,7 +154,7 @@ func Render(w io.Writer, book model.Lawbook) error {
 		}
 	}
 	renderProvenanceFooter(w, book.Provenance)
-	fmt.Fprint(w, "</body></html>\n")
+	fmt.Fprint(w, "</div>\n</div>\n</body></html>\n")
 	return nil
 }
 
@@ -159,6 +176,15 @@ func RenderAll(w io.Writer, title string, books []model.Lawbook) error {
 
 	fmt.Fprintf(w, "<!doctype html>\n<html><head><meta charset=\"utf-8\"><title>%s</title>%s</head><body>\n",
 		html.EscapeString(title), style)
+	fmt.Fprint(w, "<div class=\"layout\">\n<nav class=\"toc\" aria-label=\"Table of contents\">\n")
+	for i, book := range books {
+		idPrefix := fmt.Sprintf("book%d-", i)
+		fmt.Fprint(w, "<div class=\"toc-book\">\n")
+		fmt.Fprintf(w, "<p class=\"toc-book-title\">%s</p>\n", html.EscapeString(book.Metadata.Title))
+		renderNavBook(w, book, idPrefix)
+		fmt.Fprint(w, "</div>\n")
+	}
+	fmt.Fprint(w, "</nav>\n<div class=\"content\">\n")
 	fmt.Fprintf(w, "<h1>%s</h1>\n", html.EscapeString(title))
 	for i, book := range books {
 		fmt.Fprintf(w, "<h2 class=\"book-title\">%s</h2>\n", html.EscapeString(book.Metadata.Title))
@@ -177,8 +203,52 @@ func RenderAll(w io.Writer, title string, books []model.Lawbook) error {
 		}
 		renderProvenanceFooter(w, book.Provenance)
 	}
-	fmt.Fprint(w, "</body></html>\n")
+	fmt.Fprint(w, "</div>\n</div>\n</body></html>\n")
 	return nil
+}
+
+// renderNavBook writes one book's entry into the <nav class="toc"> block:
+// a nested list of its sections, matching the hierarchy alaws UI's own
+// sidebar shows (buildTree in web/src/views/BookDetail.tsx), followed by
+// a flat list of its prompts, if any. Built entirely from the compiled
+// IR - never by scanning rendered Markdown/HTML for heading tags - so
+// headings an author writes inside commentary or prompt bodies for prose
+// formatting can never leak into it.
+func renderNavBook(w io.Writer, book model.Lawbook, idPrefix string) {
+	roots := navtree.Build(book.Sections)
+	if len(roots) > 0 {
+		// Only labeled when there's a PromptBook group to distinguish it
+		// from, matching the in-body "LawBook" heading (renderSections'
+		// caller), which is likewise only shown in that same case.
+		if len(book.Prompts) > 0 {
+			fmt.Fprint(w, "<p class=\"toc-group-title\">LawBook</p>\n")
+		}
+		fmt.Fprint(w, "<ul class=\"toc-sections\">\n")
+		renderNavNodes(w, roots, idPrefix)
+		fmt.Fprint(w, "</ul>\n")
+	}
+	if len(book.Prompts) > 0 {
+		fmt.Fprint(w, "<p class=\"toc-group-title\">PromptBook</p>\n<ul class=\"toc-prompts\">\n")
+		for _, p := range book.Prompts {
+			fmt.Fprintf(w, "<li><a href=%q>%s</a></li>\n",
+				html.EscapeString("#"+idPrefix+p.ID), html.EscapeString(p.Title))
+		}
+		fmt.Fprint(w, "</ul>\n")
+	}
+}
+
+func renderNavNodes(w io.Writer, nodes []*navtree.Node, idPrefix string) {
+	for _, n := range nodes {
+		s := n.Section
+		fmt.Fprintf(w, "<li><a href=%q><span class=\"toc-number\">%s</span>%s</a>",
+			html.EscapeString("#"+idPrefix+s.ID), html.EscapeString(s.Number), html.EscapeString(s.Title))
+		if len(n.Children) > 0 {
+			fmt.Fprint(w, "<ul class=\"toc-children\">\n")
+			renderNavNodes(w, n.Children, idPrefix)
+			fmt.Fprint(w, "</ul>\n")
+		}
+		fmt.Fprint(w, "</li>\n")
+	}
 }
 
 // makeResolveFunc builds a ResolveFunc for a single book.
