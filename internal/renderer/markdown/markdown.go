@@ -46,6 +46,10 @@ func makeCombinedResolveFunc(books []model.Lawbook) ResolveFunc {
 func Render(w io.Writer, book model.Lawbook) error {
 	resolve := makeResolveFunc(book)
 	fmt.Fprintf(w, "# %s\n\n", book.Metadata.Title)
+	if len(book.Prompts) > 0 {
+		fmt.Fprintf(w, "## LawBook\n\n")
+		fmt.Fprintf(w, "*Laws and sections that define the book's rules.*\n\n")
+	}
 	renderSections(w, book, 0, resolve)
 	if len(book.Prompts) > 0 {
 		renderPrompts(w, book, 0, resolve)
@@ -62,6 +66,10 @@ func RenderAll(w io.Writer, title string, books []model.Lawbook) error {
 	fmt.Fprintf(w, "# %s\n\n", title)
 	for _, book := range books {
 		fmt.Fprintf(w, "## %s\n\n", book.Metadata.Title)
+		if len(book.Prompts) > 0 {
+			fmt.Fprintf(w, "### LawBook\n\n")
+			fmt.Fprintf(w, "*Laws and sections that define the book's rules.*\n\n")
+		}
 		renderSections(w, book, 1, resolve)
 		if len(book.Prompts) > 0 {
 			renderPrompts(w, book, 1, resolve)
@@ -135,6 +143,22 @@ func renderPrompts(w io.Writer, book model.Lawbook, levelOffset int, resolve Res
 		// Template content (expanded)
 		tmplMD := resolver.PromptDisplayText(p, true)
 		fmt.Fprintf(w, "%s\n\n", rewriteAlawsLinks(tmplMD, resolve))
+
+		// References: sections/laws this prompt pulls in
+		if len(p.ReferencedAnchors) > 0 {
+			fmt.Fprint(w, "**References:** ")
+			for i, anchor := range p.ReferencedAnchors {
+				if i > 0 {
+					fmt.Fprint(w, " · ")
+				}
+				if href, ok := resolve(anchor); ok {
+					fmt.Fprintf(w, "[%s](%s)", anchor, href)
+				} else {
+					fmt.Fprint(w, anchor)
+				}
+			}
+			fmt.Fprint(w, "\n\n")
+		}
 	}
 }
 

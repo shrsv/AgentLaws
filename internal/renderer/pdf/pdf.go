@@ -258,6 +258,11 @@ func buildMarkdown(book model.Lawbook, resolve ResolveFunc) string {
 func buildMarkdownInto(b *strings.Builder, book model.Lawbook, resolve ResolveFunc) {
 	fmt.Fprintf(b, "# %s\n\n", book.Metadata.Title)
 
+	if len(book.Prompts) > 0 {
+		b.WriteString("## LawBook\n\n")
+		b.WriteString("*Laws and sections that define the book's rules.*\n\n")
+	}
+
 	for _, s := range book.Sections {
 		// Section heading
 		level := s.Level + 1
@@ -284,7 +289,11 @@ func buildMarkdownInto(b *strings.Builder, book model.Lawbook, resolve ResolveFu
 				if i > 0 {
 					b.WriteString(" · ")
 				}
-				fmt.Fprintf(b, "[%s](alaws:%s)", pid, pid)
+				if href, ok := resolve(pid); ok {
+					fmt.Fprintf(b, "[%s](%s)", pid, href)
+				} else {
+					fmt.Fprintf(b, "%s", pid)
+				}
 			}
 			b.WriteString("\n\n")
 		}
@@ -303,7 +312,11 @@ func buildMarkdownInto(b *strings.Builder, book model.Lawbook, resolve ResolveFu
 					if i > 0 {
 						b.WriteString(" · ")
 					}
-					fmt.Fprintf(b, "[%s](alaws:%s)", pid, pid)
+					if href, ok := resolve(pid); ok {
+						fmt.Fprintf(b, "[%s](%s)", pid, href)
+					} else {
+						fmt.Fprintf(b, "%s", pid)
+					}
 				}
 				b.WriteString("\n\n")
 			}
@@ -330,6 +343,22 @@ func buildMarkdownInto(b *strings.Builder, book model.Lawbook, resolve ResolveFu
 			tmplMD := resolver.PromptDisplayText(p, true)
 			b.WriteString(rewriteAlawsLinks(tmplMD, resolve))
 			b.WriteString("\n\n")
+
+			// References: sections/laws this prompt pulls in
+			if len(p.ReferencedAnchors) > 0 {
+				b.WriteString("**References:** ")
+				for i, anchor := range p.ReferencedAnchors {
+					if i > 0 {
+						b.WriteString(" · ")
+					}
+					if href, ok := resolve(anchor); ok {
+						fmt.Fprintf(b, "[%s](%s)", anchor, href)
+					} else {
+						b.WriteString(anchor)
+					}
+				}
+				b.WriteString("\n\n")
+			}
 		}
 	}
 

@@ -124,6 +124,10 @@ func Render(w io.Writer, book model.Lawbook) error {
 	fmt.Fprintf(w, "<!doctype html>\n<html><head><meta charset=\"utf-8\"><title>%s</title>%s</head><body>\n",
 		html.EscapeString(book.Metadata.Title), style)
 	fmt.Fprintf(w, "<h1>%s</h1>\n", html.EscapeString(book.Metadata.Title))
+	if len(book.Prompts) > 0 {
+		fmt.Fprint(w, "<h2 id=\"laws\">LawBook</h2>\n")
+		fmt.Fprint(w, "<p class=\"promptbook-subtitle\">Laws and sections that define the book's rules.</p>\n")
+	}
 	if err := renderSections(w, book, "", 0, resolve); err != nil {
 		return err
 	}
@@ -159,6 +163,10 @@ func RenderAll(w io.Writer, title string, books []model.Lawbook) error {
 	for i, book := range books {
 		fmt.Fprintf(w, "<h2 class=\"book-title\">%s</h2>\n", html.EscapeString(book.Metadata.Title))
 		idPrefix := fmt.Sprintf("book%d-", i)
+		if len(book.Prompts) > 0 {
+			fmt.Fprintf(w, "<h3 id=%q>LawBook</h3>\n", html.EscapeString(idPrefix+"laws"))
+			fmt.Fprintf(w, "<p class=\"promptbook-subtitle\">Laws and sections that define the book's rules.</p>\n")
+		}
 		if err := renderSections(w, book, idPrefix, 1, combinedResolve); err != nil {
 			return err
 		}
@@ -283,6 +291,23 @@ func renderPrompts(w io.Writer, book model.Lawbook, idPrefix string, levelOffset
 			return err
 		}
 		fmt.Fprintf(w, "<div class=\"prompt-template-content\">%s</div>\n", tmplFrag)
+
+		// References: sections/laws this prompt pulls in
+		if len(p.ReferencedAnchors) > 0 {
+			fmt.Fprint(w, "<p class=\"backlinks\"><span class=\"backlinks-label\">References:</span> ")
+			for i, anchor := range p.ReferencedAnchors {
+				if i > 0 {
+					fmt.Fprint(w, " · ")
+				}
+				if href, ok := resolve(anchor); ok {
+					fmt.Fprintf(w, "<a href=\"%s\" class=\"alaws-link\">%s</a>",
+						html.EscapeString(href), html.EscapeString(anchor))
+				} else {
+					fmt.Fprintf(w, "%s", html.EscapeString(anchor))
+				}
+			}
+			fmt.Fprint(w, "</p>\n")
+		}
 	}
 	return nil
 }

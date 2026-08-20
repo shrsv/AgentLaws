@@ -23,7 +23,7 @@ func newCompileCmd() *cobra.Command {
 			for _, book := range books {
 				b, err := alaws.Compile(book)
 				for _, d := range b.Diagnostics() {
-					cmd.PrintErrf("%s: %s: %s\n", book, d.Code, d.Message)
+					cmd.PrintErrf("%s: %s: %s: %s\n", book, d.Severity, d.Code, d.Message)
 				}
 				if err != nil {
 					return fmt.Errorf("%s: %w", book, err)

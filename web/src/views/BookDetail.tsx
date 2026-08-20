@@ -153,6 +153,13 @@ export function BookDetail({ path, section, law, navigate, onSectionsChange, onP
     if (promptID) setSelectedPromptID(promptID);
   }, [promptID]);
 
+  // Auto-select first prompt when in prompt mode but none selected
+  useEffect(() => {
+    if (isPromptMode && !selectedPromptID && prompts.length > 0) {
+      setSelectedPromptID(prompts[0].ID);
+    }
+  }, [isPromptMode, selectedPromptID, prompts]);
+
   // Prompt preview: debounce variable changes and call API
   useEffect(() => {
     if (!isPromptMode || !selectedPromptID) return;
@@ -547,7 +554,12 @@ export function BookDetail({ path, section, law, navigate, onSectionsChange, onP
                   <button class={`mode-toggle-btn ${!isPromptMode ? "active" : ""}`} onClick={() => { setIsPromptMode(false); navigate({ name: "book", path, section: selectedID ?? undefined }); }} title="Laws">
                     <BookOpen size={12} /> Laws
                   </button>
-                  <button class={`mode-toggle-btn ${isPromptMode ? "active" : ""}`} onClick={() => { setIsPromptMode(true); navigate({ name: "prompts", path, id: selectedPromptID ?? undefined }); }} title="Prompts">
+                  <button class={`mode-toggle-btn ${isPromptMode ? "active" : ""}`} onClick={() => {
+                    setIsPromptMode(true);
+                    const targetID = selectedPromptID ?? prompts[0]?.ID;
+                    if (targetID && !selectedPromptID) setSelectedPromptID(targetID);
+                    navigate({ name: "prompts", path, id: targetID ?? undefined });
+                  }} title="Prompts">
                     <Layers size={12} /> Prompts
                   </button>
                 </div>
@@ -560,13 +572,15 @@ export function BookDetail({ path, section, law, navigate, onSectionsChange, onP
 
               {isPromptMode ? (
                 <ul class="tree prompt-list">
-                  {prompts.map((p) => (
+                  {prompts.map((p, i) => (
                     <li key={p.ID} class="tree-branch">
                       <div
                         class="tree-node"
                         aria-selected={p.ID === selectedPromptID}
                         onClick={() => selectPrompt(p.ID)}
                       >
+                        <Layers size={12} style={{ flexShrink: 0, opacity: 0.6 }} />
+                        <span class="number">P{i + 1}</span>
                         <span class="node-title">{p.Title}</span>
                       </div>
                     </li>
