@@ -234,3 +234,63 @@ func ExampleBook_Section() {
 	fmt.Printf("Level:   %d\n", sec.Level)
 	fmt.Printf("Laws:    %d\n", len(sec.Laws))
 }
+
+// This example demonstrates listing all prompt templates in a book.
+func ExampleBook_Prompts() {
+	book, err := alaws.Load("examples/engineering")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, p := range book.Prompts() {
+		fmt.Printf("%-45s %s\n", p.ID, p.Title)
+	}
+}
+
+// This example demonstrates loading a specific prompt template by ID and
+// inspecting its variables.
+func ExampleBook_Prompt() {
+	book, err := alaws.Load("examples/engineering")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	prompt, err := book.Prompt("engineering.prompts.code-review")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("Title: %s\n", prompt.Title)
+	fmt.Printf("Vars:  %v\n", prompt.Vars)
+}
+
+// This example demonstrates rendering a prompt template with variable
+// substitution — the final step before sending a prompt to an agent.
+func ExamplePrompt_Render() {
+	book, err := alaws.Load("examples/engineering")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	prompt, err := book.Prompt("engineering.prompts.code-review")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	text, err := prompt.Render(alaws.PromptRenderOptions{
+		Vars: map[string]string{
+			"repo":           "acme/payments",
+			"author":         "ci-bot",
+			"module":         "auth",
+			"diff_summary":   "Add rate limiting to login endpoint",
+			"test_results":   "all 47 tests passing",
+			"agent_name":     "review-bot",
+		},
+		OnMissing: alaws.MissingKeepPlaceholder,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(text)
+}

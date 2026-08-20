@@ -4,6 +4,12 @@ import "github.com/shrsv/AgentLaws/internal/watcher"
 
 // WatchEvent describes a single recompilation triggered by a source
 // change (or the initial compile when watching starts).
+//
+// RenderedSections and RenderedPrompts contain pre-rendered HTML fragments
+// for every section and prompt template, keyed by ID. These are computed
+// by the watcher so callers (e.g. a live web UI) can update without a
+// second round-trip. The __BOOK_PATH__ placeholder in alaws: link hrefs
+// is already replaced with the URL-encoded book path.
 type WatchEvent struct {
 	ClusterPath     string
 	Book            *Book // nil only if the lawbook couldn't be read at all
