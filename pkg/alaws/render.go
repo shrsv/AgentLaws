@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/shrsv/AgentLaws/internal/model"
 	"github.com/shrsv/AgentLaws/internal/resolver"
@@ -15,6 +16,44 @@ import (
 	rendermarkdown "github.com/shrsv/AgentLaws/internal/renderer/markdown"
 	renderpdf "github.com/shrsv/AgentLaws/internal/renderer/pdf"
 )
+
+// ExportFileName returns a descriptive download filename for an exported
+// artifact - e.g. "engineering-governance-2026-08-20.pdf" for title
+// "Engineering Governance" and format "pdf" - so a file a user downloads
+// (from the web UI's export endpoints) names itself after the book and
+// day it was exported instead of the generic name of whichever HTTP
+// route produced it (docs/PLAN1.md's build-artifact layout under
+// .alaws/build, e.g. lawbook.pdf, is a separate, stable-path convention
+// for CI/tooling and is deliberately left alone by this helper).
+func ExportFileName(title, format string) string {
+	return slugify(title) + "-" + time.Now().Format("2006-01-02") + "." + format
+}
+
+// slugify lowercases s and collapses every run of non-alphanumeric
+// characters into a single hyphen, trimming leading/trailing hyphens -
+// e.g. "Engineering Governance" -> "engineering-governance". Falls back
+// to "lawbook" if title has no alphanumeric characters at all (an empty
+// or symbols-only book title).
+func slugify(s string) string {
+	var b strings.Builder
+	lastWasDash := true // suppresses a leading hyphen
+	for _, r := range strings.ToLower(s) {
+		if r >= 'a' && r <= 'z' || r >= '0' && r <= '9' {
+			b.WriteRune(r)
+			lastWasDash = false
+			continue
+		}
+		if !lastWasDash {
+			b.WriteByte('-')
+			lastWasDash = true
+		}
+	}
+	out := strings.TrimSuffix(b.String(), "-")
+	if out == "" {
+		return "lawbook"
+	}
+	return out
+}
 
 // RenderHTML writes the human-readable HTML representation of the compiled
 // book to w (docs/PLAN1.md §22).

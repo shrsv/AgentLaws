@@ -62,7 +62,7 @@ func methodNotAllowed(w http.ResponseWriter) {
 // (see internal/renderer/pdf). Buffering first also means a render error
 // becomes a proper JSON error response instead of a truncated,
 // unparseable file with a 200 already sent.
-func writeRendered(w http.ResponseWriter, contentType string, render func(io.Writer) error) {
+func writeRendered(w http.ResponseWriter, contentType, filename string, render func(io.Writer) error) {
 	var buf bytes.Buffer
 	if err := render(&buf); err != nil {
 		writeError(w, err)
@@ -70,6 +70,10 @@ func writeRendered(w http.ResponseWriter, contentType string, render func(io.Wri
 	}
 	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Content-Length", strconv.Itoa(buf.Len()))
+	// inline (not attachment) so the browser still previews the file - it
+	// only supplies the name a user gets if they explicitly save it,
+	// rather than the last path segment of the API route ("export").
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename=%q`, filename))
 	_, _ = w.Write(buf.Bytes())
 }
 
@@ -138,15 +142,15 @@ func handleExportAll(w http.ResponseWriter, r *http.Request) {
 
 	switch format {
 	case "html":
-		writeRendered(w, "text/html; charset=utf-8", func(w io.Writer) error {
+		writeRendered(w, "text/html; charset=utf-8", alaws.ExportFileName(title, format), func(w io.Writer) error {
 			return alaws.RenderCombinedHTML(w, title, books)
 		})
 	case "pdf":
-		writeRendered(w, "application/pdf", func(w io.Writer) error {
+		writeRendered(w, "application/pdf", alaws.ExportFileName(title, format), func(w io.Writer) error {
 			return alaws.RenderCombinedPDF(w, title, books)
 		})
 	case "md":
-		writeRendered(w, "text/markdown; charset=utf-8", func(w io.Writer) error {
+		writeRendered(w, "text/markdown; charset=utf-8", alaws.ExportFileName(title, format), func(w io.Writer) error {
 			return alaws.RenderCombinedMarkdown(w, title, books)
 		})
 	default:
@@ -294,13 +298,14 @@ func handleExport(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
+	filename := alaws.ExportFileName(b.Lawbook().Metadata.Title, format)
 	switch format {
 	case "html":
-		writeRendered(w, "text/html; charset=utf-8", b.RenderHTML)
+		writeRendered(w, "text/html; charset=utf-8", filename, b.RenderHTML)
 	case "pdf":
-		writeRendered(w, "application/pdf", b.RenderPDF)
+		writeRendered(w, "application/pdf", filename, b.RenderPDF)
 	case "md":
-		writeRendered(w, "text/markdown; charset=utf-8", b.RenderMarkdown)
+		writeRendered(w, "text/markdown; charset=utf-8", filename, b.RenderMarkdown)
 	default:
 		writeError(w, fmt.Errorf("unknown format %q, want html, pdf, or md", format))
 	}
