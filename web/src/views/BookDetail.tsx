@@ -234,12 +234,27 @@ export function BookDetail({ path, section, law, navigate, onSectionsChange, onO
     navigate({ name: "book", path, section: id });
   };
 
+  const selectPrompt = (id: string) => {
+    setSelectedPromptID(id);
+    setPromptVars({});
+    navigate({ name: "prompts", path, id });
+  };
+
+  const currentPromptIndex = selectedPromptID ? prompts.findIndex((p) => p.ID === selectedPromptID) : -1;
+  const hasPrevPrompt = currentPromptIndex > 0;
+  const hasNextPrompt = currentPromptIndex >= 0 && currentPromptIndex < prompts.length - 1;
+  const goPrevPrompt = () => { if (hasPrevPrompt) selectPrompt(prompts[currentPromptIndex - 1].ID); };
+  const goNextPrompt = () => { if (hasNextPrompt) selectPrompt(prompts[currentPromptIndex + 1].ID); };
+
   const currentIndex = selectedID ? sections.findIndex((s) => s.ID === selectedID) : -1;
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex >= 0 && currentIndex < sections.length - 1;
 
   const goPrev = () => { if (hasPrev) select(sections[currentIndex - 1].ID); };
   const goNext = () => { if (hasNext) select(sections[currentIndex + 1].ID); };
+
+  const goPrevAny = () => { if (isPromptMode) goPrevPrompt(); else goPrev(); };
+  const goNextAny = () => { if (isPromptMode) goNextPrompt(); else goNext(); };
 
   const toggleHistory = () => { setShowHistory((v) => !v); if (showHistory) setHistoryFilter(null); };
   const toggleHelp = () => { setShowHelp((v) => !v); };
@@ -255,14 +270,28 @@ export function BookDetail({ path, section, law, navigate, onSectionsChange, onO
   });
 
   useShortcuts([
-    { key: "j", description: "Next section", action: goNext },
-    { key: "k", description: "Previous section", action: goPrev },
-    { key: "ArrowRight", description: "Next section", action: goNext },
-    { key: "ArrowLeft", description: "Previous section", action: goPrev },
+    { key: "j", description: "Next section/prompt", action: goNextAny },
+    { key: "k", description: "Previous section/prompt", action: goPrevAny },
+    { key: "ArrowRight", description: "Next section/prompt", action: goNextAny },
+    { key: "ArrowLeft", description: "Previous section/prompt", action: goPrevAny },
     { key: "h", description: "Toggle history panel", action: toggleHistory },
     { key: "b", description: "Toggle sidebar", action: toggleSidebar },
-    { key: "s", description: "View section source", action: () => { if (selected) loadSource(selected.Source.Path, selected.Source.LineStart, selected.Source.LineEnd); } },
-    { key: "c", description: "Copy section file path", action: () => { if (selected) copyPath(selected.Source.Path); } },
+    { key: "s", description: "View source", action: () => {
+      if (isPromptMode && selectedPromptID) {
+        const p = prompts.find((pr) => pr.ID === selectedPromptID);
+        if (p) loadSource(p.Source.Path, p.Source.LineStart, p.Source.LineEnd);
+      } else if (selected) {
+        loadSource(selected.Source.Path, selected.Source.LineStart, selected.Source.LineEnd);
+      }
+    }},
+    { key: "c", description: "Copy file path", action: () => {
+      if (isPromptMode && selectedPromptID) {
+        const p = prompts.find((pr) => pr.ID === selectedPromptID);
+        if (p) copyPath(p.Source.Path);
+      } else if (selected) {
+        copyPath(selected.Source.Path);
+      }
+    }},
     { key: "?", description: "Show keyboard shortcuts", action: toggleHelp },
     { key: "/", description: "Search in book", action: toggleSearch },
     { key: "p", description: "Quick jump (Ctrl+P also works)", action: () => onOpenCommandPalette?.() },
@@ -529,11 +558,7 @@ export function BookDetail({ path, section, law, navigate, onSectionsChange, onO
                       <div
                         class="tree-node"
                         aria-selected={p.ID === selectedPromptID}
-                        onClick={() => {
-                          setSelectedPromptID(p.ID);
-                          setPromptVars({});
-                          navigate({ name: "prompts", path, id: p.ID });
-                        }}
+                        onClick={() => selectPrompt(p.ID)}
                       >
                         <span class="node-title">{p.Title}</span>
                       </div>
@@ -590,11 +615,29 @@ text, _ := prompt.Render(alaws.PromptRenderOptions{
               return (
                 <>
                   <div class="detail-header">
+                    <div class="detail-nav">
+                      <button class="icon-button nav-arrow" title="Previous prompt" disabled={!hasPrevPrompt} onClick={goPrevPrompt}>
+                        <ChevronLeft size={16} />
+                      </button>
+                      <button class="icon-button nav-arrow" title="Next prompt" disabled={!hasNextPrompt} onClick={goNextPrompt}>
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
                     <h1>{p.Title}</h1>
                   </div>
                   <div class="section-id">{p.ID}</div>
+                  <div class="section-file">
+                    <Code size={11} />
+                    <span class="section-file-path" title={p.Source.Path}>{relativePath(p.Source.Path)}</span>
+                    <button class="icon-button" title="Copy path" onClick={() => copyPath(p.Source.Path)}>
+                      {copiedPath ? <Check size={11} /> : <Copy size={11} />}
+                    </button>
+                    <button class="icon-button" title="View source" onClick={() => loadSource(p.Source.Path, p.Source.LineStart, p.Source.LineEnd)}>
+                      <Code size={11} /> Source
+                    </button>
+                  </div>
 
-                  <div class="commentary" dangerouslySetInnerHTML={{ __html: rp?.CommentaryHTML ?? escapeHTML(p.Commentary) }} />
+                  <div class="commentary" dangerouslySetInnerHTML={{ __html: highlightMatches(rp?.CommentaryHTML ?? escapeHTML(p.Commentary), highlightQuery) }} />
 
                   <div class="prompt-template-section">
                     <div class="prompt-template-header">
@@ -604,7 +647,7 @@ text, _ := prompt.Render(alaws.PromptRenderOptions{
                         <button class={`mode-toggle-btn ${!promptDisplayExpanded ? "active" : ""}`} onClick={() => setPromptDisplayExpanded(false)}>Compact</button>
                       </div>
                     </div>
-                    <div class="prompt-template-content" dangerouslySetInnerHTML={{ __html: promptDisplayExpanded ? (rp?.TemplateHTML ?? escapeHTML(p.Template)) : (rp?.CompactHTML ?? "") }} />
+                    <div class="prompt-template-content" dangerouslySetInnerHTML={{ __html: highlightMatches(promptDisplayExpanded ? (rp?.TemplateHTML ?? escapeHTML(p.Template)) : (rp?.CompactHTML ?? ""), highlightQuery) }} />
                   </div>
 
                   {p.Vars && p.Vars.length > 0 && (

@@ -105,6 +105,17 @@ table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.92em}
 th,td{border:1px solid #ddd;padding:.5rem .75rem;text-align:left}
 th{background:#f5f5f5;font-weight:600}
 tr:nth-child(even){background:#fafafa}
+hr.promptbook-separator{margin:3rem 0 1rem;border:none;border-top:2px solid #333}
+.promptbook-subtitle{color:#767676;font-size:.9rem;margin-top:-.4rem;margin-bottom:1.5rem}
+.prompt-template-content{background:#f8f8f8;border:1px solid #ddd;border-radius:6px;padding:.85rem 1rem;margin:.5rem 0;font-size:.92rem;line-height:1.55}
+.prompt-template-content code{font-family:ui-monospace,Menlo,monospace;background:#f0f0f0;padding:.1em .3em;border-radius:3px;font-size:.92em}
+.prompt-template-content pre{background:#272822}
+.prompt-template-content pre code{background:none;padding:0;border-radius:0;color:#f8f8f2}
+.backlinks{color:#767676;font-size:.85rem;margin:.25rem 0}
+.backlinks-label{font-weight:600}
+.law-backlinks{color:#767676;font-size:.8rem}
+.alaws-link{color:#1a73e8;text-decoration:none}
+.alaws-link:hover{text-decoration:underline}
 </style>`
 
 // Render writes the HTML representation of book to w.
@@ -244,7 +255,9 @@ func renderSections(w io.Writer, book model.Lawbook, idPrefix string, levelOffse
 // renderPrompts writes one book's prompt templates as a "PromptBook" section.
 func renderPrompts(w io.Writer, book model.Lawbook, idPrefix string, levelOffset int, resolve ResolveFunc) error {
 	hLevel := min(2+levelOffset, 6)
+	fmt.Fprintf(w, "<hr class=\"promptbook-separator\">\n")
 	fmt.Fprintf(w, "<h%d id=%q>PromptBook</h%d>\n", hLevel, html.EscapeString(idPrefix+"prompts"), hLevel)
+	fmt.Fprintf(w, "<p class=\"promptbook-subtitle\">Prompt templates that stitch laws and sections into reusable agent prompts.</p>\n")
 
 	for _, p := range book.Prompts {
 		pLevel := min(3+levelOffset, 6)

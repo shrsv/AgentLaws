@@ -119,7 +119,9 @@ func renderSections(w io.Writer, book model.Lawbook, levelOffset int, resolve Re
 // renderPrompts writes one book's prompt templates as a "PromptBook" section.
 func renderPrompts(w io.Writer, book model.Lawbook, levelOffset int, resolve ResolveFunc) {
 	hLevel := min(2+levelOffset, 6)
+	fmt.Fprint(w, "---\n\n")
 	fmt.Fprintf(w, "%s PromptBook\n\n", strings.Repeat("#", hLevel))
+	fmt.Fprint(w, "*Prompt templates that stitch laws and sections into reusable agent prompts.*\n\n")
 
 	for _, p := range book.Prompts {
 		pLevel := min(3+levelOffset, 6)

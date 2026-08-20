@@ -312,7 +312,9 @@ func buildMarkdownInto(b *strings.Builder, book model.Lawbook, resolve ResolveFu
 
 	// PromptBook section
 	if len(book.Prompts) > 0 {
+		b.WriteString("---\n\n")
 		b.WriteString("## PromptBook\n\n")
+		b.WriteString("*Prompt templates that stitch laws and sections into reusable agent prompts.*\n\n")
 		for _, p := range book.Prompts {
 			promptAnchor := p.ID
 			fmt.Fprintf(b, "<!--alaws-anchor:%s-->\n", promptAnchor)
