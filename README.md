@@ -39,6 +39,7 @@ AgentLaws is deliberately simple today. It does not attempt to build a formal le
 | Browse the full CLI command reference | [CLI and Library](#cli-and-library) |
 | Use it as a Go library in my app | [Using Laws from Go](#using-laws-from-go) |
 | Insert dynamic values into laws | [Variables in Prompt Composition](#variables-in-prompt-composition) |
+| Stitch laws into named prompt templates | [PromptBook](#promptbook) |
 | Understand canonical citation numbers | [Canonical Law Numbers](#canonical-law-numbers) |
 | Cross-reference chapters, sections, and laws | [Cross-Referencing Laws](#cross-referencing-laws) |
 | See how agent citations create an audit trail | [Agent Citations](#agent-citations) |
@@ -59,6 +60,7 @@ AgentLaws is deliberately simple today. It does not attempt to build a formal le
 | Multi-agent systems | Each agent loads only the laws relevant to its role via `Selector` |
 | Compliance and audit | Every agent decision cites specific law numbers; provenance traces them to who wrote them and when |
 | Live development of governance rules | `alaws watch` + web UI for real-time preview as you edit Markdown |
+| Building reusable agent prompts | PromptBook stitches laws into named templates with variables; `alaws prompt render` produces the final prompt |
 
 ---
 
@@ -272,14 +274,17 @@ governance/
 │   ├── secrets.md
 │   └── dependencies.md
 ├── coding.md
-└── operations.md
+├── operations.md
+└── prompts/
+    ├── code-review.md
+    └── incident-triage.md
 ```
 
 The directories themselves have **no semantic meaning**.
 
 They are simply a convenient way to organize files.
 
-The authoritative structure is the `ordering` in `alaws.toml`.
+The authoritative structure is the `ordering` and `promptTemplates` in `alaws.toml`.
 
 ```toml
 ordering = [
@@ -289,6 +294,11 @@ ordering = [
   "security/dependencies.md",
   "coding.md",
   "operations.md",
+]
+
+promptTemplates = [
+  "prompts/code-review.md",
+  "prompts/incident-triage.md",
 ]
 ```
 
@@ -1010,6 +1020,250 @@ alaws render --book ./governance --section engineering.security \
 
 ---
 
+# PromptBook
+
+A LawBook gives you raw material: sections, commentary, and numbered laws. But the actual thing an application sends to an agent — a stitched-together prompt built from several sections plus runtime variables — has no representation. It's assembled ad hoc by application code calling `book.Laws(selector).Render(vars)`.
+
+**PromptBook** adds **prompt templates** as a first-class object alongside sections. A prompt template is a named, authored Markdown document whose body stitches in law and section text by reference and leaves `{{var}}` placeholders for values supplied at render time.
+
+The key design decision: stitching law text into a prompt is a **compile-time** operation — deterministic, part of the canonical IR, exactly like law numbering. The `{{var}}` placeholders stay for **render-time** substitution, exactly as they already work for laws.
+
+## Defining prompts in alaws.toml
+
+Add a `promptTemplates` list alongside `ordering`:
+
+```toml
+title = "Engineering Governance"
+
+ordering = [
+  "principles.md",
+  "security.md",
+  "security/secrets.md",
+  "coding.md",
+  "coding/review.md",
+  "operations.md",
+]
+
+promptTemplates = [
+  "prompts/code-review.md",
+  "prompts/incident-triage.md",
+  "prompts/deployment-gate.md",
+]
+```
+
+Every listed file must exist. Files that exist but aren't listed are flagged as unused, just like section files.
+
+## Prompt template source format
+
+A prompt template file has the same shape as a section file — frontmatter, commentary, and a body — but uses `<!-- alaws:promptTemplate -->` instead of `<!-- alaws:laws -->`:
+
+```md
+---
+title: Code Review Prompt
+id: engineering.prompts.code-review
+---
+
+<!-- alaws:commentary -->
+
+Used by the CI review bot before approving a PR.
+Explains when this prompt fires and what it governs.
+
+<!-- alaws:promptTemplate -->
+
+You are reviewing a pull request in {{repo}} authored by {{author}}.
+
+Apply the following laws:
+
+{{ref:engineering.coding.review}}
+
+{{ref:engineering.security.secrets}}
+
+Decision must cite law numbers.
+```
+
+The `title` and `id` are mandatory, exactly like sections. The `id` shares the global namespace with section IDs — a prompt ID that collides with a section ID is a `duplicate-id` error.
+
+## The `{{ref:}}` stitching syntax
+
+Inside the `<!-- alaws:promptTemplate -->` region, a `{{ref:<id>}}` directive stitches in text from elsewhere in the lawbook. There is one generic syntax — no `law:`/`section:`/`prompt:` prefix needed. Whatever `<id>` resolves to determines what gets expanded:
+
+| Resolved kind | What gets stitched in |
+|---|---|
+| **Law** | That law's `"Number Text"`, with `{{var}}` placeholders left intact |
+| **Section** | All that section's laws, one per line (not its commentary) |
+| **Prompt** | That prompt's fully-expanded template (composable; cycle-checked) |
+
+Resolution uses the same precedence chain as `alaws:` links: section ID → fully-qualified law address → citation number → section number → unambiguous bare slug → prompt ID.
+
+An unresolved `{{ref:x}}` is left as literal text and reported as a `dangling-prompt-reference` error. Circular prompt-to-prompt references produce a `circular-prompt-reference` error.
+
+## Using prompts from the CLI
+
+```bash
+# List all prompts in a book
+alaws prompt list ./engineering
+
+# Show a prompt's segments and metadata
+alaws prompt show ./engineering engineering.prompts.code-review
+
+# Show what variables the prompt needs
+alaws prompt vars ./engineering engineering.prompts.code-review
+
+# Render with variable substitution — the full stitched prompt
+alaws prompt render ./engineering engineering.prompts.code-review \
+  --var repo=acme/payments \
+  --var author=ci-bot \
+  --var module=auth \
+  --on-missing keep
+
+# Create a new prompt template
+alaws prompt create ./engineering prompts/new-prompt.md \
+  --title "New Prompt" --id engineering.prompts.new-prompt
+
+# Remove a prompt template
+alaws prompt remove ./engineering engineering.prompts.new-prompt
+```
+
+## Using prompts from Go
+
+```go
+book, _ := alaws.Load("./engineering")
+
+// List all prompts
+for _, p := range book.Prompts() {
+    fmt.Printf("%-40s %s\n", p.ID, p.Title)
+}
+
+// Get a specific prompt
+prompt, _ := book.Prompt("engineering.prompts.code-review")
+
+// See what variables it needs
+fmt.Println(prompt.Vars) // [agent_name author diff_summary ...]
+
+// Render with variable substitution
+text, _ := prompt.Render(alaws.PromptRenderOptions{
+    Vars: map[string]string{
+        "repo":   "acme/payments",
+        "author": "ci-bot",
+        "module": "auth",
+    },
+    OnMissing: alaws.MissingKeepPlaceholder,
+})
+fmt.Println(text)
+```
+
+## Bidirectional navigation
+
+Prompt templates create **bidirectional links** between prompts and the laws they reference:
+
+- **From a prompt**: each `{{ref:x}}` segment shows where it came from, with a jump-to-source link to the referenced law or section.
+- **From a law or section**: if any prompt references it, a "Used in prompts:" line appears under that law or section, linking back to every prompt that cites it.
+
+This works in the web UI (click to navigate), in HTML exports (clickable anchor links), in PDF exports (internal PDF links), and in Markdown exports (anchor references).
+
+## The PromptBook toggle in the web UI
+
+When you open a lawbook in the web UI (`alaws serve` or `alaws watch`), the sidebar header has a **Laws / Prompts** toggle:
+
+- **Laws mode**: the existing section tree, commentary, and numbered laws view.
+- **Prompts mode**: a flat list of prompt templates. Selecting one shows:
+  - Its commentary
+  - The template with ref segments shown as labeled blocks (expanded or compact)
+  - A **Variables** panel with an input per `{{var}}` placeholder
+  - A **Preview** panel that renders the prompt live as you type variables
+  - A **Go Usage** panel with ready-to-copy code
+  - A **References** panel listing every law/section the prompt draws from
+
+The URL changes when you switch modes: `#/books/<path>/<section>` for laws, `#/books/<path>/prompts/<promptID>` for prompts. Links work in both directions — click a referenced law in a prompt to jump to it in Laws mode, click "Used in prompts" under a law to jump back to the prompt.
+
+## PromptBook in exports
+
+When a lawbook has prompt templates, all export formats (HTML, PDF, Markdown) automatically include a **PromptBook** section after the laws. Each prompt renders under its own heading with its expanded template.
+
+The "Used in prompts:" backlink line appears under every section and law that is referenced by a prompt, in every export format.
+
+Control this with flags:
+
+```bash
+# Explicitly include or exclude prompts from export
+alaws compile ./engineering --format html --prompts on
+alaws compile ./engineering --format pdf --prompts off
+
+# Choose expanded (default) or compact display
+# Compact shows [Section Title](alaws:id) links instead of inline text
+alaws compile ./engineering --format html --prompts-display compact
+```
+
+When no `promptTemplates` key exists in `alaws.toml`, prompts are silently omitted — zero change for existing books.
+
+## Prompt template diagnostics
+
+| Code | Severity | Meaning |
+|---|---|---|
+| `missing-prompt-template` | Error | Prompt file has no `<!-- alaws:promptTemplate -->` marker |
+| `empty-prompt-template` | Warning | The promptTemplate region has no content |
+| `dangling-prompt-reference` | Error | A `{{ref:x}}` directive didn't resolve to anything |
+| `circular-prompt-reference` | Error | A `{{ref:x}}` chain cycles back to itself |
+
+Plus `missing-title`, `missing-id`, `invalid-metadata`, `missing-file`, `unused-file`, `duplicate-id`, and `invalid-template` are reused as-is for prompt files.
+
+## Example: a realistic prompt template
+
+Here's a deployment gate prompt that references multiple sections and uses several variables:
+
+```md
+---
+title: Deployment Gate Prompt
+id: engineering.prompts.deployment-gate
+---
+
+<!-- alaws:commentary -->
+
+Runs as a CI gate before any production deployment.
+The agent reviews the deployment manifest, test results,
+and current production health before deciding.
+
+<!-- alaws:promptTemplate -->
+
+You are the deployment gate agent for {{service_name}}.
+A deployment to {{target_environment}} is pending.
+
+Deployer: {{deployer}}
+Image tag: {{image_tag}}
+Commit: {{commit_sha}}
+
+## Gate checks
+
+Verify every deployment law:
+
+{{ref:engineering.operations.deployment}}
+
+Confirm test obligations were met:
+
+{{ref:engineering.coding.testing}}
+
+Verify no security rules were violated:
+
+{{ref:engineering.security.secrets}}
+
+{{ref:engineering.security.dependencies}}
+
+## Decision
+
+Output: DEPLOY or BLOCK
+Citations: every law number you checked
+Blocking violations: list each one
+Rollback readiness: confirm reversibility
+```
+
+This prompt stitches in laws from four different sections, uses five `{{var}}` placeholders, and compiles into a deterministic, hashable template that can be rendered at deploy time with the actual service name, environment, and commit.
+
+---
+
+See the [`examples/engineering/prompts/`](examples/engineering/prompts/) directory for five complete prompt templates covering code review, incident triage, deployment gates, security audits, and agent onboarding.
+
+---
+
 # Agent Citations
 
 A central design goal is that agents should be able to cite the law they relied upon.
@@ -1373,6 +1627,7 @@ alaws watch ./my-governance
 | `alaws chapter create/list/move/remove` | Manage top-level sections |
 | `alaws section create/list/show/move/remove` | Manage nested sections |
 | `alaws law add/list/remove` | Manage numbered clauses |
+| `alaws prompt create/list/show/vars/render/remove/move` | Manage prompt templates |
 | `alaws compile [book...] [--format html,json,pdf,md]` | Compile lawbook(s) |
 | `alaws validate [book...]` | Check for problems |
 | `alaws list [book] [--json]` | List compiled sections and laws |
