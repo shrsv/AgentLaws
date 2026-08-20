@@ -6,9 +6,11 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -45,6 +47,30 @@ func writeError(w http.ResponseWriter, err error) {
 
 func methodNotAllowed(w http.ResponseWriter) {
 	writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed", "code": "bad-request"})
+}
+
+// writeRendered fully materializes render's output before writing anything
+// to w, then sends it with an explicit Content-Length rather than
+// streaming (which - with no Content-Length available up front - falls
+// back to chunked transfer encoding). This matters most for PDF: Chrome's
+// built-in viewer fetches PDFs progressively and, without a
+// Content-Length to size the document against, can start rendering (and
+// building its bookmarks sidebar) from a partial response before the
+// trailer/xref/outline - written last in the PDF byte stream - has fully
+// arrived, silently falling back to its own font-size heuristic table of
+// contents instead of the real, correct /Outlines this package builds
+// (see internal/renderer/pdf). Buffering first also means a render error
+// becomes a proper JSON error response instead of a truncated,
+// unparseable file with a 200 already sent.
+func writeRendered(w http.ResponseWriter, contentType string, render func(io.Writer) error) {
+	var buf bytes.Buffer
+	if err := render(&buf); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Length", strconv.Itoa(buf.Len()))
+	_, _ = w.Write(buf.Bytes())
 }
 
 // registerAPI mounts every /api/ handler on mux.
@@ -112,14 +138,17 @@ func handleExportAll(w http.ResponseWriter, r *http.Request) {
 
 	switch format {
 	case "html":
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_ = alaws.RenderCombinedHTML(w, title, books)
+		writeRendered(w, "text/html; charset=utf-8", func(w io.Writer) error {
+			return alaws.RenderCombinedHTML(w, title, books)
+		})
 	case "pdf":
-		w.Header().Set("Content-Type", "application/pdf")
-		_ = alaws.RenderCombinedPDF(w, title, books)
+		writeRendered(w, "application/pdf", func(w io.Writer) error {
+			return alaws.RenderCombinedPDF(w, title, books)
+		})
 	case "md":
-		w.Header().Set("Content-Type", "text/markdown; charset=utf-8")
-		_ = alaws.RenderCombinedMarkdown(w, title, books)
+		writeRendered(w, "text/markdown; charset=utf-8", func(w io.Writer) error {
+			return alaws.RenderCombinedMarkdown(w, title, books)
+		})
 	default:
 		writeError(w, fmt.Errorf("unknown format %q, want html, pdf, or md", format))
 	}
@@ -267,14 +296,11 @@ func handleExport(w http.ResponseWriter, r *http.Request) {
 	}
 	switch format {
 	case "html":
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_ = b.RenderHTML(w)
+		writeRendered(w, "text/html; charset=utf-8", b.RenderHTML)
 	case "pdf":
-		w.Header().Set("Content-Type", "application/pdf")
-		_ = b.RenderPDF(w)
+		writeRendered(w, "application/pdf", b.RenderPDF)
 	case "md":
-		w.Header().Set("Content-Type", "text/markdown; charset=utf-8")
-		_ = b.RenderMarkdown(w)
+		writeRendered(w, "text/markdown; charset=utf-8", b.RenderMarkdown)
 	default:
 		writeError(w, fmt.Errorf("unknown format %q, want html, pdf, or md", format))
 	}
