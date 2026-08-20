@@ -47,8 +47,9 @@ type Section struct {
 
 // LawbookMetadata holds the fields sourced from alaws.toml.
 type LawbookMetadata struct {
-	Title    string
-	Ordering []string
+	Title           string
+	Ordering        []string
+	PromptTemplates []string // relative paths to prompt template .md files
 }
 
 // Provenance describes who/what produced a compiled Lawbook, from where,
@@ -68,9 +69,48 @@ type Provenance struct {
 	AgentLawsBuildTime string // when that alaws binary was built (best-effort, may be "")
 }
 
+// SegmentKind distinguishes what a PromptSegment represents.
+type SegmentKind int
+
+const (
+	SegmentText      SegmentKind = iota // literal authored text
+	SegmentLawRef                       // a {{ref:x}} that resolved to a law
+	SegmentSectionRef                   // a {{ref:x}} that resolved to a section
+	SegmentPromptRef                    // a {{ref:x}} that resolved to a prompt
+)
+
+// PromptSegment is one piece of a PromptTemplate's body: either literal
+// authored text, or a resolved {{ref:x}} reference. Kind records what the
+// reference resolved to — the source syntax itself doesn't distinguish
+// these, but the renderer still needs to know how Expanded was built.
+type PromptSegment struct {
+	Kind      SegmentKind
+	Text      string // literal source text, valid iff SegmentText
+	RefToken  string // raw token inside {{ref:...}}, valid for ref kinds
+	RefAnchor string // resolved stable anchor (section ID, sectionID.slug, or prompt ID)
+	RefLabel  string // human label for display (citation number, or section number+title)
+	Expanded  string // the stitched-in text, {{var}} left intact, valid for ref kinds
+}
+
+// PromptTemplate is a named, compiled prompt document whose body stitches
+// in law/section text by reference and leaves {{var}} placeholders for
+// values supplied at render time.
+type PromptTemplate struct {
+	ID                string
+	Title             string
+	Commentary        string
+	Segments          []PromptSegment
+	Template          string   // flattened Segments — canonical, hashable/signable, render-ready
+	Vars              []string // sorted, deduped {{var}} identifiers found in Template
+	ReferencedAnchors []string // sorted, deduped anchors this prompt pulls in, direct + transitive
+	Source            SourceRef
+}
+
 // Lawbook is the compiled representation of one lawbook cluster.
 type Lawbook struct {
-	Metadata   LawbookMetadata
-	Sections   []Section
-	Provenance Provenance
+	Metadata        LawbookMetadata
+	Sections        []Section
+	Prompts         []PromptTemplate
+	PromptBacklinks map[string][]string // anchor -> sorted prompt IDs that reference it, direct or transitive
+	Provenance      Provenance
 }

@@ -35,7 +35,8 @@ func (s Severity) String() string {
 // missing-id, duplicate-id, missing-commentary, missing-laws, invalid-laws,
 // invalid-ordering, invalid-metadata, invalid-template, ambiguous-numbering,
 // unfenced-json, missing-slug, invalid-slug, duplicate-slug,
-// ambiguous-identity, dangling-reference.
+// ambiguous-identity, dangling-reference, missing-prompt-template,
+// empty-prompt-template, dangling-prompt-reference, circular-prompt-reference.
 type Diagnostic struct {
 	Severity Severity
 	Code     string
@@ -97,6 +98,29 @@ func Validate(book model.Lawbook) []Diagnostic {
 	sectionIDs := map[string]bool{}
 	for _, s := range sections {
 		sectionIDs[s.ID] = true
+	}
+
+	// Check prompt IDs share the section-ID namespace (duplicate-id).
+	for _, p := range book.Prompts {
+		if prev, ok := seen[p.ID]; ok {
+			diags = append(diags, Diagnostic{
+				Severity: SeverityError,
+				Code:     "duplicate-id",
+				Message:  fmt.Sprintf("id %q is used by both %s and %s", p.ID, prev, p.Source.Path),
+				Source:   &p.Source,
+			})
+		}
+		seen[p.ID] = p.Source.Path
+
+		// Validate template syntax in the final Template field.
+		if err := template.ValidateSyntax(p.Template); err != nil {
+			diags = append(diags, Diagnostic{
+				Severity: SeverityError,
+				Code:     "invalid-template",
+				Message:  fmt.Sprintf("%s: prompt template: %v", p.ID, err),
+				Source:   &p.Source,
+			})
+		}
 	}
 
 	for _, s := range sections {

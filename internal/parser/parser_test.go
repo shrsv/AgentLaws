@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
@@ -196,4 +197,129 @@ func TestParseLawLines_SlugMultipleOnOwnLine(t *testing.T) {
 	if strings.Contains(got[0].Text, "{#multi-line-law}") {
 		t.Errorf("text must not contain slug, got %q", got[0].Text)
 	}
+}
+
+// --- ParsePromptTemplate tests ---
+
+func TestParsePromptTemplate_Valid(t *testing.T) {
+	dir := t.TempDir()
+	path := dir + "/test-prompt.md"
+	content := `---
+title: Code Review Prompt
+id: engineering.prompts.code-review
+---
+
+<!-- alaws:commentary -->
+
+Used by the CI review bot.
+
+<!-- alaws:promptTemplate -->
+
+You are reviewing a PR in {{repo}}.
+
+{{ref:engineering.coding}}
+`
+	if err := writeFile(path, content); err != nil {
+		t.Fatal(err)
+	}
+
+	pp, err := ParsePromptTemplate(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if pp.ID != "engineering.prompts.code-review" {
+		t.Errorf("ID: got %q, want %q", pp.ID, "engineering.prompts.code-review")
+	}
+	if pp.Title != "Code Review Prompt" {
+		t.Errorf("Title: got %q, want %q", pp.Title, "Code Review Prompt")
+	}
+	if pp.Commentary != "Used by the CI review bot." {
+		t.Errorf("Commentary: got %q", pp.Commentary)
+	}
+	if !strings.Contains(pp.RawTemplate, "{{ref:engineering.coding}}") {
+		t.Errorf("RawTemplate must contain ref directive, got %q", pp.RawTemplate)
+	}
+	if !strings.Contains(pp.RawTemplate, "{{repo}}") {
+		t.Errorf("RawTemplate must contain var placeholder, got %q", pp.RawTemplate)
+	}
+}
+
+func TestParsePromptTemplate_MissingTitle(t *testing.T) {
+	dir := t.TempDir()
+	path := dir + "/bad.md"
+	content := `---
+id: some.id
+---
+
+<!-- alaws:commentary -->
+Commentary here.
+
+<!-- alaws:promptTemplate -->
+Template body.
+`
+	if err := writeFile(path, content); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := ParsePromptTemplate(path)
+	if err == nil {
+		t.Fatal("expected error for missing title")
+	}
+	if !strings.Contains(err.Error(), "missing-title") {
+		t.Errorf("expected missing-title error, got: %v", err)
+	}
+}
+
+func TestParsePromptTemplate_MissingID(t *testing.T) {
+	dir := t.TempDir()
+	path := dir + "/bad.md"
+	content := `---
+title: Some Title
+---
+
+<!-- alaws:commentary -->
+Commentary here.
+
+<!-- alaws:promptTemplate -->
+Template body.
+`
+	if err := writeFile(path, content); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := ParsePromptTemplate(path)
+	if err == nil {
+		t.Fatal("expected error for missing id")
+	}
+	if !strings.Contains(err.Error(), "missing-id") {
+		t.Errorf("expected missing-id error, got: %v", err)
+	}
+}
+
+func TestParsePromptTemplate_MissingPromptTemplateMarker(t *testing.T) {
+	dir := t.TempDir()
+	path := dir + "/bad.md"
+	content := `---
+title: Some Title
+id: some.id
+---
+
+<!-- alaws:commentary -->
+Commentary here.
+`
+	if err := writeFile(path, content); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := ParsePromptTemplate(path)
+	if err == nil {
+		t.Fatal("expected error for missing promptTemplate marker")
+	}
+	if !strings.Contains(err.Error(), "missing-prompt-template") {
+		t.Errorf("expected missing-prompt-template error, got: %v", err)
+	}
+}
+
+func writeFile(path, content string) error {
+	return os.WriteFile(path, []byte(content), 0644)
 }

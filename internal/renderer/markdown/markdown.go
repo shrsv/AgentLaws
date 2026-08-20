@@ -46,7 +46,10 @@ func makeCombinedResolveFunc(books []model.Lawbook) ResolveFunc {
 func Render(w io.Writer, book model.Lawbook) error {
 	resolve := makeResolveFunc(book)
 	fmt.Fprintf(w, "# %s\n\n", book.Metadata.Title)
-	renderSections(w, book.Sections, 0, resolve)
+	renderSections(w, book, 0, resolve)
+	if len(book.Prompts) > 0 {
+		renderPrompts(w, book, 0, resolve)
+	}
 	renderProvenanceFooter(w, book.Provenance)
 	return nil
 }
@@ -59,14 +62,17 @@ func RenderAll(w io.Writer, title string, books []model.Lawbook) error {
 	fmt.Fprintf(w, "# %s\n\n", title)
 	for _, book := range books {
 		fmt.Fprintf(w, "## %s\n\n", book.Metadata.Title)
-		renderSections(w, book.Sections, 1, resolve)
+		renderSections(w, book, 1, resolve)
+		if len(book.Prompts) > 0 {
+			renderPrompts(w, book, 1, resolve)
+		}
 		renderProvenanceFooter(w, book.Provenance)
 	}
 	return nil
 }
 
-func renderSections(w io.Writer, sections []model.Section, levelOffset int, resolve ResolveFunc) {
-	for _, s := range sections {
+func renderSections(w io.Writer, book model.Lawbook, levelOffset int, resolve ResolveFunc) {
+	for _, s := range book.Sections {
 		level := min(s.Level+1+levelOffset, 6)
 		fmt.Fprintf(w, "%s %s %s\n\n", strings.Repeat("#", level), s.Number, s.Title)
 		fmt.Fprintf(w, "`%s`\n\n", s.ID)
@@ -75,17 +81,58 @@ func renderSections(w io.Writer, sections []model.Section, levelOffset int, reso
 			fmt.Fprintf(w, "%s\n\n", rewriteAlawsLinks(s.Commentary, resolve))
 		}
 
+		// Section-level backlinks
+		if bl := book.PromptBacklinks[s.ID]; len(bl) > 0 {
+			fmt.Fprint(w, "**Used in prompts:** ")
+			for i, pid := range bl {
+				if i > 0 {
+					fmt.Fprint(w, " · ")
+				}
+				fmt.Fprintf(w, "[%s](alaws:%s)", pid, pid)
+			}
+			fmt.Fprint(w, "\n\n")
+		}
+
 		for _, law := range s.Laws {
 			anchor := resolver.AnchorFor(resolver.Resolved{Kind: resolver.KindLaw, Law: law})
 			if anchor != "" {
 				fmt.Fprintf(w, "<a id=%q></a>\n", anchor)
 			}
-			// Bold citation prefix, not a Markdown ordered-list marker -
-			// a "1. 2.5.3 text" line would let most Markdown renderers'
-			// own auto-numbering double up with the citation number, the
-			// same bug this fixed in the HTML renderer's <ol>.
 			fmt.Fprintf(w, "**%s** %s\n\n", law.Number, rewriteAlawsLinks(law.Text, resolve))
+
+			// Per-law backlinks
+			lawAnchor := resolver.AnchorFor(resolver.Resolved{Kind: resolver.KindLaw, Law: law})
+			if bl := book.PromptBacklinks[lawAnchor]; len(bl) > 0 {
+				fmt.Fprint(w, "*Used in:* ")
+				for i, pid := range bl {
+					if i > 0 {
+						fmt.Fprint(w, " · ")
+					}
+					fmt.Fprintf(w, "[%s](alaws:%s)", pid, pid)
+				}
+				fmt.Fprint(w, "\n\n")
+			}
 		}
+	}
+}
+
+// renderPrompts writes one book's prompt templates as a "PromptBook" section.
+func renderPrompts(w io.Writer, book model.Lawbook, levelOffset int, resolve ResolveFunc) {
+	hLevel := min(2+levelOffset, 6)
+	fmt.Fprintf(w, "%s PromptBook\n\n", strings.Repeat("#", hLevel))
+
+	for _, p := range book.Prompts {
+		pLevel := min(3+levelOffset, 6)
+		fmt.Fprintf(w, "%s %s\n\n", strings.Repeat("#", pLevel), p.Title)
+		fmt.Fprintf(w, "`%s`\n\n", p.ID)
+
+		if p.Commentary != "" {
+			fmt.Fprintf(w, "%s\n\n", rewriteAlawsLinks(p.Commentary, resolve))
+		}
+
+		// Template content (expanded)
+		tmplMD := resolver.PromptDisplayText(p, true)
+		fmt.Fprintf(w, "%s\n\n", rewriteAlawsLinks(tmplMD, resolve))
 	}
 }
 

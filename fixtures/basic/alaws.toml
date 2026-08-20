@@ -5,3 +5,7 @@ ordering = [
   "security/secrets.md",
   "coding.md",
 ]
+
+promptTemplates = [
+  "prompts/code-review.md",
+]

@@ -23,7 +23,7 @@ export function App() {
     api.discover().then(setBooks).catch(() => {});
   }, []);
 
-  const currentPath = route.name === "books" ? null : route.path;
+  const currentPath = route.name === "books" ? null : (route.name === "prompts" ? route.path : route.path);
 
   // Auto-watch when a book is opened; stop when navigated away
   useEffect(() => {
@@ -53,6 +53,9 @@ export function App() {
       } else {
         pageTitle = `${bookTitle} — AgentLaws`;
       }
+    } else if (route.name === "prompts") {
+      const bookTitle = books.find((b) => b.Path === route.path)?.Title || route.path;
+      pageTitle = `Prompts — ${bookTitle} — AgentLaws`;
     } else if (route.name === "playground") {
       pageTitle = `Playground — ${route.path} — AgentLaws`;
     }
@@ -100,6 +103,7 @@ export function App() {
       <div class="app-body">
         {route.name === "books" && <BookPicker navigate={navigate} />}
         {route.name === "book" && <BookDetail path={route.path} section={route.section ?? null} law={route.law ?? null} navigate={navigate} onSectionsChange={setSections} onOpenCommandPalette={() => setCmdOpen(true)} />}
+        {route.name === "prompts" && <BookDetail path={route.path} section={null} navigate={navigate} onSectionsChange={setSections} onOpenCommandPalette={() => setCmdOpen(true)} promptMode={true} promptID={route.id ?? null} />}
         {route.name === "playground" && <Playground path={route.path} navigate={navigate} />}
       </div>
 

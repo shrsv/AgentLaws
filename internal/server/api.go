@@ -58,6 +58,8 @@ func registerAPI(mux *http.ServeMux) {
 	mux.HandleFunc("/api/book/sections", handleSections)
 	mux.HandleFunc("/api/book/move", handleMove)
 	mux.HandleFunc("/api/book/laws", handleLaws)
+	mux.HandleFunc("/api/book/prompts", handlePrompts)
+	mux.HandleFunc("/api/book/prompt/render", handlePromptRender)
 	mux.HandleFunc("/api/book/watch", handleWatch)
 	mux.HandleFunc("/api/book/manifest", handleManifest)
 	mux.HandleFunc("/api/book/history", handleHistory)
@@ -206,6 +208,11 @@ func handleCompile(w http.ResponseWriter, r *http.Request) {
 	if renderErr != nil && err == nil {
 		err = renderErr
 	}
+	// RenderedPrompts provides HTML fragments for prompt templates.
+	renderedPrompts, rpErr := b.RenderedPrompts()
+	if rpErr != nil && err == nil {
+		err = rpErr
+	}
 	// Replace __BOOK_PATH__ placeholder with the actual book path in all
 	// rendered HTML fragments, so alaws: links become navigable hash routes.
 	escapedBookPath := url.PathEscape(book)
@@ -216,14 +223,21 @@ func handleCompile(w http.ResponseWriter, r *http.Request) {
 		}
 		rendered[id] = rs
 	}
+	for id, rp := range renderedPrompts {
+		rp.CommentaryHTML = strings.ReplaceAll(rp.CommentaryHTML, "__BOOK_PATH__", escapedBookPath)
+		rp.TemplateHTML = strings.ReplaceAll(rp.TemplateHTML, "__BOOK_PATH__", escapedBookPath)
+		rp.CompactHTML = strings.ReplaceAll(rp.CompactHTML, "__BOOK_PATH__", escapedBookPath)
+		renderedPrompts[id] = rp
+	}
 	// Diagnostics matter even when err != nil (docs/PLAN1.md §20), so this
 	// endpoint always returns 200 with both; the caller checks "ok".
 	writeJSON(w, http.StatusOK, map[string]any{
-		"ok":          err == nil,
-		"error":       errString(err),
-		"lawbook":     b.Lawbook(),
-		"diagnostics": b.Diagnostics(),
-		"rendered":    rendered,
+		"ok":              err == nil,
+		"error":           errString(err),
+		"lawbook":         b.Lawbook(),
+		"diagnostics":     b.Diagnostics(),
+		"rendered":        rendered,
+		"renderedPrompts": renderedPrompts,
 	})
 }
 
@@ -696,4 +710,99 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 		matches = []alaws.SearchMatch{}
 	}
 	writeJSON(w, http.StatusOK, matches)
+}
+
+// GET /api/book/prompt/render?path=&id=&var=key:value&onMissing=error|keep|empty
+func handlePromptRender(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		methodNotAllowed(w)
+		return
+	}
+	q := r.URL.Query()
+	book := q.Get("path")
+	if book == "" {
+		writeError(w, errors.New("path is required"))
+		return
+	}
+	id := q.Get("id")
+	if id == "" {
+		writeError(w, errors.New("id is required"))
+		return
+	}
+	b, err := alaws.Load(book)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	p, err := b.Prompt(id)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+
+	vars := map[string]string{}
+	for _, kv := range q["var"] {
+		k, v, ok := strings.Cut(kv, ":")
+		if !ok {
+			writeError(w, fmt.Errorf("--var must be in key:value form, got %q", kv))
+			return
+		}
+		vars[k] = v
+	}
+
+	policy := alaws.MissingError
+	switch q.Get("onMissing") {
+	case "keep":
+		policy = alaws.MissingKeepPlaceholder
+	case "empty":
+		policy = alaws.MissingEmpty
+	}
+
+	text, err := p.Render(alaws.PromptRenderOptions{Vars: vars, OnMissing: policy})
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"text": text})
+}
+
+type createPromptRequest struct {
+	Book     string `json:"book"`
+	File     string `json:"file"`
+	Title    string `json:"title"`
+	ID       string `json:"id"`
+	After    string `json:"after"`
+	Before   string `json:"before"`
+	Position int    `json:"position"`
+}
+
+// POST /api/book/prompts {book, file, title, id, after, before, position}
+// DELETE /api/book/prompts?book=&file=
+func handlePrompts(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		var req createPromptRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, err)
+			return
+		}
+		p := alaws.Placement{After: req.After, Before: req.Before, Position: req.Position}
+		if err := alaws.CreatePrompt(req.Book, req.File, req.Title, req.ID, p); err != nil {
+			writeError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusCreated, map[string]string{"id": req.ID})
+
+	case http.MethodDelete:
+		q := r.URL.Query()
+		book, file := q.Get("book"), q.Get("file")
+		if err := alaws.RemovePrompt(book, file); err != nil {
+			writeError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"removed": file})
+
+	default:
+		methodNotAllowed(w)
+	}
 }

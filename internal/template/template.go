@@ -9,6 +9,7 @@ package template
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -128,4 +129,41 @@ func Render(text string, vars map[string]string, policy MissingPolicy) (string, 
 		i++
 	}
 	return out.String(), nil
+}
+
+// Vars returns the sorted, deduplicated list of {{identifier}} names found
+// in text. It reuses ValidateSyntax's walk logic. Escaped `\{{` sequences
+// are skipped. This is used by the prompt expansion pipeline to compute
+// PromptTemplate.Vars.
+func Vars(text string) []string {
+	seen := map[string]bool{}
+	i := 0
+	for i < len(text) {
+		if text[i] == '\\' && i+1 < len(text) && text[i+1] == '{' {
+			i += 2
+			continue
+		}
+		if text[i] == '{' && i+1 < len(text) && text[i+1] == '{' {
+			end := strings.Index(text[i:], "}}")
+			if end == -1 {
+				break
+			}
+			ident := text[i+2 : i+end]
+			if validateIdentifier(ident) == nil {
+				seen[ident] = true
+			}
+			i += end + 2
+			continue
+		}
+		i++
+	}
+	if len(seen) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(seen))
+	for k := range seen {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
 }

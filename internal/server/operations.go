@@ -227,6 +227,50 @@ var Operations = []Operation{
 		CLITemplate: "alaws log {path} (then inspect a specific commit)",
 		GoTemplate:  `detail, _ := alaws.CommitDetailFor({path}, {commit})`,
 	},
+	{
+		ID: "prompt.list", Group: "Prompts", Summary: "List prompt templates in a book",
+		Method: http.MethodGet, Path: "/api/book/compile",
+		Params: []Param{
+			{Name: "path", Kind: "book", Required: true, Description: "the book"},
+		},
+		CLITemplate: "alaws prompt list {path}",
+		GoTemplate:  `book.Prompts()`,
+	},
+	{
+		ID: "prompt.render", Group: "Prompts", Summary: "Render a prompt template with variable substitution",
+		Method: http.MethodGet, Path: "/api/book/prompt/render",
+		Params: []Param{
+			{Name: "path", Kind: "book", Required: true, Description: "the book"},
+			{Name: "id", Kind: "id", Required: true, Description: "prompt ID"},
+			{Name: "var", Kind: "vars", Description: "variables, key:value (repeatable)"},
+			{Name: "onMissing", Kind: "select:error|keep|empty", Description: "missing-variable policy"},
+		},
+		CLITemplate: "alaws prompt render {path} {id} --var {var} --on-missing {onMissing}",
+		GoTemplate:  `book.Prompt({id}).Render(alaws.PromptRenderOptions{...})`,
+	},
+	{
+		ID: "prompt.create", Group: "Prompts", Summary: "Create a new prompt template",
+		Method: http.MethodPost, Path: "/api/book/prompts",
+		Params: []Param{
+			{Name: "book", Kind: "book", Required: true, Description: "the book"},
+			{Name: "file", Kind: "text", Required: true, Description: "Markdown file path, relative to the book"},
+			{Name: "title", Kind: "text", Required: true, Description: "prompt title"},
+			{Name: "id", Kind: "id", Required: true, Description: "stable prompt ID"},
+			{Name: "after", Kind: "text", Description: "insert after this prompt file"},
+		},
+		CLITemplate: "alaws prompt create {file} --book {book} --title {title} --id {id} --after {after}",
+		GoTemplate:  `alaws.CreatePrompt({book}, {file}, {title}, {id}, alaws.Placement{After: {after}})`,
+	},
+	{
+		ID: "prompt.remove", Group: "Prompts", Summary: "Remove a prompt template",
+		Method: http.MethodDelete, Path: "/api/book/prompts",
+		Params: []Param{
+			{Name: "book", Kind: "book", Required: true, Description: "the book"},
+			{Name: "file", Kind: "text", Required: true, Description: "prompt file path"},
+		},
+		CLITemplate: "alaws prompt remove {book} {id}",
+		GoTemplate:  `alaws.RemovePrompt({book}, {file})`,
+	},
 }
 
 // GET /api/meta/operations

@@ -5,6 +5,7 @@ import { useEffect, useState } from "preact/hooks";
 export type Route =
   | { name: "books" }
   | { name: "book"; path: string; section?: string; law?: string }
+  | { name: "prompts"; path: string; id?: string }
   | { name: "playground"; path: string };
 
 // The hash format for law links uses ~ to separate section ID from law slug:
@@ -16,6 +17,10 @@ function parseHash(hash: string): Route {
   if (parts.length === 1) return { name: "books" };
   const path = decodeURIComponent(parts[1]);
   if (parts[2] === "playground") return { name: "playground", path };
+  if (parts[2] === "prompts") {
+    const id = parts[3] ? decodeURIComponent(parts[3]) : undefined;
+    return { name: "prompts", path, id };
+  }
   if (parts.length >= 3) {
     const raw = decodeURIComponent(parts[2]);
     const tildeIdx = raw.indexOf("~");
@@ -42,7 +47,9 @@ export function useRoute(): [Route, (r: Route) => void] {
         ? "#/books"
         : r.name === "book"
           ? `#/books/${encodeURIComponent(r.path)}${r.section ? `/${encodeURIComponent(r.section)}${r.law ? `~${encodeURIComponent(r.law)}` : ""}` : ""}`
-          : `#/books/${encodeURIComponent(r.path)}/playground`;
+          : r.name === "prompts"
+            ? `#/books/${encodeURIComponent(r.path)}/prompts${r.id ? `/${encodeURIComponent(r.id)}` : ""}`
+            : `#/books/${encodeURIComponent(r.path)}/playground`;
     window.location.hash = hash;
   };
 

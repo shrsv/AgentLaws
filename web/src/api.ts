@@ -45,8 +45,10 @@ export interface Section {
 }
 
 export interface Lawbook {
-  Metadata: { Title: string; Ordering: string[] };
+  Metadata: { Title: string; Ordering: string[]; PromptTemplates: string[] };
   Sections: Section[];
+  Prompts: PromptTemplate[] | null;
+  PromptBacklinks: Record<string, string[]> | null;
 }
 
 export interface Diagnostic {
@@ -59,6 +61,32 @@ export interface Diagnostic {
 export interface RenderedSection {
   CommentaryHTML: string;
   LawHTML: Record<string, string>; // law citation number -> HTML
+}
+
+export interface PromptSegment {
+  Kind: number; // 0=Text, 1=LawRef, 2=SectionRef, 3=PromptRef
+  Text: string;
+  RefToken: string;
+  RefAnchor: string;
+  RefLabel: string;
+  Expanded: string;
+}
+
+export interface PromptTemplate {
+  ID: string;
+  Title: string;
+  Commentary: string;
+  Segments: PromptSegment[] | null;
+  Template: string;
+  Vars: string[] | null;
+  ReferencedAnchors: string[] | null;
+  Source: SourceRef;
+}
+
+export interface RenderedPrompt {
+  CommentaryHTML: string;
+  TemplateHTML: string;
+  CompactHTML: string;
 }
 
 export interface SearchMatch {
@@ -80,6 +108,7 @@ export interface CompileResult {
   lawbook: Lawbook;
   diagnostics: Diagnostic[];
   rendered: Record<string, RenderedSection>; // section ID -> rendered HTML
+  renderedPrompts: Record<string, RenderedPrompt>; // prompt ID -> rendered HTML
 }
 
 export interface Provenance {
@@ -320,4 +349,23 @@ export const api = {
         sectionId: opts?.sectionIds,
       })}`,
     ),
+
+  promptRender: (path: string, id: string, opts?: { vars?: Record<string, string>; onMissing?: string }) =>
+    req<{ text: string }>(
+      `/api/book/prompt/render${qs({
+        path,
+        id,
+        onMissing: opts?.onMissing,
+        var: opts?.vars ? Object.entries(opts.vars).map(([k, v]) => `${k}:${v}`) : undefined,
+      })}`,
+    ),
+
+  createPrompt: (book: string, file: string, title: string, id: string, after?: string) =>
+    req<{ id: string }>("/api/book/prompts", {
+      method: "POST",
+      body: JSON.stringify({ book, file, title, id, after }),
+    }),
+
+  removePrompt: (book: string, file: string) =>
+    req<{ removed: string }>(`/api/book/prompts${qs({ book, file })}`, { method: "DELETE" }),
 };

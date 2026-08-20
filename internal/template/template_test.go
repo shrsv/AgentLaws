@@ -90,3 +90,34 @@ func TestValidateSyntaxEscaped(t *testing.T) {
 		t.Errorf("unexpected error for escaped brace: %v", err)
 	}
 }
+
+func TestVars(t *testing.T) {
+	tests := []struct {
+		name string
+		text string
+		want []string
+	}{
+		{"empty", "", nil},
+		{"no vars", "plain text with no placeholders", nil},
+		{"one var", "hello {{name}}", []string{"name"}},
+		{"multiple", "{{a}} and {{b}} and {{c}}", []string{"a", "b", "c"}},
+		{"sorted", "{{z}} {{a}} {{m}}", []string{"a", "m", "z"}},
+		{"deduped", "{{x}} {{x}} {{x}}", []string{"x"}},
+		{"dotted", "{{env.region}} and {{env.zone}}", []string{"env.region", "env.zone"}},
+		{"escaped skipped", `\{{not a var}} but {{real}}`, []string{"real"}},
+		{"mixed", "{{name}} \\{{skip}} {{repo}}", []string{"name", "repo"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := Vars(tt.text)
+			if len(got) != len(tt.want) {
+				t.Fatalf("got %v, want %v", got, tt.want)
+			}
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Errorf("got[%d] = %q, want %q", i, got[i], tt.want[i])
+				}
+			}
+		})
+	}
+}

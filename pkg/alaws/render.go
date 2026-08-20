@@ -38,12 +38,21 @@ func (b *Book) RenderMarkdown(w io.Writer) error {
 // RenderedSection is a section's commentary and each of its laws'
 // text, pre-rendered to HTML fragments via the same pipeline RenderHTML
 // uses (including syntax-highlighted fenced code blocks). This is what
-// lets a UI display properly formatted commentary/laws - inline code,
+// lets a UI show properly formatted commentary/laws - inline code,
 // lists, code blocks - without shipping its own Markdown parser
 // (docs/PLAN1.md §28).
 type RenderedSection struct {
 	CommentaryHTML string
 	LawHTML        map[string]string // law citation number -> HTML
+}
+
+// RenderedPrompt is a prompt's commentary and template, pre-rendered to
+// HTML fragments. TemplateHTML is the fully expanded template; CompactHTML
+// shows ref directives as alaws: links instead of inline text.
+type RenderedPrompt struct {
+	CommentaryHTML string
+	TemplateHTML   string
+	CompactHTML    string
 }
 
 // RenderedSections returns every section's commentary and law text
@@ -86,6 +95,59 @@ func (b *Book) RenderedSections() (map[string]RenderedSection, error) {
 			lawHTML[law.Number] = frag
 		}
 		out[s.ID] = RenderedSection{CommentaryHTML: commentaryHTML, LawHTML: lawHTML}
+	}
+	return out, nil
+}
+
+// RenderedPrompts returns every prompt's commentary and template rendered
+// to HTML fragments, keyed by prompt ID. alaws: links are rewritten to
+// app hash routes.
+func (b *Book) RenderedPrompts() (map[string]RenderedPrompt, error) {
+	resolve := func(token string) (string, bool) {
+		r, err := resolver.Resolve(b.lawbook, token)
+		if err != nil {
+			return "", false
+		}
+		switch r.Kind {
+		case resolver.KindLaw:
+			lawAnchor := r.Law.Slug
+			if lawAnchor == "" {
+				lawAnchor = fmt.Sprintf("%d", r.Law.Index)
+			}
+			return fmt.Sprintf("#/books/__BOOK_PATH__/%s~%s", r.Law.SectionID, lawAnchor), true
+		case resolver.KindSection:
+			return fmt.Sprintf("#/books/__BOOK_PATH__/%s", r.Section.ID), true
+		case resolver.KindPrompt:
+			return fmt.Sprintf("#/books/__BOOK_PATH__/prompts/%s", r.Prompt.ID), true
+		}
+		return "", false
+	}
+
+	out := make(map[string]RenderedPrompt, len(b.lawbook.Prompts))
+	for _, p := range b.lawbook.Prompts {
+		commentaryHTML, err := renderhtml.RenderFragment(p.Commentary, resolve)
+		if err != nil {
+			return nil, err
+		}
+
+		// Expanded template: render the full Template through RenderFragment
+		templateHTML, err := renderhtml.RenderFragment(p.Template, resolve)
+		if err != nil {
+			return nil, err
+		}
+
+		// Compact template: show refs as alaws: links
+		compactMD := resolver.PromptDisplayText(p, false)
+		compactHTML, err := renderhtml.RenderFragment(compactMD, resolve)
+		if err != nil {
+			return nil, err
+		}
+
+		out[p.ID] = RenderedPrompt{
+			CommentaryHTML: commentaryHTML,
+			TemplateHTML:   templateHTML,
+			CompactHTML:    compactHTML,
+		}
 	}
 	return out, nil
 }

@@ -201,3 +201,24 @@ func RemoveChapter(book, id string, force bool) error {
 func RemoveSection(book, id string, force bool) error {
 	return ordering.Remove(ConfigPath(book), id, force)
 }
+
+// CreatePrompt creates a new prompt template file and adds it to book's
+// promptTemplates list.
+func CreatePrompt(book, file, title, id string, placement Placement) error {
+	path := filepath.Join(book, file)
+	if err := ordering.NewPromptFile(path, title, id); err != nil {
+		return err
+	}
+	return ordering.InsertPrompt(ConfigPath(book), file, placement.toOrdering())
+}
+
+// RemovePrompt removes a prompt template from book's promptTemplates list.
+// The underlying file is left on disk.
+func RemovePrompt(book, file string) error {
+	return ordering.RemovePrompt(ConfigPath(book), file)
+}
+
+// MovePrompt relocates a prompt template in book's promptTemplates list.
+func MovePrompt(book, file string, placement Placement) error {
+	return ordering.MovePrompt(ConfigPath(book), file, placement.toOrdering())
+}

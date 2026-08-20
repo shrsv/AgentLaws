@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	commentaryMarker = "<!-- alaws:commentary -->"
-	lawsMarker       = "<!-- alaws:laws -->"
+	commentaryMarker     = "<!-- alaws:commentary -->"
+	lawsMarker           = "<!-- alaws:laws -->"
+	promptTemplateMarker = "<!-- alaws:promptTemplate -->"
 )
 
 // ResolveLevel returns a section's presentation level: override, if the
@@ -65,8 +66,9 @@ type ParsedSection struct {
 }
 
 type tomlConfig struct {
-	Title    string   `toml:"title"`
-	Ordering []string `toml:"ordering"`
+	Title           string   `toml:"title"`
+	Ordering        []string `toml:"ordering"`
+	PromptTemplates []string `toml:"promptTemplates"`
 }
 
 // ParseLawbookConfig parses an alaws.toml file.
@@ -79,13 +81,103 @@ func ParseLawbookConfig(path string) (model.LawbookMetadata, error) {
 	if err := toml.Unmarshal(data, &cfg); err != nil {
 		return model.LawbookMetadata{}, fmt.Errorf("invalid-metadata: %s: %w", path, err)
 	}
-	return model.LawbookMetadata{Title: cfg.Title, Ordering: cfg.Ordering}, nil
+	return model.LawbookMetadata{Title: cfg.Title, Ordering: cfg.Ordering, PromptTemplates: cfg.PromptTemplates}, nil
 }
 
 type frontmatter struct {
 	Title string `yaml:"title"`
 	ID    string `yaml:"id"`
 	Level *int   `yaml:"level"`
+}
+
+// parseFrontmatter extracts YAML frontmatter delimited by --- from lines.
+// Returns the frontmatter struct, the index of the closing ---, and any error.
+func parseFrontmatter(lines []string, path string) (frontmatter, int, error) {
+	if len(lines) == 0 || strings.TrimSpace(lines[0]) != "---" {
+		return frontmatter{}, -1, fmt.Errorf("invalid-metadata: %s: file must start with YAML frontmatter delimited by ---", path)
+	}
+	fmEnd := -1
+	for i := 1; i < len(lines); i++ {
+		if strings.TrimSpace(lines[i]) == "---" {
+			fmEnd = i
+			break
+		}
+	}
+	if fmEnd == -1 {
+		return frontmatter{}, -1, fmt.Errorf("invalid-metadata: %s: unterminated frontmatter", path)
+	}
+
+	var fm frontmatter
+	if err := yaml.Unmarshal([]byte(strings.Join(lines[1:fmEnd], "\n")), &fm); err != nil {
+		return frontmatter{}, -1, fmt.Errorf("invalid-metadata: %s: %w", path, err)
+	}
+	return fm, fmEnd, nil
+}
+
+// ParsedPrompt is the raw result of parsing one prompt template file,
+// before expansion or validation.
+type ParsedPrompt struct {
+	ID          string
+	Title       string
+	Commentary  string
+	RawTemplate string // unexpanded body, directives intact
+	Source      model.SourceRef
+}
+
+// ParsePromptTemplate parses one Markdown prompt template file into
+// frontmatter, commentary, and the raw template body with {{ref:x}}
+// directives intact.
+func ParsePromptTemplate(path string) (ParsedPrompt, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ParsedPrompt{}, err
+	}
+	lines := strings.Split(string(data), "\n")
+
+	fm, fmEnd, err := parseFrontmatter(lines, path)
+	if err != nil {
+		return ParsedPrompt{}, err
+	}
+	if fm.Title == "" {
+		return ParsedPrompt{}, fmt.Errorf("missing-title: %s", path)
+	}
+	if fm.ID == "" {
+		return ParsedPrompt{}, fmt.Errorf("missing-id: %s", path)
+	}
+
+	commentaryLine, promptLine := -1, -1
+	for i := fmEnd + 1; i < len(lines); i++ {
+		switch strings.TrimSpace(lines[i]) {
+		case commentaryMarker:
+			if commentaryLine == -1 {
+				commentaryLine = i
+			}
+		case promptTemplateMarker:
+			if promptLine == -1 {
+				promptLine = i
+			}
+		}
+	}
+	if commentaryLine == -1 {
+		return ParsedPrompt{}, fmt.Errorf("missing-commentary: %s: missing %s marker", path, commentaryMarker)
+	}
+	if promptLine == -1 {
+		return ParsedPrompt{}, fmt.Errorf("missing-prompt-template: %s: missing %s marker", path, promptTemplateMarker)
+	}
+	if promptLine < commentaryLine {
+		return ParsedPrompt{}, fmt.Errorf("invalid-metadata: %s: %s must appear before %s", path, commentaryMarker, promptTemplateMarker)
+	}
+
+	commentary := strings.TrimSpace(strings.Join(lines[commentaryLine+1:promptLine], "\n"))
+	rawTemplate := strings.TrimSpace(strings.Join(lines[promptLine+1:], "\n"))
+
+	return ParsedPrompt{
+		ID:          fm.ID,
+		Title:       fm.Title,
+		Commentary:  commentary,
+		RawTemplate: rawTemplate,
+		Source:      model.SourceRef{Path: path, LineStart: 1, LineEnd: len(lines)},
+	}, nil
 }
 
 // ParseSection parses one Markdown section file into frontmatter,
@@ -97,23 +189,9 @@ func ParseSection(path string) (ParsedSection, error) {
 	}
 	lines := strings.Split(string(data), "\n")
 
-	if len(lines) == 0 || strings.TrimSpace(lines[0]) != "---" {
-		return ParsedSection{}, fmt.Errorf("invalid-metadata: %s: file must start with YAML frontmatter delimited by ---", path)
-	}
-	fmEnd := -1
-	for i := 1; i < len(lines); i++ {
-		if strings.TrimSpace(lines[i]) == "---" {
-			fmEnd = i
-			break
-		}
-	}
-	if fmEnd == -1 {
-		return ParsedSection{}, fmt.Errorf("invalid-metadata: %s: unterminated frontmatter", path)
-	}
-
-	var fm frontmatter
-	if err := yaml.Unmarshal([]byte(strings.Join(lines[1:fmEnd], "\n")), &fm); err != nil {
-		return ParsedSection{}, fmt.Errorf("invalid-metadata: %s: %w", path, err)
+	fm, fmEnd, err := parseFrontmatter(lines, path)
+	if err != nil {
+		return ParsedSection{}, err
 	}
 	if fm.Title == "" {
 		return ParsedSection{}, fmt.Errorf("missing-title: %s", path)

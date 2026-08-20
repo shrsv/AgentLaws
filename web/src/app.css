@@ -63,6 +63,48 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--vscode-sideBarTitle-foreground);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebar-mode-toggle {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.mode-toggle-btn {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mode-toggle-btn:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.mode-toggle-btn.active {
+  background: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
+  border-color: var(--vscode-panel-border);
+}
+
+.prompt-list .tree-node {
+  cursor: pointer;
+}
+
+.empty-state-small {
+  padding: 0.5rem 1rem;
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+  font-style: italic;
 }
 
 .tree {
@@ -289,6 +331,138 @@
 
 .statusbar .diagnostic-count.error {
   color: var(--vscode-errorForeground);
+}
+
+/* --- Prompt template styles --- */
+
+.prompt-template-section,
+.prompt-vars-section,
+.prompt-preview-section,
+.prompt-go-usage,
+.prompt-refs-section {
+  margin: 1rem 0;
+  padding: 0 1rem;
+}
+
+.prompt-template-section h3,
+.prompt-vars-section h3,
+.prompt-preview-section h3,
+.prompt-go-usage h3,
+.prompt-refs-section h3 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+  color: var(--vscode-sideBarTitle-foreground);
+}
+
+.prompt-template-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.prompt-display-toggle {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.prompt-template-content {
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.prompt-vars-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.prompt-var-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.prompt-var-label {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 12px;
+  color: var(--vscode-terminal-ansiGreen);
+  min-width: 120px;
+}
+
+.prompt-var-input {
+  flex: 1;
+  font-size: 12px;
+  padding: 4px 8px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 3px;
+}
+
+.prompt-preview-content {
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+.prompt-refs-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.prompt-refs-list li {
+  padding: 0.2rem 0;
+}
+
+.alaws-link {
+  color: var(--vscode-textLink-foreground);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.alaws-link:hover {
+  text-decoration: underline;
+}
+
+.backlinks {
+  padding: 0.5rem 1rem;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.backlinks-label {
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.law-backlinks {
+  display: block;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  margin-top: 0.2rem;
+}
+
+.law-backlinks .alaws-link {
+  font-size: 11px;
+  margin-left: 0.3rem;
 }
 
 /* --- App shell --- */

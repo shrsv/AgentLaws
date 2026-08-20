@@ -44,8 +44,9 @@ type Node struct {
 }
 
 type tomlConfig struct {
-	Title    string   `toml:"title"`
-	Ordering []string `toml:"ordering"`
+	Title           string   `toml:"title"`
+	Ordering        []string `toml:"ordering"`
+	PromptTemplates []string `toml:"promptTemplates"`
 }
 
 func loadConfig(configPath string) (tomlConfig, error) {
@@ -278,7 +279,7 @@ func NewBook(path string, title string) error {
 	if _, err := os.Stat(configPath); err == nil {
 		return fmt.Errorf("ordering: %s already exists", configPath)
 	}
-	return saveConfig(configPath, tomlConfig{Title: title, Ordering: []string{}})
+	return saveConfig(configPath, tomlConfig{Title: title, Ordering: []string{}, PromptTemplates: []string{}})
 }
 
 type sectionFrontmatter struct {
@@ -366,6 +367,145 @@ func SetLevel(path string, level int) error {
 	b.Write(fmData)
 	b.WriteString("---\n")
 	b.WriteString(strings.Join(lines[fmEnd+1:], "\n"))
+
+	return os.WriteFile(path, []byte(b.String()), 0644)
+}
+
+// --- Prompt template ordering (flat list, no hierarchy) ---
+
+// InsertPrompt adds a new entry to the promptTemplates list in alaws.toml
+// at the position described by placement (same semantics as Insert for
+// ordering, but without subtree logic since prompts are flat).
+func InsertPrompt(configPath string, entryPath string, placement Placement) error {
+	cfg, err := loadConfig(configPath)
+	if err != nil {
+		return err
+	}
+	idx := len(cfg.PromptTemplates) // default: append
+	if placement.Position > 0 {
+		idx = clamp(placement.Position-1, 0, len(cfg.PromptTemplates))
+	} else if placement.After != "" {
+		for i, p := range cfg.PromptTemplates {
+			if p == placement.After {
+				idx = i + 1
+				break
+			}
+		}
+	} else if placement.Before != "" {
+		for i, p := range cfg.PromptTemplates {
+			if p == placement.Before {
+				idx = i
+				break
+			}
+		}
+	}
+
+	pts := make([]string, 0, len(cfg.PromptTemplates)+1)
+	pts = append(pts, cfg.PromptTemplates[:idx]...)
+	pts = append(pts, entryPath)
+	pts = append(pts, cfg.PromptTemplates[idx:]...)
+	cfg.PromptTemplates = pts
+	return saveConfig(configPath, cfg)
+}
+
+// RemovePrompt removes an entry from the promptTemplates list in alaws.toml
+// by its file path. The underlying Markdown file is left on disk.
+func RemovePrompt(configPath string, entryPath string) error {
+	cfg, err := loadConfig(configPath)
+	if err != nil {
+		return err
+	}
+	pts := make([]string, 0, len(cfg.PromptTemplates))
+	found := false
+	for _, p := range cfg.PromptTemplates {
+		if p == entryPath {
+			found = true
+			continue
+		}
+		pts = append(pts, p)
+	}
+	if !found {
+		return fmt.Errorf("ordering: prompt %q not found in promptTemplates", entryPath)
+	}
+	cfg.PromptTemplates = pts
+	return saveConfig(configPath, cfg)
+}
+
+// MovePrompt relocates an entry in the promptTemplates list.
+func MovePrompt(configPath string, entryPath string, placement Placement) error {
+	cfg, err := loadConfig(configPath)
+	if err != nil {
+		return err
+	}
+	// Find and remove
+	found := false
+	pts := make([]string, 0, len(cfg.PromptTemplates))
+	for _, p := range cfg.PromptTemplates {
+		if p == entryPath {
+			found = true
+			continue
+		}
+		pts = append(pts, p)
+	}
+	if !found {
+		return fmt.Errorf("ordering: prompt %q not found in promptTemplates", entryPath)
+	}
+
+	idx := len(pts) // default: append
+	if placement.Position > 0 {
+		idx = clamp(placement.Position-1, 0, len(pts))
+	} else if placement.After != "" {
+		for i, p := range pts {
+			if p == placement.After {
+				idx = i + 1
+				break
+			}
+		}
+	} else if placement.Before != "" {
+		for i, p := range pts {
+			if p == placement.Before {
+				idx = i
+				break
+			}
+		}
+	}
+
+	result := make([]string, 0, len(cfg.PromptTemplates))
+	result = append(result, pts[:idx]...)
+	result = append(result, entryPath)
+	result = append(result, pts[idx:]...)
+	cfg.PromptTemplates = result
+	return saveConfig(configPath, cfg)
+}
+
+// NewPromptFile writes a new prompt template Markdown file at path with
+// the given frontmatter and an empty commentary/template skeleton.
+func NewPromptFile(path string, title string, id string) error {
+	if _, err := os.Stat(path); err == nil {
+		return fmt.Errorf("ordering: %s already exists", path)
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return err
+	}
+
+	type promptFrontmatter struct {
+		Title string `yaml:"title"`
+		ID    string `yaml:"id"`
+	}
+
+	fmData, err := yaml.Marshal(promptFrontmatter{Title: title, ID: id})
+	if err != nil {
+		return err
+	}
+
+	var b strings.Builder
+	b.WriteString("---\n")
+	b.Write(fmData)
+	b.WriteString("---\n\n")
+	b.WriteString("<!-- alaws:commentary -->\n\n")
+	b.WriteString(title)
+	b.WriteString(".\n\n")
+	b.WriteString("<!-- alaws:promptTemplate -->\n")
 
 	return os.WriteFile(path, []byte(b.String()), 0644)
 }

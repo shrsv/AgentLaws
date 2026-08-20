@@ -12,6 +12,7 @@ import (
 	"github.com/shrsv/AgentLaws/internal/model"
 	"github.com/shrsv/AgentLaws/internal/numbering"
 	"github.com/shrsv/AgentLaws/internal/parser"
+	"github.com/shrsv/AgentLaws/internal/promptexpand"
 	"github.com/shrsv/AgentLaws/internal/validator"
 )
 
@@ -104,9 +105,42 @@ func Compile(path string, opts Options) (Result, error) {
 		Sections: numbered,
 	}
 
+	// Parse and expand prompt templates (§4-§5).
+	var parsedPrompts []parser.ParsedPrompt
+	for _, entry := range meta.PromptTemplates {
+		full := filepath.Join(dir, entry)
+		if _, statErr := os.Stat(full); os.IsNotExist(statErr) {
+			diags = append(diags, validator.Diagnostic{
+				Severity: validator.SeverityError,
+				Code:     "missing-file",
+				Message:  fmt.Sprintf("%s is listed in promptTemplates but does not exist", entry),
+			})
+			continue
+		}
+
+		pp, err := parser.ParsePromptTemplate(full)
+		if err != nil {
+			diags = append(diags, validator.Diagnostic{
+				Severity: validator.SeverityError,
+				Code:     "invalid-metadata",
+				Message:  fmt.Sprintf("%s: %v", entry, err),
+			})
+			continue
+		}
+		parsedPrompts = append(parsedPrompts, pp)
+	}
+
+	prompts, backlinks, promptDiags := promptexpand.Expand(lawbook, parsedPrompts)
+	lawbook.Prompts = prompts
+	lawbook.PromptBacklinks = backlinks
+	diags = append(diags, promptDiags...)
+
 	diags = append(diags, validator.Validate(lawbook)...)
 
-	if unordered, uErr := discovery.UnorderedFiles(discovery.Cluster{Path: dir, ConfigPath: configPath}, meta.Ordering); uErr == nil {
+	// Check for unordered files — pass both ordering and promptTemplates entries.
+	allEntries := append([]string{}, meta.Ordering...)
+	allEntries = append(allEntries, meta.PromptTemplates...)
+	if unordered, uErr := discovery.UnorderedFiles(discovery.Cluster{Path: dir, ConfigPath: configPath}, allEntries); uErr == nil {
 		for _, f := range unordered {
 			diags = append(diags, validator.Diagnostic{
 				Severity: validator.SeverityWarning,

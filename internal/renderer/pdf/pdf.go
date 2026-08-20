@@ -277,11 +277,57 @@ func buildMarkdownInto(b *strings.Builder, book model.Lawbook, resolve ResolveFu
 			b.WriteString("\n\n")
 		}
 
+		// Section-level backlinks
+		if bl := book.PromptBacklinks[s.ID]; len(bl) > 0 {
+			b.WriteString("**Used in prompts:** ")
+			for i, pid := range bl {
+				if i > 0 {
+					b.WriteString(" · ")
+				}
+				fmt.Fprintf(b, "[%s](alaws:%s)", pid, pid)
+			}
+			b.WriteString("\n\n")
+		}
+
 		// Laws
 		for _, law := range s.Laws {
 			anchor := resolver.AnchorFor(resolver.Resolved{Kind: resolver.KindLaw, Law: law})
 			fmt.Fprintf(b, "<!--alaws-anchor:%s-->\n", anchor)
 			fmt.Fprintf(b, "**%s** %s\n\n", law.Number, rewriteAlawsLinks(law.Text, resolve))
+
+			// Per-law backlinks
+			lawAnchor := resolver.AnchorFor(resolver.Resolved{Kind: resolver.KindLaw, Law: law})
+			if bl := book.PromptBacklinks[lawAnchor]; len(bl) > 0 {
+				b.WriteString("*Used in:* ")
+				for i, pid := range bl {
+					if i > 0 {
+						b.WriteString(" · ")
+					}
+					fmt.Fprintf(b, "[%s](alaws:%s)", pid, pid)
+				}
+				b.WriteString("\n\n")
+			}
+		}
+	}
+
+	// PromptBook section
+	if len(book.Prompts) > 0 {
+		b.WriteString("## PromptBook\n\n")
+		for _, p := range book.Prompts {
+			promptAnchor := p.ID
+			fmt.Fprintf(b, "<!--alaws-anchor:%s-->\n", promptAnchor)
+			fmt.Fprintf(b, "### %s\n\n", p.Title)
+			fmt.Fprintf(b, "*%s*\n\n", p.ID)
+
+			if p.Commentary != "" {
+				b.WriteString(rewriteAlawsLinks(normalizeSoftWraps(p.Commentary), resolve))
+				b.WriteString("\n\n")
+			}
+
+			// Template content (expanded)
+			tmplMD := resolver.PromptDisplayText(p, true)
+			b.WriteString(rewriteAlawsLinks(tmplMD, resolve))
+			b.WriteString("\n\n")
 		}
 	}
 

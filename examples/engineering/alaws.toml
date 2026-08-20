@@ -21,3 +21,11 @@ ordering = [
   "integration/response-format.md",
   "integration/variables.md",
 ]
+
+promptTemplates = [
+  "prompts/code-review.md",
+  "prompts/incident-triage.md",
+  "prompts/deployment-gate.md",
+  "prompts/security-audit.md",
+  "prompts/agent-onboarding.md",
+]

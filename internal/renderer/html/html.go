@@ -113,8 +113,13 @@ func Render(w io.Writer, book model.Lawbook) error {
 	fmt.Fprintf(w, "<!doctype html>\n<html><head><meta charset=\"utf-8\"><title>%s</title>%s</head><body>\n",
 		html.EscapeString(book.Metadata.Title), style)
 	fmt.Fprintf(w, "<h1>%s</h1>\n", html.EscapeString(book.Metadata.Title))
-	if err := renderSections(w, book.Sections, "", 0, resolve); err != nil {
+	if err := renderSections(w, book, "", 0, resolve); err != nil {
 		return err
+	}
+	if len(book.Prompts) > 0 {
+		if err := renderPrompts(w, book, "", 0, resolve); err != nil {
+			return err
+		}
 	}
 	renderProvenanceFooter(w, book.Provenance)
 	fmt.Fprint(w, "</body></html>\n")
@@ -143,8 +148,13 @@ func RenderAll(w io.Writer, title string, books []model.Lawbook) error {
 	for i, book := range books {
 		fmt.Fprintf(w, "<h2 class=\"book-title\">%s</h2>\n", html.EscapeString(book.Metadata.Title))
 		idPrefix := fmt.Sprintf("book%d-", i)
-		if err := renderSections(w, book.Sections, idPrefix, 1, combinedResolve); err != nil {
+		if err := renderSections(w, book, idPrefix, 1, combinedResolve); err != nil {
 			return err
+		}
+		if len(book.Prompts) > 0 {
+			if err := renderPrompts(w, book, idPrefix, 1, combinedResolve); err != nil {
+				return err
+			}
 		}
 		renderProvenanceFooter(w, book.Provenance)
 	}
@@ -167,8 +177,8 @@ func makeResolveFunc(book model.Lawbook, idPrefix string) ResolveFunc {
 // IDs when several books share one document (RenderAll); levelOffset
 // shifts heading levels down to make room for a book-title heading above
 // them in that same case.
-func renderSections(w io.Writer, sections []model.Section, idPrefix string, levelOffset int, resolve ResolveFunc) error {
-	for _, s := range sections {
+func renderSections(w io.Writer, book model.Lawbook, idPrefix string, levelOffset int, resolve ResolveFunc) error {
+	for _, s := range book.Sections {
 		level := min(s.Level+1+levelOffset, 6)
 		anchorID := idPrefix + s.ID
 		fmt.Fprintf(w, "<h%d id=%q>%s %s</h%d>\n", level, html.EscapeString(anchorID),
@@ -185,6 +195,19 @@ func renderSections(w io.Writer, sections []model.Section, idPrefix string, leve
 			}
 		}
 
+		// Section-level backlinks
+		if bl := book.PromptBacklinks[s.ID]; len(bl) > 0 {
+			fmt.Fprint(w, "<p class=\"backlinks\"><span class=\"backlinks-label\">Used in prompts:</span> ")
+			for i, pid := range bl {
+				if i > 0 {
+					fmt.Fprint(w, " · ")
+				}
+				fmt.Fprintf(w, "<a href=\"%s\" class=\"alaws-link\">%s</a>",
+					html.EscapeString("#"+idPrefix+pid), html.EscapeString(pid))
+			}
+			fmt.Fprint(w, "</p>\n")
+		}
+
 		if len(s.Laws) > 0 {
 			fmt.Fprint(w, "<ol class=\"laws\">\n")
 			for _, law := range s.Laws {
@@ -193,11 +216,60 @@ func renderSections(w io.Writer, sections []model.Section, idPrefix string, leve
 					return err
 				}
 				anchor := resolver.AnchorFor(resolver.Resolved{Kind: resolver.KindLaw, Law: law})
-				fmt.Fprintf(w, "<li id=%q><span class=\"law-number\">%s</span>%s</li>\n",
+				fmt.Fprintf(w, "<li id=%q><span class=\"law-number\">%s</span>%s",
 					html.EscapeString(idPrefix+anchor), html.EscapeString(law.Number), frag)
+
+				// Per-law backlinks
+				lawAnchor := resolver.AnchorFor(resolver.Resolved{Kind: resolver.KindLaw, Law: law})
+				if bl := book.PromptBacklinks[lawAnchor]; len(bl) > 0 {
+					fmt.Fprint(w, "<br><span class=\"law-backlinks\">Used in: ")
+					for i, pid := range bl {
+						if i > 0 {
+							fmt.Fprint(w, " · ")
+						}
+						fmt.Fprintf(w, "<a href=\"%s\" class=\"alaws-link\">%s</a>",
+							html.EscapeString("#"+idPrefix+pid), html.EscapeString(pid))
+					}
+					fmt.Fprint(w, "</span>")
+				}
+
+				fmt.Fprint(w, "</li>\n")
 			}
 			fmt.Fprint(w, "</ol>\n")
 		}
+	}
+	return nil
+}
+
+// renderPrompts writes one book's prompt templates as a "PromptBook" section.
+func renderPrompts(w io.Writer, book model.Lawbook, idPrefix string, levelOffset int, resolve ResolveFunc) error {
+	hLevel := min(2+levelOffset, 6)
+	fmt.Fprintf(w, "<h%d id=%q>PromptBook</h%d>\n", hLevel, html.EscapeString(idPrefix+"prompts"), hLevel)
+
+	for _, p := range book.Prompts {
+		pLevel := min(3+levelOffset, 6)
+		anchorID := idPrefix + p.ID
+		fmt.Fprintf(w, "<h%d id=%q>%s</h%d>\n", pLevel, html.EscapeString(anchorID),
+			html.EscapeString(p.Title), pLevel)
+		fmt.Fprintf(w, "<p class=\"section-id\">%s</p>\n", html.EscapeString(p.ID))
+
+		if p.Commentary != "" {
+			frag, err := RenderFragment(p.Commentary, resolve)
+			if err != nil {
+				return err
+			}
+			if _, err := io.WriteString(w, frag); err != nil {
+				return err
+			}
+		}
+
+		// Template content (expanded)
+		tmplMD := resolver.PromptDisplayText(p, true)
+		tmplFrag, err := RenderFragment(tmplMD, resolve)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(w, "<div class=\"prompt-template-content\">%s</div>\n", tmplFrag)
 	}
 	return nil
 }

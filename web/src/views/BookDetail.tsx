@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useRef } from "preact/hooks";
 import type { VNode } from "preact";
-import { History, Plus, X, Clock, User, ArrowLeft, FileText, Download, FlaskConical, CircleAlert, TriangleAlert, List, MousePointer, ChevronLeft, ChevronRight, Copy, Code, Check, HelpCircle, Search, ChevronDown, Terminal } from "lucide-preact";
-import { api, type Section, type Diagnostic, type RenderedSection } from "../api";
+import { History, Plus, X, Clock, User, ArrowLeft, FileText, Download, FlaskConical, CircleAlert, TriangleAlert, List, MousePointer, ChevronLeft, ChevronRight, Copy, Code, Check, HelpCircle, Search, ChevronDown, Terminal, BookOpen, Layers } from "lucide-preact";
+import { api, type Section, type Diagnostic, type RenderedSection, type PromptTemplate, type RenderedPrompt } from "../api";
 import type { Route } from "../router";
 import { HistorySidebar } from "../components/HistorySidebar";
 import { HotkeyHelp } from "../components/HotkeyHelp";
@@ -15,6 +15,8 @@ interface Props {
   navigate: (r: Route) => void;
   onSectionsChange?: (sections: Section[]) => void;
   onOpenCommandPalette?: () => void;
+  promptMode?: boolean;
+  promptID?: string | null;
 }
 
 // TreeNode is a Section plus its child sections, rebuilt from the compiled
@@ -40,13 +42,22 @@ function buildTree(sections: Section[]): TreeNode[] {
   return roots;
 }
 
-export function BookDetail({ path, section, law, navigate, onSectionsChange, onOpenCommandPalette }: Props) {
+export function BookDetail({ path, section, law, navigate, onSectionsChange, onOpenCommandPalette, promptMode, promptID }: Props) {
   const [title, setTitle] = useState("");
   const [sections, setSections] = useState<Section[]>([]);
   const [rendered, setRendered] = useState<Record<string, RenderedSection>>({});
+  const [renderedPrompts, setRenderedPrompts] = useState<Record<string, RenderedPrompt>>({});
+  const [prompts, setPrompts] = useState<PromptTemplate[]>([]);
+  const [promptBacklinks, setPromptBacklinks] = useState<Record<string, string[]>>({});
   const [diagnostics, setDiagnostics] = useState<Diagnostic[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [selectedID, setSelectedID] = useState<string | null>(null);
+  const [selectedPromptID, setSelectedPromptID] = useState<string | null>(null);
+  const [isPromptMode, setIsPromptMode] = useState(promptMode ?? false);
+  const [promptDisplayExpanded, setPromptDisplayExpanded] = useState(true);
+  const [promptVars, setPromptVars] = useState<Record<string, string>>({});
+  const [promptPreview, setPromptPreview] = useState<string>("");
+  const [copiedGoUsage, setCopiedGoUsage] = useState(false);
   const [dragID, setDragID] = useState<string | null>(null);
   const [newLawText, setNewLawText] = useState("");
   const [newChapter, setNewChapter] = useState(false);
@@ -79,6 +90,9 @@ export function BookDetail({ path, section, law, navigate, onSectionsChange, onO
         setSections(r.lawbook.Sections);
         onSectionsChange?.(r.lawbook.Sections);
         setRendered(r.rendered ?? {});
+        setRenderedPrompts(r.renderedPrompts ?? {});
+        setPrompts(r.lawbook.Prompts ?? []);
+        setPromptBacklinks(r.lawbook.PromptBacklinks ?? {});
         setDiagnostics(r.diagnostics ?? []);
         // Functional update: read current selection (the URL's section may
         // have just been restored by the section-sync effect), not the
@@ -103,6 +117,27 @@ export function BookDetail({ path, section, law, navigate, onSectionsChange, onO
   useEffect(() => {
     if (section) setSelectedID(section);
   }, [section]);
+
+  // Sync prompt mode from route
+  useEffect(() => {
+    if (promptMode) setIsPromptMode(true);
+  }, [promptMode]);
+
+  // Sync prompt ID from route
+  useEffect(() => {
+    if (promptID) setSelectedPromptID(promptID);
+  }, [promptID]);
+
+  // Prompt preview: debounce variable changes and call API
+  useEffect(() => {
+    if (!isPromptMode || !selectedPromptID) return;
+    const timer = setTimeout(() => {
+      api.promptRender(path, selectedPromptID, { vars: promptVars, onMissing: "keep" }).then((r) => {
+        setPromptPreview(r.text);
+      }).catch(() => setPromptPreview("(render error)"));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [isPromptMode, selectedPromptID, promptVars, path]);
 
   // Close export menu when clicking outside
   useEffect(() => {
@@ -453,25 +488,59 @@ export function BookDetail({ path, section, law, navigate, onSectionsChange, onO
           ) : (
             <>
               <div class="sidebar-title">
-                Lawbook
-                <button class="icon-button" title="New chapter" onClick={() => setNewChapter((v) => !v)}>
-                  <Plus size={12} />
-                </button>
+                <div class="sidebar-mode-toggle">
+                  <button class={`mode-toggle-btn ${!isPromptMode ? "active" : ""}`} onClick={() => { setIsPromptMode(false); navigate({ name: "book", path, section: selectedID ?? undefined }); }} title="Laws">
+                    <BookOpen size={12} /> Laws
+                  </button>
+                  <button class={`mode-toggle-btn ${isPromptMode ? "active" : ""}`} onClick={() => { setIsPromptMode(true); navigate({ name: "prompts", path, id: selectedPromptID ?? undefined }); }} title="Prompts">
+                    <Layers size={12} /> Prompts
+                  </button>
+                </div>
+                {!isPromptMode && (
+                  <button class="icon-button" title="New chapter" onClick={() => setNewChapter((v) => !v)}>
+                    <Plus size={12} />
+                  </button>
+                )}
               </div>
 
-              {newChapter && <NewNodeForm onSubmit={async (file, t, id) => { await api.createChapter(path, file, t, id); setNewChapter(false); reload(); }} onCancel={() => setNewChapter(false)} />}
+              {isPromptMode ? (
+                <ul class="tree prompt-list">
+                  {prompts.map((p) => (
+                    <li key={p.ID} class="tree-branch">
+                      <div
+                        class="tree-node"
+                        aria-selected={p.ID === selectedPromptID}
+                        onClick={() => {
+                          setSelectedPromptID(p.ID);
+                          setPromptVars({});
+                          navigate({ name: "prompts", path, id: p.ID });
+                        }}
+                      >
+                        <span class="node-title">{p.Title}</span>
+                      </div>
+                    </li>
+                  ))}
+                  {prompts.length === 0 && (
+                    <li class="empty-state-small">No prompt templates.</li>
+                  )}
+                </ul>
+              ) : (
+                <>
+                  {newChapter && <NewNodeForm onSubmit={async (file, t, id) => { await api.createChapter(path, file, t, id); setNewChapter(false); reload(); }} onCancel={() => setNewChapter(false)} />}
 
-              <ul class="tree">{renderTree(tree)}</ul>
-              {newSectionUnder && (
-                <NewNodeForm
-                  parent={newSectionUnder}
-                  onSubmit={async (file, t, id) => {
-                    await api.createSection(path, file, t, id, newSectionUnder);
-                    setNewSectionUnder(null);
-                    reload();
-                  }}
-                  onCancel={() => setNewSectionUnder(null)}
-                />
+                  <ul class="tree">{renderTree(tree)}</ul>
+                  {newSectionUnder && (
+                    <NewNodeForm
+                      parent={newSectionUnder}
+                      onSubmit={async (file, t, id) => {
+                        await api.createSection(path, file, t, id, newSectionUnder);
+                        setNewSectionUnder(null);
+                        reload();
+                      }}
+                      onCancel={() => setNewSectionUnder(null)}
+                    />
+                  )}
+                </>
               )}
             </>
           )}
@@ -488,7 +557,101 @@ export function BookDetail({ path, section, law, navigate, onSectionsChange, onO
         />
 
         <main class="detail">
-          {selected ? (
+          {isPromptMode ? (
+            selectedPromptID ? (() => {
+              const p = prompts.find((pr) => pr.ID === selectedPromptID);
+              if (!p) return <p class="empty-state"><MousePointer size={14} /> Prompt not found.</p>;
+              const rp = renderedPrompts[p.ID];
+              const goUsage = `book, _ := alaws.Load("${path}")
+prompt, _ := book.Prompt("${p.ID}")
+fmt.Println(prompt.Vars) // [${(p.Vars ?? []).map((v) => `"${v}"`).join(", ")}]
+text, _ := prompt.Render(alaws.PromptRenderOptions{
+    Vars: map[string]string{${(p.Vars ?? []).map((v) => `${v}: "..."`).join(", ")}},
+})`;
+              return (
+                <>
+                  <div class="detail-header">
+                    <h1>{p.Title}</h1>
+                  </div>
+                  <div class="section-id">{p.ID}</div>
+
+                  <div class="commentary" dangerouslySetInnerHTML={{ __html: rp?.CommentaryHTML ?? escapeHTML(p.Commentary) }} />
+
+                  <div class="prompt-template-section">
+                    <div class="prompt-template-header">
+                      <h3>Template</h3>
+                      <div class="prompt-display-toggle">
+                        <button class={`mode-toggle-btn ${promptDisplayExpanded ? "active" : ""}`} onClick={() => setPromptDisplayExpanded(true)}>Expanded</button>
+                        <button class={`mode-toggle-btn ${!promptDisplayExpanded ? "active" : ""}`} onClick={() => setPromptDisplayExpanded(false)}>Compact</button>
+                      </div>
+                    </div>
+                    <div class="prompt-template-content" dangerouslySetInnerHTML={{ __html: promptDisplayExpanded ? (rp?.TemplateHTML ?? escapeHTML(p.Template)) : (rp?.CompactHTML ?? "") }} />
+                  </div>
+
+                  {p.Vars && p.Vars.length > 0 && (
+                    <div class="prompt-vars-section">
+                      <h3>Variables</h3>
+                      <div class="prompt-vars-grid">
+                        {p.Vars.map((v) => (
+                          <div key={v} class="prompt-var-row">
+                            <label class="prompt-var-label">{v}</label>
+                            <input
+                              class="prompt-var-input"
+                              placeholder={v}
+                              value={promptVars[v] ?? ""}
+                              onInput={(e) => setPromptVars((prev) => ({ ...prev, [v]: (e.target as HTMLInputElement).value }))}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div class="prompt-preview-section">
+                    <h3>Preview</h3>
+                    <pre class="prompt-preview-content"><code>{promptPreview || "(fill in variables above)"}</code></pre>
+                  </div>
+
+                  <div class="prompt-go-usage">
+                    <h3>Go Usage</h3>
+                    <div class="source-modal-content" style="position:relative">
+                      <button class="icon-button" style="position:absolute;top:4px;right:4px" title="Copy" onClick={() => { navigator.clipboard.writeText(goUsage); setCopiedGoUsage(true); setTimeout(() => setCopiedGoUsage(false), 1500); }}>
+                        {copiedGoUsage ? <Check size={11} /> : <Copy size={11} />}
+                      </button>
+                      <pre><code>{goUsage}</code></pre>
+                    </div>
+                  </div>
+
+                  {p.ReferencedAnchors && p.ReferencedAnchors.length > 0 && (
+                    <div class="prompt-refs-section">
+                      <h3>References</h3>
+                      <ul class="prompt-refs-list">
+                        {p.ReferencedAnchors.map((anchor) => {
+                          const sec = sections.find((s) => s.ID === anchor || s.Laws?.some((l) => (l.SectionID + "." + l.Slug) === anchor));
+                          const label = sec ? (sec.ID === anchor ? `${sec.Number} ${sec.Title}` : anchor) : anchor;
+                          return (
+                            <li key={anchor}>
+                              <a class="alaws-link" onClick={() => {
+                                if (sec && sec.ID === anchor) {
+                                  setIsPromptMode(false);
+                                  navigate({ name: "book", path, section: anchor });
+                                } else if (sec) {
+                                  setIsPromptMode(false);
+                                  navigate({ name: "book", path, section: sec.ID, law: anchor.split(".").pop() });
+                                }
+                              }}>{label}</a>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                </>
+              );
+            })() : (
+              <p class="empty-state"><MousePointer size={14} /> Select a prompt template.</p>
+            )
+          ) : selected ? (
             <>
               <div class="detail-header">
                 <div class="detail-nav">
@@ -518,6 +681,21 @@ export function BookDetail({ path, section, law, navigate, onSectionsChange, onO
               </div>
               <div class="commentary" dangerouslySetInnerHTML={{ __html: highlightMatches(rendered[selected.ID]?.CommentaryHTML ?? escapeHTML(selected.Commentary), highlightQuery) }} />
 
+              {/* Backlinks: show which prompts reference this section */}
+              {promptBacklinks[selected.ID] && promptBacklinks[selected.ID].length > 0 && (
+                <div class="backlinks">
+                  <span class="backlinks-label">Used in prompts:</span>
+                  {promptBacklinks[selected.ID].map((pid) => {
+                    const pt = prompts.find((p) => p.ID === pid);
+                    return (
+                      <a key={pid} class="alaws-link" onClick={() => { setIsPromptMode(true); navigate({ name: "prompts", path, id: pid }); }}>
+                        {pt?.Title ?? pid}
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+
               {selected.Laws && selected.Laws.length > 0 ? (
                 <ol class="law-list">
                   {selected.Laws.map((law) => {
@@ -530,6 +708,24 @@ export function BookDetail({ path, section, law, navigate, onSectionsChange, onO
                           class="law-text"
                           dangerouslySetInnerHTML={{ __html: highlightMatches(rendered[selected.ID]?.LawHTML?.[law.Number] ?? escapeHTML(law.Text), highlightQuery) }}
                         />
+                        {/* Per-law backlinks */}
+                        {law.Slug && (() => {
+                          const lawAnchor = selected.ID + "." + law.Slug;
+                          const bl = promptBacklinks[lawAnchor];
+                          if (!bl || bl.length === 0) return null;
+                          return (
+                            <span class="law-backlinks">
+                              Used in: {bl.map((pid) => {
+                                const pt = prompts.find((p) => p.ID === pid);
+                                return (
+                                  <a key={pid} class="alaws-link" onClick={() => { setIsPromptMode(true); navigate({ name: "prompts", path, id: pid }); }}>
+                                    {pt?.Title ?? pid}
+                                  </a>
+                                );
+                              })}
+                            </span>
+                          );
+                        })()}
                         {author !== undefined && author !== "" && (
                           <span class="law-author">
                             <User size={10} /> {author}

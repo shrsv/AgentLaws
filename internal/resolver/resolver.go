@@ -21,19 +21,21 @@ type Kind int
 const (
 	KindLaw Kind = iota
 	KindSection
+	KindPrompt
 )
 
 // Resolved is the result of resolving one reference token.
 type Resolved struct {
 	Kind    Kind
-	Law     model.Law     // valid iff Kind == KindLaw
-	Section model.Section // valid iff Kind == KindSection
+	Law     model.Law           // valid iff Kind == KindLaw
+	Section model.Section       // valid iff Kind == KindSection
+	Prompt  model.PromptTemplate // valid iff Kind == KindPrompt
 }
 
 // AnchorFor returns the stable anchor string for a resolved reference.
 // For laws with a slug this is "<section-id>.<slug>"; for laws without a
 // slug it falls back to the citation number. For sections it is the
-// section ID.
+// section ID. For prompts it is the prompt ID.
 func AnchorFor(r Resolved) string {
 	switch r.Kind {
 	case KindLaw:
@@ -43,6 +45,8 @@ func AnchorFor(r Resolved) string {
 		return r.Law.Number
 	case KindSection:
 		return r.Section.ID
+	case KindPrompt:
+		return r.Prompt.ID
 	}
 	panic("unreachable")
 }
@@ -51,10 +55,16 @@ func AnchorFor(r Resolved) string {
 // addressing form AgentLaws supports. See docs/linking.md §2.1 for the full
 // specification and the rationale for this precedence order.
 func Resolve(book model.Lawbook, token string) (Resolved, error) {
-	// (a) Exact Section.ID match — highest precedence.
+	// (a) Exact Section.ID or Prompt.ID match — highest precedence.
+	// Prompts share the global ID namespace with sections.
 	for _, s := range book.Sections {
 		if s.ID == token {
 			return Resolved{Kind: KindSection, Section: s}, nil
+		}
+	}
+	for _, p := range book.Prompts {
+		if p.ID == token {
+			return Resolved{Kind: KindPrompt, Prompt: p}, nil
 		}
 	}
 
@@ -138,4 +148,36 @@ func ResolveSection(book model.Lawbook, id string) (model.Section, error) {
 		}
 	}
 	return model.Section{}, fmt.Errorf("%w: section %q", ErrNotFound, id)
+}
+
+// ResolvePrompt resolves a prompt ID to its PromptTemplate.
+func ResolvePrompt(book model.Lawbook, id string) (model.PromptTemplate, error) {
+	for _, p := range book.Prompts {
+		if p.ID == id {
+			return p, nil
+		}
+	}
+	return model.PromptTemplate{}, fmt.Errorf("%w: prompt %q", ErrNotFound, id)
+}
+
+// PromptDisplayText renders p's segments as Markdown, either fully expanded
+// (ref segments show their stitched-in text) or compact (ref segments show
+// an alaws: link to the original law/section/prompt instead). Used by
+// every renderer and the web UI so the "expanded vs IDs" choice has exactly
+// one implementation.
+func PromptDisplayText(p model.PromptTemplate, expanded bool) string {
+	var b strings.Builder
+	for _, seg := range p.Segments {
+		switch seg.Kind {
+		case model.SegmentText:
+			b.WriteString(seg.Text)
+		default:
+			if expanded {
+				b.WriteString(seg.Expanded)
+			} else {
+				fmt.Fprintf(&b, "[%s](alaws:%s)", seg.RefLabel, seg.RefAnchor)
+			}
+		}
+	}
+	return b.String()
 }
