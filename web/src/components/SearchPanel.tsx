@@ -11,6 +11,7 @@ interface Props {
   onQueryChange?: (query: string) => void;
   onClose: () => void;
   onNavigate: (sectionId: string) => void;
+  onNavigatePrompt?: (promptId: string) => void;
 }
 
 interface ScopeState {
@@ -19,7 +20,7 @@ interface ScopeState {
   expanded: Set<string>;
 }
 
-export function SearchPanel({ bookPath, sections, activeSectionID, initialQuery, onQueryChange, onClose, onNavigate }: Props) {
+export function SearchPanel({ bookPath, sections, activeSectionID, initialQuery, onQueryChange, onClose, onNavigate, onNavigatePrompt }: Props) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const [caseSensitive, setCaseSensitive] = useState(false);
   const [wholeWord, setWholeWord] = useState(false);
@@ -114,7 +115,7 @@ export function SearchPanel({ bookPath, sections, activeSectionID, initialQuery,
 
   useEffect(() => {
     if (query.trim()) doSearch(query);
-  }, [scope.mode, caseSensitive, wholeWord, regex]);
+  }, [scope.mode, caseSensitive, wholeWord, regex, sections]);
 
   const scopeCount = scope.mode === "all" ? sections.length : scope.selected.size;
   const totalCount = results?.length ?? 0;
@@ -229,14 +230,20 @@ export function SearchPanel({ bookPath, sections, activeSectionID, initialQuery,
               }}
             >
               <ChevronDown size={12} />
-              <span class="search-result-file-title">{g.sectionNumber} {g.sectionTitle}</span>
+              <span class="search-result-file-title">{g.isPrompt ? "📝 " : ""}{g.sectionNumber} {g.sectionTitle}</span>
               <span class="search-result-file-count">{g.matches.length}</span>
             </div>
             {g.matches.map((m, i) => (
               <div
                 key={`${g.sectionId}-${m.line}-${i}`}
                 class="search-result-item"
-                onClick={() => onNavigate(m.sectionId)}
+                onClick={() => {
+                  if (m.isPrompt && onNavigatePrompt) {
+                    onNavigatePrompt(m.sectionId);
+                  } else {
+                    onNavigate(m.sectionId);
+                  }
+                }}
               >
                 <span class="search-result-line">:{m.line}</span>
                 <div class="search-result-context">
@@ -347,6 +354,7 @@ interface GroupedResult {
   sectionId: string;
   sectionTitle: string;
   sectionNumber: string;
+  isPrompt: boolean;
   matches: SearchMatch[];
 }
 
@@ -355,7 +363,7 @@ function groupResults(matches: SearchMatch[]): GroupedResult[] {
   for (const m of matches) {
     let g = map.get(m.sectionId);
     if (!g) {
-      g = { sectionId: m.sectionId, sectionTitle: m.sectionTitle, sectionNumber: m.sectionNumber, matches: [] };
+      g = { sectionId: m.sectionId, sectionTitle: m.sectionTitle, sectionNumber: m.sectionNumber, isPrompt: !!m.isPrompt, matches: [] };
       map.set(m.sectionId, g);
     }
     g.matches.push(m);

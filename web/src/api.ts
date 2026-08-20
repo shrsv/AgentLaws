@@ -100,6 +100,7 @@ export interface SearchMatch {
   before: string;
   match: string;
   after: string;
+  isPrompt?: boolean;
 }
 
 export interface CompileResult {

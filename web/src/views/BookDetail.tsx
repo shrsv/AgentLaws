@@ -14,6 +14,7 @@ interface Props {
   law?: string | null;
   navigate: (r: Route) => void;
   onSectionsChange?: (sections: Section[]) => void;
+  onPromptsChange?: (prompts: PromptTemplate[]) => void;
   onOpenCommandPalette?: () => void;
   promptMode?: boolean;
   promptID?: string | null;
@@ -42,7 +43,7 @@ function buildTree(sections: Section[]): TreeNode[] {
   return roots;
 }
 
-export function BookDetail({ path, section, law, navigate, onSectionsChange, onOpenCommandPalette, promptMode, promptID }: Props) {
+export function BookDetail({ path, section, law, navigate, onSectionsChange, onPromptsChange, onOpenCommandPalette, promptMode, promptID }: Props) {
   const [title, setTitle] = useState("");
   const [sections, setSections] = useState<Section[]>([]);
   const [rendered, setRendered] = useState<Record<string, RenderedSection>>({});
@@ -92,6 +93,7 @@ export function BookDetail({ path, section, law, navigate, onSectionsChange, onO
         setRendered(r.rendered ?? {});
         setRenderedPrompts(r.renderedPrompts ?? {});
         setPrompts(r.lawbook.Prompts ?? []);
+        onPromptsChange?.(r.lawbook.Prompts ?? []);
         setPromptBacklinks(r.lawbook.PromptBacklinks ?? {});
         setDiagnostics(r.diagnostics ?? []);
         // Functional update: read current selection (the URL's section may
@@ -118,15 +120,19 @@ export function BookDetail({ path, section, law, navigate, onSectionsChange, onO
       setRendered(ev.rendered ?? {});
       setRenderedPrompts(ev.renderedPrompts ?? {});
       setPrompts(ev.lawbook.Prompts ?? []);
+      onPromptsChange?.(ev.lawbook.Prompts ?? []);
       setPromptBacklinks(ev.lawbook.PromptBacklinks ?? {});
       setDiagnostics(ev.diagnostics ?? []);
     });
     return stop;
   }, [path]);
 
-  // Clear parent sections on unmount
+  // Clear parent sections and prompts on unmount
   useEffect(() => {
-    return () => onSectionsChange?.([]);
+    return () => {
+      onSectionsChange?.([]);
+      onPromptsChange?.([]);
+    };
   }, []);
 
   // The URL carries the selected section (e.g. #/books/<book>/<section>), so
@@ -532,6 +538,7 @@ export function BookDetail({ path, section, law, navigate, onSectionsChange, onO
               onQueryChange={setSearchQuery}
               onClose={() => setShowSearch(false)}
               onNavigate={(id) => { setHighlightQuery(searchQuery); select(id); }}
+              onNavigatePrompt={(id) => { setHighlightQuery(searchQuery); selectPrompt(id); setShowSearch(false); }}
             />
           ) : (
             <>

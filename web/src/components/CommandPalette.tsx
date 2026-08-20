@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "preact/hooks";
-import { Search, BookOpen, Hash } from "lucide-preact";
+import { Search, BookOpen, Hash, Layers } from "lucide-preact";
 
 interface Item {
   id: string;
   label: string;
   detail: string;
-  icon: "book" | "section";
+  icon: "book" | "section" | "prompt";
   action: () => void;
 }
 
@@ -92,7 +92,9 @@ export function CommandPalette({ open, onClose, items }: Props) {
             >
               {it.icon === "book"
                 ? <BookOpen size={12} class="cmd-palette-item-icon" />
-                : <Hash size={12} class="cmd-palette-item-icon" />}
+                : it.icon === "prompt"
+                  ? <Layers size={12} class="cmd-palette-item-icon" />
+                  : <Hash size={12} class="cmd-palette-item-icon" />}
               <span class="cmd-palette-item-label">{it.label}</span>
               <span class="cmd-palette-item-detail">{it.detail}</span>
             </li>

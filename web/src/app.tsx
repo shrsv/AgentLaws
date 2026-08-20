@@ -1,7 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { Eye, EyeOff } from "lucide-preact";
 import "./app.css";
-import { api, type Section } from "./api";
+import { api, type Section, type PromptTemplate } from "./api";
 import { useRoute } from "./router";
 import { BookPicker } from "./views/BookPicker";
 import { BookDetail } from "./views/BookDetail";
@@ -17,6 +17,7 @@ export function App() {
   const [cmdOpen, setCmdOpen] = useState(false);
   const [books, setBooks] = useState<{ Path: string; Title: string }[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
+  const [prompts, setPrompts] = useState<PromptTemplate[]>([]);
 
   useEffect(() => {
     api.root().then((r) => setRoot(r.root)).catch(() => {});
@@ -87,7 +88,7 @@ export function App() {
       icon: "book" as const,
       action: () => navigate({ name: "book", path: b.Path }),
     })),
-    ...(route.name === "book"
+    ...((route.name === "book" || route.name === "prompts")
       ? sections.map((s) => ({
           id: `section:${s.ID}`,
           label: `${s.Number} ${s.Title}`,
@@ -96,14 +97,23 @@ export function App() {
           action: () => navigate({ name: "book", path: route.path, section: s.ID }),
         }))
       : []),
+    ...((route.name === "book" || route.name === "prompts")
+      ? prompts.map((p) => ({
+          id: `prompt:${p.ID}`,
+          label: p.Title,
+          detail: p.ID,
+          icon: "prompt" as const,
+          action: () => navigate({ name: "prompts", path: route.path, id: p.ID }),
+        }))
+      : []),
   ];
 
   return (
     <div class="app-shell">
       <div class="app-body">
         {route.name === "books" && <BookPicker navigate={navigate} />}
-        {route.name === "book" && <BookDetail path={route.path} section={route.section ?? null} law={route.law ?? null} navigate={navigate} onSectionsChange={setSections} onOpenCommandPalette={() => setCmdOpen(true)} />}
-        {route.name === "prompts" && <BookDetail path={route.path} section={null} navigate={navigate} onSectionsChange={setSections} onOpenCommandPalette={() => setCmdOpen(true)} promptMode={true} promptID={route.id ?? null} />}
+        {route.name === "book" && <BookDetail path={route.path} section={route.section ?? null} law={route.law ?? null} navigate={navigate} onSectionsChange={setSections} onPromptsChange={setPrompts} onOpenCommandPalette={() => setCmdOpen(true)} />}
+        {route.name === "prompts" && <BookDetail path={route.path} section={null} navigate={navigate} onSectionsChange={setSections} onPromptsChange={setPrompts} onOpenCommandPalette={() => setCmdOpen(true)} promptMode={true} promptID={route.id ?? null} />}
         {route.name === "playground" && <Playground path={route.path} navigate={navigate} />}
       </div>
 

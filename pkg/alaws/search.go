@@ -20,6 +20,7 @@ type SearchMatch struct {
 	Before       string `json:"before"`    // context line before the match
 	Match        string `json:"match"`     // the matching line
 	After        string `json:"after"`     // context line after the match
+	IsPrompt     bool   `json:"isPrompt,omitempty"` // true when the match is in a prompt template
 }
 
 // SearchOpts configures a search over a compiled Lawbook.
@@ -31,10 +32,12 @@ type SearchOpts struct {
 }
 
 // Search compiles the book at path and returns every line that matches q
-// according to opts. The search covers section titles, commentary, and law
-// text. It returns results even when the book has compilation errors, so
-// partial/broken books can still be searched.
+// according to opts. The search covers section titles, commentary, law
+// text, and prompt template titles, commentary, and body. It returns
+// results even when the book has compilation errors, so partial/broken
+// books can still be searched.
 func Search(path, q string, opts SearchOpts) ([]SearchMatch, error) {
+	q = strings.TrimSpace(q)
 	if q == "" {
 		return nil, fmt.Errorf("query is required")
 	}
@@ -113,6 +116,12 @@ func Search(path, q string, opts SearchOpts) ([]SearchMatch, error) {
 			continue
 		}
 		results = searchSection(sec, matcher, results)
+	}
+	for _, pt := range lb.Prompts {
+		if len(scopeSet) > 0 && !scopeSet[pt.ID] {
+			continue
+		}
+		results = searchPrompt(pt, matcher, results)
 	}
 	return results, nil
 }
@@ -199,6 +208,97 @@ func searchSection(sec model.Section, matcher func(string) []int, results []Sear
 			}
 		}
 	}
+	return results
+}
+
+func searchPrompt(pt model.PromptTemplate, matcher func(string) []int, results []SearchMatch) []SearchMatch {
+	baseLine := pt.Source.LineStart
+
+	titleHits := matcher(pt.Title)
+	if len(titleHits) > 0 {
+		afterLine := ""
+		if pt.Commentary != "" {
+			lines := strings.Split(pt.Commentary, "\n")
+			afterLine = lines[0]
+		}
+		for range titleHits {
+			results = append(results, SearchMatch{
+				SectionID:    pt.ID,
+				SectionTitle: pt.Title,
+				SectionNum:   "",
+				SourcePath:   pt.Source.Path,
+				LawIndex:     -1,
+				Line:         baseLine,
+				Before:       "",
+				Match:        pt.Title,
+				After:        afterLine,
+				IsPrompt:     true,
+			})
+		}
+	}
+
+	if pt.Commentary != "" {
+		lines := strings.Split(pt.Commentary, "\n")
+		for i, line := range lines {
+			if len(matcher(line)) == 0 {
+				continue
+			}
+			before := ""
+			if i > 0 {
+				before = lines[i-1]
+			}
+			after := ""
+			if i < len(lines)-1 {
+				after = lines[i+1]
+			}
+			for range matcher(line) {
+				results = append(results, SearchMatch{
+					SectionID:    pt.ID,
+					SectionTitle: pt.Title,
+					SectionNum:   "",
+					SourcePath:   pt.Source.Path,
+					LawIndex:     -1,
+					Line:         baseLine + i + 1,
+					Before:       before,
+					Match:        line,
+					After:        after,
+					IsPrompt:     true,
+				})
+			}
+		}
+	}
+
+	if pt.Template != "" {
+		lines := strings.Split(pt.Template, "\n")
+		for i, line := range lines {
+			if len(matcher(line)) == 0 {
+				continue
+			}
+			before := ""
+			if i > 0 {
+				before = lines[i-1]
+			}
+			after := ""
+			if i < len(lines)-1 {
+				after = lines[i+1]
+			}
+			for range matcher(line) {
+				results = append(results, SearchMatch{
+					SectionID:    pt.ID,
+					SectionTitle: pt.Title,
+					SectionNum:   "",
+					SourcePath:   pt.Source.Path,
+					LawIndex:     -1,
+					Line:         baseLine + i + 1,
+					Before:       before,
+					Match:        line,
+					After:        after,
+					IsPrompt:     true,
+				})
+			}
+		}
+	}
+
 	return results
 }
 
