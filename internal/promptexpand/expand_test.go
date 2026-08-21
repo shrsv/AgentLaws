@@ -108,7 +108,41 @@ func TestExpand_SectionRef(t *testing.T) {
 	if pt.Segments[1].RefLabel != "1 Coding" {
 		t.Errorf("seg[1].RefLabel: got %q", pt.Segments[1].RefLabel)
 	}
-	// Section expansion should include both laws
+	// Section expansion should include title and both laws
+	expanded := pt.Segments[1].Expanded
+	if expanded != "1 Coding:\n\n1.1 Run tests before proposing a change.\n\n1.2 Generated code must be reviewed." {
+		t.Errorf("seg[1].Expanded: got %q", expanded)
+	}
+}
+
+func TestExpand_SectionRef_NoTitle(t *testing.T) {
+	book := bookFixture()
+	raw := []parser.ParsedPrompt{
+		{
+			ID:          "test.prompt",
+			Title:       "Test Prompt",
+			Commentary:  "A test prompt.",
+			RawTemplate: "Apply:\n{{ref:engineering.coding#notitle}}",
+			Source:      model.SourceRef{Path: "test.md"},
+		},
+	}
+
+	prompts, _, diags := Expand(book, raw)
+	if validator.HasErrors(diags) {
+		t.Fatalf("unexpected errors: %v", diags)
+	}
+	if len(prompts) != 1 {
+		t.Fatalf("got %d prompts, want 1", len(prompts))
+	}
+
+	pt := prompts[0]
+	if len(pt.Segments) != 2 {
+		t.Fatalf("got %d segments, want 2", len(pt.Segments))
+	}
+	if pt.Segments[1].Kind != model.SegmentSectionRef {
+		t.Errorf("seg[1].Kind: got %v, want SegmentSectionRef", pt.Segments[1].Kind)
+	}
+	// #notitle: no title line, just laws
 	expanded := pt.Segments[1].Expanded
 	if expanded != "1.1 Run tests before proposing a change.\n\n1.2 Generated code must be reviewed." {
 		t.Errorf("seg[1].Expanded: got %q", expanded)

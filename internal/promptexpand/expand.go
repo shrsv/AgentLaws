@@ -180,8 +180,16 @@ func (e *expander) expandOne(id string, visiting map[string]bool) (*model.Prompt
 
 // resolveRef resolves a single {{ref:token}} and returns the expanded segment.
 func (e *expander) resolveRef(token string, src model.SourceRef, visiting map[string]bool) (model.PromptSegment, string, []validator.Diagnostic) {
+	// Parse modifiers: {{ref:id#notitle}} suppresses the section title line.
+	resolveToken := token
+	showTitle := true
+	if idx := strings.LastIndex(token, "#notitle"); idx >= 0 {
+		resolveToken = token[:idx]
+		showTitle = false
+	}
+
 	// First try resolver for laws/sections
-	r, err := resolver.Resolve(e.book, token)
+	r, err := resolver.Resolve(e.book, resolveToken)
 	if err == nil {
 		switch r.Kind {
 		case resolver.KindLaw:
@@ -200,6 +208,9 @@ func (e *expander) resolveRef(token string, src model.SourceRef, visiting map[st
 		case resolver.KindSection:
 			sec := r.Section
 			var lines []string
+			if showTitle {
+				lines = append(lines, sec.Number+" "+sec.Title+":")
+			}
 			for _, law := range sec.Laws {
 				lines = append(lines, law.Number+" "+law.Text)
 			}
