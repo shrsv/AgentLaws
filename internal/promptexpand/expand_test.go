@@ -110,7 +110,7 @@ func TestExpand_SectionRef(t *testing.T) {
 	}
 	// Section expansion should include both laws
 	expanded := pt.Segments[1].Expanded
-	if expanded != "1.1 Run tests before proposing a change.\n1.2 Generated code must be reviewed." {
+	if expanded != "1.1 Run tests before proposing a change.\n\n1.2 Generated code must be reviewed." {
 		t.Errorf("seg[1].Expanded: got %q", expanded)
 	}
 }

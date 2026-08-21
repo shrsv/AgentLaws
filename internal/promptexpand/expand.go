@@ -203,7 +203,7 @@ func (e *expander) resolveRef(token string, src model.SourceRef, visiting map[st
 			for _, law := range sec.Laws {
 				lines = append(lines, law.Number+" "+law.Text)
 			}
-			expanded := strings.Join(lines, "\n")
+			expanded := strings.Join(lines, "\n\n")
 			anchor := resolver.AnchorFor(r)
 			label := sec.Number + " " + sec.Title
 			return model.PromptSegment{
